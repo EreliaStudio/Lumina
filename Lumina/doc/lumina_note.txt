@@ -1,0 +1,135 @@
+int main()
+{
+	std::wstring pipelineCode = LR"(
+//General idea :
+//	Pipeline represent a rendering program, who work with "object", who will represent a group of data buffer, uniform blocks and sampler 2D.
+//	Each object have its own data buffer, it's owner uniform block, and share the sampler 2D and some uniform block with other object of the
+//	same pipeline and other object of other pipeline
+//	
+//	We need to be able to handle simple render, using a method inside the object, and to handle the instanciated render, using a second method
+
+//Definition : Allow inclusion of predefined code
+//Note : Uppon include, must simply "paste" the content of the include directly inside the file, at top, and respecting the order.
+//		 Includes can contain include too -> expend every include possible
+//		 Predefined includes inside sparkle directly, hardcoded
+#include <myInclude>
+//Definition : Allow inclusion of code contained inside user provided file
+//Note : Should be able to raise error if file not found. 
+//		 If file is not .lum, quid ? -> probably okay to include file without having to look for specific extension
+#include "pipeline/myCustomInclude.lum"
+
+//Definition of an input variable, from the user to the VertexPass
+//		we will name this section "Pipeline flow"
+//Note : Possible elements
+//			- Input
+//			- VertexPass
+//			- FragmentPass
+//		 Impossible pass :
+//			- Input to FragmentPass
+//			- VertexPass to Input
+//			- FragmentPass to Input
+//			- FragmentPass to VertexPass
+Input -> VertexPass : type variableNameA;
+VertexPass -> FragmentPass : type variableNameB;
+
+//Definition of a namespace, as in C++
+//Note : Will simply act as a "prefix" before every function, structure, uniform block etc
+//		 Once compiled, a structure named MyStruct contained inside a namespace MyNamespace will be named MyNamespace_MyStruct
+//		 To use the structure MyStruct, the user will have to write, in lumina, MyNamespace::MyStruct
+//		 Namespace must be able to contain another namespace, adding it's prefix to it's content
+namespace ScopeA
+{
+}
+
+//Definition of a custom structure, who will regroup a set of variables
+//Note : Struct can contain variable of another struct, given they respect code order (can't insert a structure describe later in the code)
+struct MyStruct
+{
+	type variableStructA;
+	type variableStructB;
+	type variableStructC;
+};
+
+//Definition of attribute block, who will contain information shared by every triangle of a single call
+//Note : The AttributeBlock is a uniform block standard, who will be create for each "object" of the pipeline
+//		 AttributeBlock are not shared by objects from the same pipeline
+//		 AttributeBlock can contain struct
+AttributeBlock pushConstants
+{
+	type variableNameC;
+};
+
+//Definition of a constant block, who will contain information shared by every triangle of every call.
+//Note : The ConstantBlock is a uniform block standard, who will be created and stored by the Pipeline directly, and will be
+//		 shared between every pipeline, even on different opengl context, but inside the same executable
+ConstantBlock constants
+{
+	type variableNameD;
+};
+
+//Description of Sampler2D.
+//Note : Texture is a definition of the sampler2D of opengl, and only the sampler2D
+//		 We must create, for texture, a structure "TextureAttribute", hidden from the user, to add in addition with the sampler2D of glsl
+//		 Texture is suppose to be concidered as a "struct" and must "emulate" the methods :
+//		 - int myTexture.size.width -> represent the width in pixel of the texture
+//		 - int myTexture.size.height -> represent the height in pixel of the texture
+//		 - vec2 myTexture.convertUVToPixel(ivec2 pixelCoord) -> convert a coordinate as pixels into a UV coordinate
+//		 - ivec2 myTexture.convertUVToPixel(vec2 uvCoord) -> convert a coordinate as UVs into a pixel coordinate
+//		 - Color myTexture.pixel(vec2 coord) -> request a pixel at coordinate "coord" expressed between 0 and 1
+//		 - Color myTexture.fetch(ivec2 coord) -> request a pixel at coordinate "coord" express between [0 / 0] and [width / height]
+//		 As the texture will be concidered as a structure, we must allow user to name a texture as "texture" and other native opengl function
+Texture myTexture;
+
+//Creation of a new function, names [functionName], returning a [returnType], and taking as input a [type]
+//Note : Function name must be checked during compilation, to verify double definition
+//		 Function can be declared as prototype, as in C for exemple
+returnType functionName(type inputVariableNameA)
+{
+	returnType result;
+
+	return (result);
+}
+
+//Definition : Describe the vertex pass, who will be responsible to fill the value "pixelPosition" and pass the value to the
+//			   fragment pass as defined inside the pipeline flow
+//Note : VertexPass is a key word of Lumina, and will represent the code to execute upon vertex shader pass of the pipeline.
+//		 It MUST be describe inside each lumina pipeline code
+//		 The goal of the VertexPass is to define the variable pixelPosition, who is an already defined variable, as vec4, who
+//		 represent the position on screen of the desired geometry
+VertexPass()
+{
+	vec4 finalPixelPosition = vec4(0, 0, 0, 1);
+
+	//Definition of a value with a constructor like in glsl
+	variableNameB = type(10);
+
+	if (variableNameB == 5)
+	{
+		//raiseException is a build-in function that will raise an error, who will throw an exception inside your program with the desired error message
+		//The exception raised will be a spk::PipelineException, and will contain the line and function who raised the exception in addition of the string passed as parameter to raiseException
+		raiseException("Custom pipeline failed with variable B == " + variableNameB + "!");
+	}
+
+	//pixelPosition is a key word of Lumina, who will describe the pixel on screen to edit, express between -1 and 1 on both axis.
+	//Its type is vec4
+	pixelPosition = finalPixelPosition;
+}
+
+//Definition : Describe the fragment pass, who will be responsible to fill the value "pixelColor"
+//Note : FragmentPass is a key word of Lumina, and will represent the code to execute upon fragment shader pass of the pipeline.
+//		 It MUST be describe inside each lumina pipeline code
+//		 The goal of the FragmentPass is to define the variable pixelColor, who is an already defined variable, as vec4, who
+//		 represent the color of a specific pixel of the screen.
+//		 It receive data as defined inside the pipeline flow
+FragmentPass()
+{
+	vec4 finalPixelColor = vec4(0, 1, 0, 1);
+
+	//pixelColor is a key word of Lumina, who will describe the pixel color on screen to edit, express between 0 and 1 on both axis.
+	//Its type is vec4
+	pixelColor = finalPixelColor;
+}
+)";
+
+	return (0);
+}
