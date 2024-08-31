@@ -319,12 +319,6 @@ namespace Lumina
 		vector4Type.attributes.push_back({ type("float"), "w", 1 });
 		vector4Type.attributes.push_back({ type("Vector2"), "xy", 1 });
 		vector4Type.attributes.push_back({ type("Vector3"), "xyz", 1 });
-		vector4Type.attributes.push_back({ type("float"), "r", 1 });
-		vector4Type.attributes.push_back({ type("float"), "g", 1 });
-		vector4Type.attributes.push_back({ type("float"), "b", 1 });
-		vector4Type.attributes.push_back({ type("float"), "a", 1 });
-		vector4Type.attributes.push_back({ type("Vector3"), "rgb", 1 });
-		vector4Type.attributes.push_back({ type("Vector3"), "rgba", 1 });
 		vector4Type.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
 		vector4Type.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
 		vector4Type.constructors = {
@@ -347,12 +341,6 @@ namespace Lumina
 		vector4IntType.attributes.push_back({ type("int"), "w", 1 });
 		vector4IntType.attributes.push_back({ type("Vector2Int"), "xy", 1 });
 		vector4IntType.attributes.push_back({ type("Vector3Int"), "xyz", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "r", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "g", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "b", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "a", 1 });
-		vector4IntType.attributes.push_back({ type("Vector3Int"), "rgb", 1 });
-		vector4IntType.attributes.push_back({ type("Vector3Int"), "rgba", 1 });
 		vector4IntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
 		vector4IntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
 		vector4IntType.constructors = {
@@ -375,12 +363,6 @@ namespace Lumina
 		vector4UIntType.attributes.push_back({ type("uint"), "w", 1 });
 		vector4UIntType.attributes.push_back({ type("Vector2UInt"), "xy", 1 });
 		vector4UIntType.attributes.push_back({ type("Vector3UInt"), "xyz", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "r", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "g", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "b", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "a", 1 });
-		vector4UIntType.attributes.push_back({ type("Vector3UInt"), "rgb", 1 });
-		vector4UIntType.attributes.push_back({ type("Vector3UInt"), "rgba", 1 });
 		vector4UIntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
 		vector4UIntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
 		vector4UIntType.constructors = {
@@ -393,6 +375,28 @@ namespace Lumina
 			{type("uint"), type("uint"), type("Vector2UInt")}
 		};
 		addStandardType(vector4UIntType);
+
+		// Vector4 type
+		Type colorType;
+		colorType.name = "Color";
+		colorType.attributes.push_back({ type("float"), "r", 1 });
+		colorType.attributes.push_back({ type("float"), "g", 1 });
+		colorType.attributes.push_back({ type("float"), "b", 1 });
+		colorType.attributes.push_back({ type("float"), "a", 1 });
+		colorType.attributes.push_back({ type("Vector3"), "rgb", 1 });
+		colorType.attributes.push_back({ type("Vector3"), "rgba", 1 });
+		colorType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
+		colorType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
+		colorType.constructors = {
+			{type("float"), type("float"), type("float"), type("float")},
+			{type("Vector3"), type("float")},
+			{type("float"), type("Vector3")},
+			{type("Vector2"), type("Vector2")},
+			{type("float"), type("Vector2"), type("float")},
+			{type("Vector2"), type("float"), type("float")},
+			{type("float"), type("float"), type("Vector2")}
+		};
+		addStandardType(colorType);
 
 		// Accepted type conversions (unchanged)
 		type("int")->acceptedConversions = { type("float"), type("uint") };
@@ -408,7 +412,8 @@ namespace Lumina
 		type("Vector3Int")->acceptedConversions = { type("Vector3"), type("Vector3UInt") };
 		type("Vector3UInt")->acceptedConversions = { type("Vector3"), type("Vector3Int") };
 
-		type("Vector4")->acceptedConversions = { type("Vector4Int"), type("Vector4UInt") };
+		type("Color")->acceptedConversions = { type("Vector4") };
+		type("Vector4")->acceptedConversions = { type("Vector4Int"), type("Vector4UInt"), type("Color") };
 		type("Vector4Int")->acceptedConversions = { type("Vector4"), type("Vector4UInt") };
 		type("Vector4UInt")->acceptedConversions = { type("Vector4"), type("Vector4Int") };
 	}
