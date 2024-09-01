@@ -22,6 +22,17 @@ namespace Lumina
 		struct Result
 		{
 			std::vector<TokenBasedError> errors;
+
+			struct ShaderSection
+			{
+				std::string layout;
+				std::string constant;
+				std::string attribute;
+				std::string vertexShader;
+				std::string fragmentShader;
+			};
+
+			ShaderSection sections;
 		};
 
 		struct Type
@@ -147,6 +158,14 @@ namespace Lumina
 		void checkSymbolBodyInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolBodyInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables, Type* returnType);
 		
 		void checkNamespaceInstruction(const std::filesystem::path& p_file, const std::shared_ptr<NamespaceInstruction>& p_instruction);
+
+		void compilePipelineFlowInstruction(const std::shared_ptr<PipelineFlowInstruction>& p_instruction);
+		void compileStructureInstruction(const std::shared_ptr<StructureBlockInstruction>& p_instruction);
+		void compileAttributeInstruction(const std::shared_ptr<AttributeBlockInstruction>& p_instruction);
+		void compileConstantInstruction(const std::shared_ptr<ConstantBlockInstruction>& p_instruction);
+		void compileTextureInstruction(const std::shared_ptr<TextureInstruction>& p_instruction);
+		void compileSymbolInstruction(const std::shared_ptr<SymbolInstruction>& p_instruction);
+		void compilePipelineBodyInstruction(const std::shared_ptr<PipelineBodyInstruction>& p_instruction);
 
 		Result check(const std::filesystem::path& p_file, std::vector<std::shared_ptr<AbstractInstruction>>& p_instructions);
 	};

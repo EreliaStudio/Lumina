@@ -55,4 +55,9 @@ namespace Lumina
 
 		addStructure(newStructure);
 	}
+
+	void SemanticChecker::compileStructureInstruction(const std::shared_ptr<StructureBlockInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }

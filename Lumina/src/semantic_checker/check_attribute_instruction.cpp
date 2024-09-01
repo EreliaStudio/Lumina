@@ -57,4 +57,9 @@ namespace Lumina
 
 		addAttribute(newAttribute);
 	}
+
+	void SemanticChecker::compileAttributeInstruction(const std::shared_ptr<AttributeBlockInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }

@@ -13,4 +13,9 @@ namespace Lumina
 
 		_textures.insert(namespacePrefix + p_instruction->name.content);
 	}
+
+	void SemanticChecker::compileTextureInstruction(const std::shared_ptr<TextureInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }

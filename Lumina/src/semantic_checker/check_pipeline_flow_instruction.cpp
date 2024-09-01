@@ -47,4 +47,9 @@ namespace Lumina
 		if (targetSecond != nullptr)
 			(*targetSecond)[p_instruction->name.content] = tmpType;
 	}
+
+	void SemanticChecker::compilePipelineFlowInstruction(const std::shared_ptr<PipelineFlowInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }

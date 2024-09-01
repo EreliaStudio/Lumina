@@ -19,26 +19,31 @@ namespace Lumina
 				case Instruction::Type::StructureBlock:
 				{
 					checkStructureInstruction(p_file, static_pointer_cast<StructureBlockInstruction>(instruction));
+					compileStructureInstruction(static_pointer_cast<StructureBlockInstruction>(instruction));
 					break;
 				}
 				case Instruction::Type::AttributeBlock:
 				{
 					checkAttributeInstruction(p_file, static_pointer_cast<AttributeBlockInstruction>(instruction));
+					compileAttributeInstruction(static_pointer_cast<AttributeBlockInstruction>(instruction));
 					break;
 				}
 				case Instruction::Type::ConstantBlock:
 				{
 					checkConstantInstruction(p_file, static_pointer_cast<ConstantBlockInstruction>(instruction));
+					compileConstantInstruction(static_pointer_cast<ConstantBlockInstruction>(instruction));
 					break;
 				}
 				case Instruction::Type::Texture:
 				{
 					checkTextureInstruction(p_file, static_pointer_cast<TextureInstruction>(instruction));
+					compileTextureInstruction(static_pointer_cast<TextureInstruction>(instruction));
 					break;
 				}
 				case Instruction::Type::Symbol:
 				{
 					checkSymbolInstruction(p_file, static_pointer_cast<SymbolInstruction>(instruction));
+					compileSymbolInstruction(static_pointer_cast<SymbolInstruction>(instruction));
 					break;
 				}
 				case Instruction::Type::Namespace:

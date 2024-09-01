@@ -97,4 +97,9 @@ namespace Lumina
 
 		checkSymbolBodyInstruction(p_file, p_instruction->body, functionVariables, newSymbol.returnType);
 	}
+
+	void SemanticChecker::compileSymbolInstruction(const std::shared_ptr<SymbolInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }

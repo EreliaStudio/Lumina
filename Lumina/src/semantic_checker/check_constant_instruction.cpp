@@ -58,4 +58,9 @@ namespace Lumina
 
 		addConstant(newConstant);
 	}
+
+	void SemanticChecker::compileConstantInstruction(const std::shared_ptr<ConstantBlockInstruction>& p_instruction)
+	{
+		// Implementation goes here
+	}
 }
