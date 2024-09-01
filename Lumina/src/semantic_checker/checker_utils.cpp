@@ -2,6 +2,7 @@
 
 namespace Lumina
 {
+
 	std::string SemanticChecker::createNamespacePrefix() const
 	{
 		std::string result = "";
@@ -68,6 +69,16 @@ namespace Lumina
 		}
 
 		return nullptr;
+	}
+
+	SemanticChecker::Type* SemanticChecker::type(const std::vector<Token>& p_tokens)
+	{
+		std::string typeName = "";
+		for (const auto& token : p_tokens)
+		{
+			typeName += token.content;
+		}
+		return (type(typeName));
 	}
 
 	SemanticChecker::Type* SemanticChecker::standardType(const std::string& p_standardTypeName)

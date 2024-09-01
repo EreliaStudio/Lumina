@@ -96,6 +96,9 @@ namespace Lumina
 		bool _fragmentParsed = false;
 		std::unordered_map<std::string, Type*> _fragmentPassVariables;
 
+		size_t _nbVertexPassLayout = 0;
+		size_t _nbFragmentPassLayout = 0;
+
 	public:
 		static Result checkSemantic(const std::filesystem::path& p_file, std::vector<std::shared_ptr<AbstractInstruction>>& p_instructions);
 
@@ -112,6 +115,7 @@ namespace Lumina
 		void addConstant(const Type& p_constant);
 
 		Type* type(const std::string& p_typeName);
+		Type* type(const std::vector<Token>& p_tokens);
 		Type* standardType(const std::string& p_standardTypeName);
 		Type* structure(const std::string& p_structureName);
 		Type* attribute(const std::string& p_attributeName);

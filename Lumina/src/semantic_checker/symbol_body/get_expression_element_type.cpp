@@ -9,14 +9,25 @@ namespace Lumina
 
 	SemanticChecker::Type* SemanticChecker::getVariableExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables)
 	{
-		if (p_variables.contains(p_instruction->tokens[0].content) == false)
+		size_t index = 1; 
+		std::string variableName = p_instruction->tokens[0].content;
+
+		while (p_instruction->tokens.size() >= index + 1 && p_instruction->tokens[index].type == Token::Type::NamespaceSeparator)
 		{
-			throw TokenBasedError(p_file, "Variable [" + p_instruction->tokens[0].content + "] Doesn't exist." + DEBUG_INFORMATION, p_instruction->tokens[0]);
+			if (index != 0)
+				variableName += "::";
+			variableName += p_instruction->tokens[index + 1].content;
+			index += 2;
 		}
 
-		Type* result = p_variables.at(p_instruction->tokens[0].content);
+		if (p_variables.contains(variableName) == false)
+		{
+			throw TokenBasedError(p_file, "Variable [" + variableName + "] Doesn't exist." + DEBUG_INFORMATION, p_instruction->tokens[0]);
+		}
 
-		for (size_t i = 1; i < p_instruction->tokens.size(); i++)
+		Type* result = p_variables.at(variableName);
+
+		for (size_t i = index; i < p_instruction->tokens.size(); i++)
 		{
 			std::string expectedAttributeName = p_instruction->tokens[i].content;
 			const auto& it = std::find_if(result->attributes.begin(), result->attributes.end(), [expectedAttributeName](const Type::Attribute& p_attribute) {

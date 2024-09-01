@@ -1,9 +1,12 @@
 Input -> VertexPass: Vector2 vertexPosition;
 
+namespace Model
+{
 AttributeBlock modelAttributes
 {
     Color solidColor;
 };
+}
 
 VertexPass()
 {
@@ -12,5 +15,5 @@ VertexPass()
 
 FragmentPass()
 {
-    pixelColor = modelAttributes.solidColor;
+    pixelColor = Model::modelAttributes.solidColor;
 }

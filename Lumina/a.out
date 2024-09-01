@@ -1,10 +1,13 @@
 ## LAYOUTS DEFINITION ##
+0 2 5126
 
 ## CONSTANTS DEFINITION ##
 
 ## ATTRIBUTES DEFINITION ##
-
+layout(attribute) uniform Model::modelAttributes{Color solidColor];
+}
 ## VERTEX SHADER CODE ##
+layout(location = 0) in vec2 vertexPosition;
 
 ## FRAGMENT SHADER CODE ##
 

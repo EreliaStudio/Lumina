@@ -60,6 +60,23 @@ namespace Lumina
 
 	void SemanticChecker::compileAttributeInstruction(const std::shared_ptr<AttributeBlockInstruction>& p_instruction)
 	{
-		// Implementation goes here
+		std::string namespacePrefix = createNamespacePrefix();
+
+		std::string typeName = namespacePrefix + p_instruction->name.content;
+
+		std::string typeContent = "";
+		std::string AttributeContent = "";
+
+		for (const auto& element : p_instruction->elements)
+		{
+			Type* elementType = type(element->type->tokens);
+
+			typeContent += elementType->name + " " + element->name.content;
+			if (element->nbElement > 1)
+				typeContent += "[" + std::to_string(element->nbElement) + "]";
+			typeContent += ";\n";
+		}
+
+		_result.sections.attribute += "layout(attribute) uniform " + typeName + "{" + typeContent + "}";
 	}
 }
