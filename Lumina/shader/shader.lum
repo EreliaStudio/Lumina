@@ -18,5 +18,5 @@ VertexPass()
 FragmentPass()
 {
     Vector2 tmpUv = fragmentUV;
-    pixelColor = getPixel(texture, tmpUv);
+    pixelColor = getPixel(texture, Vector2(tmpUv.x, tmpUv.y));
 }

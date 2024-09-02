@@ -32,7 +32,7 @@ layout(attribute) uniform propertiesType {
 
 
 void main(){
-    pixelPosition = Vector4(modelPosition, 0.0, 1.0);
+    pixelPosition = vec4(modelPosition, 0.0, 1.0);
     fragmentUV = modelUV;
 }
 
@@ -46,7 +46,7 @@ layout(attribute) uniform propertiesType {
 
 sampler2D texture;
 void main(){
-    Vector2 tmpUv = fragmentUV;
-    pixelColor = getPixel(texture, tmpUv);
+    vec2 tmpUv = fragmentUV;
+    pixelColor = getPixel(texture, vec2(tmpUv.x, tmpUv.y));
 }
 

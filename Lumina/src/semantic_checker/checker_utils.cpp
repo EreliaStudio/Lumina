@@ -1,10 +1,26 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::Result::ShaderSection::_applyConversion(std::string& p_stringToConvert)
 	{
-		
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector2\b)"), "vec2");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector2Int\b)"), "ivec2");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector2UInt\b)"), "uvec2");
+
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector3\b)"), "vec3");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector3Int\b)"), "ivec3");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector3UInt\b)"), "uvec3");
+
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector4\b)"), "vec4");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector4Int\b)"), "ivec4");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector4UInt\b)"), "uvec4");
+
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Matrix4x4\b)"), "mat4");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Matrix3x3\b)"), "mat3");
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Matrix2x2\b)"), "mat2");
 	}
 
 	void SemanticChecker::Result::ShaderSection::convertLuminaToGLSL()
