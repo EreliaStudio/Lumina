@@ -32,7 +32,7 @@ namespace Lumina
 			}
 		}
 
-		if (p_expectedType != symbolReturnType && p_expectedType->acceptedConversions.contains(symbolReturnType) == false)
+		if (p_expectedType != nullptr && p_expectedType != symbolReturnType && p_expectedType->acceptedConversions.contains(symbolReturnType) == false)
 		{
 			throw TokenBasedError(p_file, "No convertion from type [" + symbolReturnType->name + "] to expected type [" + p_expectedType->name + "]" + DEBUG_INFORMATION, nameToken);
 		}

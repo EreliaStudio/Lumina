@@ -244,6 +244,10 @@ namespace Lumina
 			});
 
 		addStandardType({
+			.name = "Texture"
+			});
+
+		addStandardType({
 			.name = "bool",
 			.cpuSize = sizeof(bool),
 			.gpuSize = 1,
@@ -729,6 +733,7 @@ namespace Lumina
 			}
 			});
 
+
 		// Accepted type conversions (unchanged)
 		type("int")->acceptedConversions = { type("float"), type("uint") };
 		type("float")->acceptedConversions = { type("int"), type("uint") };
@@ -783,8 +788,6 @@ namespace Lumina
 		type("Vector4")->acceptedConversions.insert(type("Matrix4x4"));
 	}
 
-
-	
 	void SemanticChecker::setupSymbols()
 	{
 		_symbols["mix"].push_back(
@@ -1221,6 +1224,16 @@ namespace Lumina
 				"inverse",
 				{
 					{"m", type("Matrix4x4")}
+				}
+			});
+
+		_symbols["getPixel"].push_back(
+			{
+				type("Vector4"),
+				"getPixel",
+				{
+					{"texture", type("Texture")},
+					{"uv", type("Vector2")}
 				}
 			});
 	}

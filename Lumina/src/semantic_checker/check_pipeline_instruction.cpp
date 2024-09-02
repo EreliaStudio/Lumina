@@ -1,5 +1,7 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::checkPipelineBodyInstruction(const std::filesystem::path& p_file, const std::shared_ptr<PipelineBodyInstruction>& p_instruction)
@@ -31,6 +33,8 @@ namespace Lumina
 				currentLine = token.context.line;
 			}
 		}
+
+		symbolContent = std::regex_replace(symbolContent, std::regex("::"), "_");
 
 		symbolContent += "}\n";
 

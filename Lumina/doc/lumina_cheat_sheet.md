@@ -6,7 +6,7 @@ Lumina is a wrapper around GLSL behavior, designed to simplify the creation of s
 ## Syntax Elements
 
 ### Import
-- Import predefined section of code or user-provided files.
+- Import predefined section of code or user-provided files using the precompile instruction "#include".
 ```cpp
 #include "<predefinedInclude>"
 #include "shader/userProvidedInclude.lum"
@@ -65,6 +65,19 @@ ConstantBlock constantBlockName
 {
     float variableName;
 };
+```
+
+### Texture variable
+- Define 2D texture object
+```cpp
+Texture myTexture;
+```
+- You can then access the pixel stored inside the texture using the function `getPixel(Texture, Vector2)`
+```cpp
+FragmentPass()
+{
+    pixelColor = getPixel()
+}
 ```
 
 ### Namespaces

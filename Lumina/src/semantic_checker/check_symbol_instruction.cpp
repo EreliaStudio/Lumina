@@ -1,5 +1,7 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::checkSymbolInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolInstruction>& p_instruction)
@@ -90,6 +92,11 @@ namespace Lumina
 			functionVariables[constant->name] = constant;
 		}
 
+		for (const auto texture : _textures)
+		{
+			functionVariables[texture] = type("Texture");
+		}
+
 		for (const auto& [name, type] : newSymbol.parameters)
 		{
 			functionVariables[name] = type;
@@ -100,7 +107,7 @@ namespace Lumina
 
 	void SemanticChecker::compileSymbolInstruction(const std::shared_ptr<SymbolInstruction>& p_instruction)
 	{
-		std::string functionContent = type(p_instruction->returnType->tokens)->name + " " + p_instruction->name.content + "(";
+		std::string symbolContent = type(p_instruction->returnType->tokens)->name + " " + p_instruction->name.content + "(";
 
 		size_t i = 0;
 		for (size_t i = 0; i < p_instruction->parameters.size(); i++)
@@ -109,25 +116,27 @@ namespace Lumina
 			std::string parameterName = p_instruction->parameters[i]->name.content;
 
 			if (i != 0)
-				functionContent += ", ";
-			functionContent += parameterType->name + " " + parameterName;
+				symbolContent += ", ";
+			symbolContent += parameterType->name + " " + parameterName;
 		}
 
-		functionContent += "){\n";
-		
+		symbolContent += "){\n";
+
 		int currentLine = -1;
 		for (const auto& token : p_instruction->body->completeBodyTokens)
 		{
 			if (token.context.line != currentLine)
 			{
-				functionContent += token.context.inputLine + "\n";
+				symbolContent += token.context.inputLine + "\n";
 				currentLine = token.context.line;
 			}
 		}
 
-		functionContent += "}\n";
+		symbolContent += "}\n";
 
-		_result.sections.vertexShader += functionContent + "\n";
-		_result.sections.fragmentShader += functionContent + "\n";
+		symbolContent = std::regex_replace(symbolContent, std::regex("::"), "_");
+
+		_result.sections.vertexShader += symbolContent + "\n";
+		_result.sections.fragmentShader += symbolContent + "\n";
 	}
 }

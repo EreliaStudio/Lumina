@@ -1,46 +1,22 @@
-Input -> VertexPass: Vector2 vertexPosition;
+Input -> VertexPass : Vector2 modelPosition;
+Input -> VertexPass : Vector2 modelUV;
+VertexPass -> FragmentPass : Vector2 fragmentUV;
 
-
-namespace Model
+AttributeBlock properties
 {
-Texture myTexture;
-
-struct MyStruct
-{
-    float padding[2];
-    Vector3 padding2;
-    Vector4 validation;
-};
-AttributeBlock modelAttributes
-{
-    bool test;
-    Color solidColor;
-    MyStruct myStruct;
-};
-ConstantBlock modelConstantAttributes
-{
-    Color solidColor;
+    Color color;
 };
 
-Color computeColor(Color p_color)
-{
-    return (p_color);
-}
-}
+Texture texture;
 
 VertexPass()
 {
-    pixelPosition = Vector4(vertexPosition, 0.0, 1.0);
+    pixelPosition = Vector4(modelPosition, 0.0, 1.0);
+    fragmentUV = modelUV;
 }
 
 FragmentPass()
 {
-    if (Model::modelAttributes.test == true)
-    {
-        pixelColor = Model::computeColor(Model::modelAttributes.solidColor);
-    }
-    else
-    {
-        pixelColor = Model::computeColor(Model::modelConstantAttributes.solidColor);
-    }
+    min(fragmentUV, fragmentUV);
+    pixelColor = getPixel(texture, fragmentUV);
 }
