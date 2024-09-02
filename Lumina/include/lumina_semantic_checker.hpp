@@ -28,6 +28,7 @@ namespace Lumina
 				std::string layout;
 				std::string constant;
 				std::string attribute;
+				std::string texture;
 				std::string vertexShader;
 				std::string fragmentShader;
 			};
@@ -39,12 +40,22 @@ namespace Lumina
 		{
 			struct Attribute
 			{
+				struct DataRepresentation
+				{
+					size_t offset;
+					size_t size;
+				};
+
 				Type* type;
 				std::string name;
-				size_t size;
+				size_t nbElement;
+				DataRepresentation cpu;
+				DataRepresentation gpu;
 			};
 
 			std::string name = "";
+			size_t cpuSize = 0;
+			size_t gpuSize = 0;
 			std::vector<Attribute> attributes = {};
 			std::unordered_set<Type*> acceptedConversions = {}; //Point to type convertible from this type
 			std::unordered_set<std::string> operators; //Operator +, -, *, /
@@ -103,6 +114,9 @@ namespace Lumina
 		static Result checkSemantic(const std::filesystem::path& p_file, std::vector<std::shared_ptr<AbstractInstruction>>& p_instructions);
 
 	private:
+		size_t alignOffset(size_t p_currentOffset, size_t p_currentSize, size_t p_alignment);
+		void insertUniformDefinition(std::string& p_attributeContent, size_t p_tabulation, Type* p_typeToInsert);
+
 		void setupTypes();
 		void setupStructures();
 		void setupSymbols();

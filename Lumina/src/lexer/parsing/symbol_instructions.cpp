@@ -28,7 +28,27 @@ namespace Lumina
 		std::shared_ptr<ReturnInstruction> result = std::make_shared<ReturnInstruction>();
 
 		expect(Lumina::Token::Type::Return, "Expected a return token."+ DEBUG_INFORMATION);
+
+		int nbParenthesis = 0;
+
+		while (currentToken().type == Token::Type::OpenParenthesis)
+		{
+			nbParenthesis++;
+			advance();
+		}
+
 		result->argument = parseExpression();
+
+		while (nbParenthesis != 0 && currentToken().type == Token::Type::CloseParenthesis)
+		{
+			nbParenthesis--;
+			advance();
+		}
+
+		if (nbParenthesis > 0)
+		{
+			throw Lumina::TokenBasedError(_file, "Missing ')' token.", currentToken());
+		}
 		expect(Lumina::Token::Type::EndOfSentence, "Expected end of sentence."+ DEBUG_INFORMATION);
 
 		return result;
@@ -75,6 +95,7 @@ namespace Lumina
 		std::shared_ptr<SymbolBodyInstruction> result = std::make_shared<SymbolBodyInstruction>();
 
 		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected an open curly bracket."+ DEBUG_INFORMATION);
+		size_t startIndex = _index;
 		while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
 		{
 			try
@@ -127,6 +148,15 @@ namespace Lumina
 			{
 				_result.errors.push_back(e);
 				skipLine();
+			}
+		}
+		size_t endIndex = _index;
+
+		for (size_t i = startIndex; i < endIndex; i++)
+		{
+			if (_tokens->operator[](i).type != Lumina::Token::Type::Comment)
+			{
+				result->completeBodyTokens.push_back(_tokens->operator[](i));
 			}
 		}
 		expect(Lumina::Token::Type::CloseCurlyBracket, "Expected a close curly bracket."+ DEBUG_INFORMATION);

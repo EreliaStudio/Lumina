@@ -1,5 +1,7 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::checkTextureInstruction(const std::filesystem::path& p_file, const std::shared_ptr<TextureInstruction>& p_instruction)
@@ -16,6 +18,10 @@ namespace Lumina
 
 	void SemanticChecker::compileTextureInstruction(const std::shared_ptr<TextureInstruction>& p_instruction)
 	{
-		// Implementation goes here
+		std::string namespacePrefix = createNamespacePrefix();
+		std::string textureName = std::regex_replace(namespacePrefix + p_instruction->name.content, std::regex("::"), "_");
+
+		_result.sections.texture += namespacePrefix + p_instruction->name.content + "\n";
+		_result.sections.fragmentShader += "sampler2D " + textureName + ";\n";
 	}
 }

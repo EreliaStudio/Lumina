@@ -1,5 +1,7 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::checkAttributeInstruction(const std::filesystem::path& p_file, const std::shared_ptr<AttributeBlockInstruction>& p_instruction)
@@ -24,6 +26,9 @@ namespace Lumina
 
 		newAttribute.name = namespacePrefix + p_instruction->name.content;
 
+		size_t currentCpuOffset = 0;
+		size_t currentGpuOffset = 0;
+
 		for (const auto& element : p_instruction->elements)
 		{
 			try
@@ -47,13 +52,32 @@ namespace Lumina
 					throw TokenBasedError(p_file, "Type [" + typeToken.content + "] not found", typeToken);
 				}
 
-				newAttribute.attributes.push_back({ attributeType, element->name.content, element->nbElement});
+				size_t attributeCpuSize = attributeType->cpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+				size_t attributeGpuSize = attributeType->gpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+
+				size_t alignment = std::min(attributeGpuSize, static_cast<size_t>(16));
+
+				currentGpuOffset = alignOffset(currentGpuOffset, attributeGpuSize, alignment);
+
+				newAttribute.attributes.push_back({
+					attributeType,
+					element->name.content,
+					element->nbElement,
+					{ currentCpuOffset, attributeCpuSize },
+					{ currentGpuOffset, attributeGpuSize }
+					});
+
+				currentCpuOffset += attributeCpuSize;
+				currentGpuOffset += attributeGpuSize;
 			}
 			catch (TokenBasedError& e)
 			{
 				_result.errors.push_back(e);
 			}
 		}
+
+		newAttribute.cpuSize = currentCpuOffset;
+		newAttribute.gpuSize = currentGpuOffset;
 
 		addAttribute(newAttribute);
 	}
@@ -62,21 +86,32 @@ namespace Lumina
 	{
 		std::string namespacePrefix = createNamespacePrefix();
 
-		std::string typeName = namespacePrefix + p_instruction->name.content;
+		std::string attributeName = namespacePrefix + p_instruction->name.content;
+		std::string typeName = std::regex_replace(attributeName, std::regex("::"), "_");
 
-		std::string typeContent = "";
-		std::string AttributeContent = "";
+		Type* attributeType = attribute(namespacePrefix + p_instruction->name.content);
+
+		std::string codeContent = "layout(attribute) uniform " + typeName + "Type" + " {\n";
+		std::string attributeContent = typeName + "Type " + attributeName + " " + std::to_string(attributeType->cpuSize) + " " + std::to_string(attributeType->gpuSize) + " {\n";
+
+		insertUniformDefinition(attributeContent, 4, attributeType);
 
 		for (const auto& element : p_instruction->elements)
 		{
 			Type* elementType = type(element->type->tokens);
 
-			typeContent += elementType->name + " " + element->name.content;
-			if (element->nbElement > 1)
-				typeContent += "[" + std::to_string(element->nbElement) + "]";
-			typeContent += ";\n";
-		}
+			std::string elementName = std::regex_replace(elementType->name, std::regex("::"), "_");
 
-		_result.sections.attribute += "layout(attribute) uniform " + typeName + "{" + typeContent + "}";
+			codeContent += "    " + elementName + " " + element->name.content;
+			if (element->nbElement != 0)
+				codeContent += "[" + std::to_string(element->nbElement) + "]";
+			codeContent += ";\n";
+		}
+		codeContent += "} " + typeName + ";\n\n";
+		attributeContent += "};\n";
+
+		_result.sections.vertexShader += codeContent + "\n";
+		_result.sections.fragmentShader += codeContent + "\n";
+		_result.sections.attribute += attributeContent;
 	}
 }

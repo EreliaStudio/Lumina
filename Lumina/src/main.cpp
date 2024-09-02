@@ -27,21 +27,26 @@ int main(int argc, char** argv)
 	}
 	ouputStream.close();
 
-	// Check syntax using the lexer
 	Lumina::LexerChecker::Result lexerResult = Lumina::LexerChecker::checkSyntax(argv[1], tokens);
 
-	// Output lexer errors
-	for (const auto& error : lexerResult.errors)
+	if (lexerResult.errors.empty() == false)
 	{
-		std::cout << error.what() << std::endl;
+		for (const auto& error : lexerResult.errors)
+		{
+			std::cout << error.what() << std::endl;
+		}
+		return (-1);
 	}
 
 	Lumina::SemanticChecker::Result syntaxResult = Lumina::SemanticChecker::checkSemantic( argv[1], lexerResult.instructions);
 
-	// Output syntax checker errors
-	for (const auto& error : syntaxResult.errors)
+	if (syntaxResult.errors.empty() == false)
 	{
-		std::cerr << "SemanticChecker Error: " << error.what() << std::endl;
+		for (const auto& error : syntaxResult.errors)
+		{
+			std::cerr << "SemanticChecker Error: " << error.what() << std::endl;
+		}
+		return (-1);
 	}
 
 	std::fstream compiledShader(argv[2], std::ios_base::out);
@@ -49,6 +54,7 @@ int main(int argc, char** argv)
 	const std::string LAYOUTS_DELIMITER = "## LAYOUTS DEFINITION ##";
 	const std::string CONSTANTS_DELIMITER = "## CONSTANTS DEFINITION ##";
 	const std::string ATTRIBUTES_DELIMITER = "## ATTRIBUTES DEFINITION ##";
+	const std::string TEXTURES_DELIMITER = "## TEXTURES DEFINITION ##";
 	const std::string VERTEX_DELIMITER = "## VERTEX SHADER CODE ##";
 	const std::string FRAGMENT_DELIMITER = "## FRAGMENT SHADER CODE ##";
 
@@ -58,6 +64,8 @@ int main(int argc, char** argv)
 	compiledShader << syntaxResult.sections.constant << std::endl;
 	compiledShader << ATTRIBUTES_DELIMITER << std::endl;
 	compiledShader << syntaxResult.sections.attribute << std::endl;
+	compiledShader << TEXTURES_DELIMITER << std::endl;
+	compiledShader << syntaxResult.sections.texture << std::endl;
 	compiledShader << VERTEX_DELIMITER << std::endl;
 	compiledShader << syntaxResult.sections.vertexShader << std::endl;
 	compiledShader << FRAGMENT_DELIMITER << std::endl;

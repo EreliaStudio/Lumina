@@ -100,6 +100,34 @@ namespace Lumina
 
 	void SemanticChecker::compileSymbolInstruction(const std::shared_ptr<SymbolInstruction>& p_instruction)
 	{
-		// Implementation goes here
+		std::string functionContent = type(p_instruction->returnType->tokens)->name + " " + p_instruction->name.content + "(";
+
+		size_t i = 0;
+		for (size_t i = 0; i < p_instruction->parameters.size(); i++)
+		{
+			Type* parameterType = type(p_instruction->parameters[i]->type->tokens);
+			std::string parameterName = p_instruction->parameters[i]->name.content;
+
+			if (i != 0)
+				functionContent += ", ";
+			functionContent += parameterType->name + " " + parameterName;
+		}
+
+		functionContent += "){\n";
+		
+		int currentLine = -1;
+		for (const auto& token : p_instruction->body->completeBodyTokens)
+		{
+			if (token.context.line != currentLine)
+			{
+				functionContent += token.context.inputLine + "\n";
+				currentLine = token.context.line;
+			}
+		}
+
+		functionContent += "}\n";
+
+		_result.sections.vertexShader += functionContent + "\n";
+		_result.sections.fragmentShader += functionContent + "\n";
 	}
 }

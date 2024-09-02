@@ -146,14 +146,14 @@ namespace Lumina
 		{
 			_result.sections.layout += std::to_string(_nbVertexPassLayout) + " " + std::to_string(nbElement) + " " + std::to_string(type) + "\n";
 			
-			_result.sections.vertexShader += "layout(location = " + std::to_string(_nbVertexPassLayout) + ") in " + glslName + " " + p_instruction->name.content + ";\n";
+			_result.sections.vertexShader += "layout(location = " + std::to_string(_nbVertexPassLayout) + ") in " + glslName + " " + p_instruction->name.content + ";\n\n";
 
 			_nbVertexPassLayout++;
 		}
 		else
 		{
-			_result.sections.vertexShader += "layout(location = " + std::to_string(_nbFragmentPassLayout) + ") out " + glslName + " " + p_instruction->name.content + ";\n";
-			_result.sections.fragmentShader += "layout(location = " + std::to_string(_nbFragmentPassLayout) + ") in " + glslName + " " + p_instruction->name.content + ";\n";
+			_result.sections.vertexShader += "layout(location = " + std::to_string(_nbFragmentPassLayout) + ") out " + glslName + " " + p_instruction->name.content + ";\n\n";
+			_result.sections.fragmentShader += "layout(location = " + std::to_string(_nbFragmentPassLayout) + ") in " + glslName + " " + p_instruction->name.content + ";\n\n";
 
 			_nbFragmentPassLayout++;
 		}

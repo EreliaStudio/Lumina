@@ -1,11 +1,31 @@
 Input -> VertexPass: Vector2 vertexPosition;
 
+
 namespace Model
 {
+Texture myTexture;
+
+struct MyStruct
+{
+    float padding[2];
+    Vector3 padding2;
+    Vector4 validation;
+};
 AttributeBlock modelAttributes
+{
+    bool test;
+    Color solidColor;
+    MyStruct myStruct;
+};
+ConstantBlock modelConstantAttributes
 {
     Color solidColor;
 };
+
+Color computeColor(Color p_color)
+{
+    return (p_color);
+}
 }
 
 VertexPass()
@@ -15,5 +35,12 @@ VertexPass()
 
 FragmentPass()
 {
-    pixelColor = Model::modelAttributes.solidColor;
+    if (Model::modelAttributes.test == true)
+    {
+        pixelColor = Model::computeColor(Model::modelAttributes.solidColor);
+    }
+    else
+    {
+        pixelColor = Model::computeColor(Model::modelConstantAttributes.solidColor);
+    }
 }

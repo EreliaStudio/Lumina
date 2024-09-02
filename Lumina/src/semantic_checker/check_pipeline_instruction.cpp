@@ -20,6 +20,27 @@ namespace Lumina
 
 	void SemanticChecker::compilePipelineBodyInstruction(const std::shared_ptr<PipelineBodyInstruction>& p_instruction)
 	{
-		// Implementation goes here
+		std::string symbolContent = "void main(){\n";
+		
+		int currentLine = -1;
+		for (const auto& token : p_instruction->body->completeBodyTokens)
+		{
+			if (token.context.line != currentLine)
+			{
+				symbolContent += token.context.inputLine + "\n";
+				currentLine = token.context.line;
+			}
+		}
+
+		symbolContent += "}\n";
+
+		if (p_instruction->pipelineToken.content == "VertexPass")
+		{
+			_result.sections.vertexShader += symbolContent;
+		}
+		else
+		{
+			_result.sections.fragmentShader += symbolContent;
+		}
 	}
 }

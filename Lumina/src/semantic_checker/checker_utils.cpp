@@ -2,6 +2,44 @@
 
 namespace Lumina
 {
+	size_t SemanticChecker::alignOffset(size_t p_currentOffset, size_t p_currentSize, size_t p_alignment)
+	{
+		size_t bytesLeft = p_currentOffset % p_alignment;
+
+		if (bytesLeft + p_currentSize <= 16)
+			return (p_currentOffset);
+
+		if (p_currentOffset % p_alignment != 0)
+		{
+			p_currentOffset = ((p_currentOffset + p_alignment - 1) / p_alignment) * p_alignment;
+		}
+		return p_currentOffset;
+	}
+
+	void SemanticChecker::insertUniformDefinition(std::string& p_attributeContent, size_t p_tabulation, Type* p_typeToInsert)
+	{
+		for (const auto& nestedAttribute : p_typeToInsert->attributes)
+		{
+			p_attributeContent += std::string(p_tabulation, ' ') + nestedAttribute.name
+				+ " " + std::to_string(nestedAttribute.cpu.offset)
+				+ " " + std::to_string(nestedAttribute.cpu.size)
+				+ " " + std::to_string(nestedAttribute.gpu.offset)
+				+ " " + std::to_string(nestedAttribute.gpu.size);
+
+			SemanticChecker::Type* attributeType = nestedAttribute.type;
+			if (attributeType->attributes.empty() == false)
+			{
+				p_attributeContent += " {\n";
+				insertUniformDefinition(p_attributeContent, p_tabulation + 4, attributeType);
+				p_attributeContent += std::string(p_tabulation, ' ') + "}\n";
+			}
+			else
+			{
+				p_attributeContent += " {}\n";
+			}
+
+		}
+	}
 
 	std::string SemanticChecker::createNamespacePrefix() const
 	{
@@ -199,215 +237,497 @@ namespace Lumina
 		_vertexPassVariables[p_constant.name] = type(p_constant.name);
 		_fragmentPassVariables[p_constant.name] = type(p_constant.name);
 	}
-
 	void SemanticChecker::setupTypes()
 	{
-		Type voidType;
-		voidType.name = "void";
-		addStandardType(voidType);
+		addStandardType({
+			.name = "void"
+			});
 
-		// bool type
-		Type boolType;
-		boolType.name = "bool";
-		boolType.operators = { "&&", "||" };
-		boolType.comparaisonOperators = { "==", "!=" };
-		addStandardType(boolType);
+		addStandardType({
+			.name = "bool",
+			.cpuSize = sizeof(bool),
+			.gpuSize = 1,
+			.operators = { "&&", "||" },
+			.comparaisonOperators = { "==", "!=" }
+			});
 
-		// int type
-		Type intType;
-		intType.name = "int";
-		intType.operators = { "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%=" };
-		intType.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" };
-		addStandardType(intType);
+		addStandardType({
+			.name = "int",
+			.cpuSize = sizeof(int),
+			.gpuSize = 4,
+			.operators = { "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%=" },
+			.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" }
+			});
 
-		// float type
-		Type floatType;
-		floatType.name = "float";
-		floatType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" };
-		floatType.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" };
-		addStandardType(floatType);
+		addStandardType({
+			.name = "float",
+			.cpuSize = sizeof(float),
+			.gpuSize = 4,
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" }
+			});
 
-		// uint type
-		Type uintType;
-		uintType.name = "uint";
-		uintType.operators = { "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%=" };
-		uintType.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" };
-		addStandardType(uintType);
+		addStandardType({
+			.name = "uint",
+			.cpuSize = sizeof(unsigned int),
+			.gpuSize = 4,
+			.operators = { "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%=" },
+			.comparaisonOperators = { "==", "!=", "<", ">", "<=", ">=" }
+			});
 
-		// Vector2 type
-		Type vector2Type;
-		vector2Type.name = "Vector2";
-		vector2Type.attributes.push_back({ type("float"), "x", 1 });
-		vector2Type.attributes.push_back({ type("float"), "y", 1 });
-		vector2Type.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector2Type.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector2Type.constructors = {
-			{type("float"), type("float")}
-		};
-		addStandardType(vector2Type);
+		addStandardType({
+			.name = "Vector2",
+			.cpuSize = sizeof(float) * 2,
+			.gpuSize = 8,
+			.attributes = {
+				{
+					.type = type("float"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(float) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
+					.gpu = {.offset = 4, .size = 4 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("float"), type("float")}
+			}
+			});
 
-		// Vector2Int type
-		Type vector2IntType;
-		vector2IntType.name = "Vector2Int";
-		vector2IntType.attributes.push_back({ type("int"), "x", 1 });
-		vector2IntType.attributes.push_back({ type("int"), "y", 1 });
-		vector2IntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector2IntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector2IntType.constructors = {
-			{type("int"), type("int")}
-		};
-		addStandardType(vector2IntType);
+		addStandardType({
+			.name = "Vector2Int",
+			.cpuSize = sizeof(int) * 2,
+			.gpuSize = 8,
+			.attributes = {
+				{
+					.type = type("int"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
+					.gpu = {.offset = 4, .size = 4 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("int"), type("int")}
+			}
+			});
 
-		// Vector2UInt type
-		Type vector2UIntType;
-		vector2UIntType.name = "Vector2UInt";
-		vector2UIntType.attributes.push_back({ type("uint"), "x", 1 });
-		vector2UIntType.attributes.push_back({ type("uint"), "y", 1 });
-		vector2UIntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector2UIntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector2UIntType.constructors = {
-			{type("uint"), type("uint")}
-		};
-		addStandardType(vector2UIntType);
+		addStandardType({
+			.name = "Vector2UInt",
+			.cpuSize = sizeof(unsigned int) * 2,
+			.gpuSize = 8,
+			.attributes = {
+				{
+					.type = type("uint"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
+					.gpu = {.offset = 4, .size = 4 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("uint"), type("uint")}
+			}
+			});
 
-		// Vector3 type
-		Type vector3Type;
-		vector3Type.name = "Vector3";
-		vector3Type.attributes.push_back({ type("float"), "x", 1 });
-		vector3Type.attributes.push_back({ type("float"), "y", 1 });
-		vector3Type.attributes.push_back({ type("float"), "z", 1 });
-		vector3Type.attributes.push_back({ type("Vector2"), "xy", 1 });
-		vector3Type.attributes.push_back({ type("Vector2"), "yz", 1 });
-		vector3Type.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector3Type.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector3Type.constructors = {
-			{type("float"), type("float"), type("float")},
-			{type("Vector2"), type("float")},
-			{type("float"), type("Vector2")}
-		};
-		addStandardType(vector3Type);
+		addStandardType({
+			.name = "Vector3",
+			.cpuSize = sizeof(float) * 3,
+			.gpuSize = 12,
+			.attributes = {
+				{
+					.type = type("float"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(float) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(float) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("float"), type("float"), type("float")},
+				{type("Vector2"), type("float")},
+				{type("float"), type("Vector2")}
+			}
+			});
 
-		// Vector3Int type
-		Type vector3IntType;
-		vector3IntType.name = "Vector3Int";
-		vector3IntType.attributes.push_back({ type("int"), "x", 1 });
-		vector3IntType.attributes.push_back({ type("int"), "y", 1 });
-		vector3IntType.attributes.push_back({ type("int"), "z", 1 });
-		vector3IntType.attributes.push_back({ type("Vector2Int"), "xy", 1 });
-		vector3IntType.attributes.push_back({ type("Vector2Int"), "yz", 1 });
-		vector3IntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector3IntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector3IntType.constructors = {
-			{type("int"), type("int"), type("int")},
-			{type("Vector2Int"), type("int")},
-			{type("int"), type("Vector2Int")}
-		};
-		addStandardType(vector3IntType);
+		addStandardType({
+			.name = "Vector3Int",
+			.cpuSize = sizeof(int) * 3,
+			.gpuSize = 12,
+			.attributes = {
+				{
+					.type = type("int"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int) * 2, .size = sizeof(int) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(int) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("int"), type("int"), type("int")},
+				{type("Vector2Int"), type("int")},
+				{type("int"), type("Vector2Int")}
+			}
+			});
 
-		// Vector3UInt type
-		Type vector3UIntType;
-		vector3UIntType.name = "Vector3UInt";
-		vector3UIntType.attributes.push_back({ type("uint"), "x", 1 });
-		vector3UIntType.attributes.push_back({ type("uint"), "y", 1 });
-		vector3UIntType.attributes.push_back({ type("uint"), "z", 1 });
-		vector3UIntType.attributes.push_back({ type("Vector2UInt"), "xy", 1 });
-		vector3UIntType.attributes.push_back({ type("Vector2UInt"), "yz", 1 });
-		vector3UIntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector3UIntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector3UIntType.constructors = {
-			{type("uint"), type("uint"), type("uint")},
-			{type("Vector2UInt"), type("uint")},
-			{type("uint"), type("Vector2UInt")}
-		};
-		addStandardType(vector3UIntType);
+		addStandardType({
+			.name = "Vector3UInt",
+			.cpuSize = sizeof(unsigned int) * 3,
+			.gpuSize = 12,
+			.attributes = {
+				{
+					.type = type("uint"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int) * 2, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("uint"), type("uint"), type("uint")},
+				{type("Vector2UInt"), type("uint")},
+				{type("uint"), type("Vector2UInt")}
+			}
+			});
 
-		// Vector4 type
-		Type vector4Type;
-		vector4Type.name = "Vector4";
-		vector4Type.attributes.push_back({ type("float"), "x", 1 });
-		vector4Type.attributes.push_back({ type("float"), "y", 1 });
-		vector4Type.attributes.push_back({ type("float"), "z", 1 });
-		vector4Type.attributes.push_back({ type("float"), "w", 1 });
-		vector4Type.attributes.push_back({ type("Vector2"), "xy", 1 });
-		vector4Type.attributes.push_back({ type("Vector3"), "xyz", 1 });
-		vector4Type.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector4Type.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector4Type.constructors = {
-			{type("float"), type("float"), type("float"), type("float")},
-			{type("Vector3"), type("float")},
-			{type("float"), type("Vector3")},
-			{type("Vector2"), type("Vector2")},
-			{type("float"), type("Vector2"), type("float")},
-			{type("Vector2"), type("float"), type("float")},
-			{type("float"), type("float"), type("Vector2")}
-		};
-		addStandardType(vector4Type);
+		addStandardType({
+			.name = "Vector4",
+			.cpuSize = sizeof(float) * 4,
+			.gpuSize = 16,
+			.attributes = {
+				{
+					.type = type("float"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(float) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "w",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float) * 3, .size = sizeof(float) },
+					.gpu = {.offset = 12, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(float) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				},
+				{
+					.type = type("float"),
+					.name = "xyz",
+					.nbElement = 3,
+					.cpu = {.offset = 0, .size = sizeof(float) * 3 },
+					.gpu = {.offset = 0, .size = 12 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("float"), type("float"), type("float"), type("float")},
+				{type("Vector3"), type("float")},
+				{type("float"), type("Vector3")},
+				{type("Vector2"), type("Vector2")},
+				{type("float"), type("Vector2"), type("float")},
+				{type("Vector2"), type("float"), type("float")},
+				{type("float"), type("float"), type("Vector2")}
+			}
+			});
 
-		// Vector4Int type
-		Type vector4IntType;
-		vector4IntType.name = "Vector4Int";
-		vector4IntType.attributes.push_back({ type("int"), "x", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "y", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "z", 1 });
-		vector4IntType.attributes.push_back({ type("int"), "w", 1 });
-		vector4IntType.attributes.push_back({ type("Vector2Int"), "xy", 1 });
-		vector4IntType.attributes.push_back({ type("Vector3Int"), "xyz", 1 });
-		vector4IntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector4IntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector4IntType.constructors = {
-			{type("int"), type("int"), type("int"), type("int")},
-			{type("Vector3Int"), type("int")},
-			{type("int"), type("Vector3Int")},
-			{type("Vector2Int"), type("Vector2Int")},
-			{type("int"), type("Vector2Int"), type("int")},
-			{type("Vector2Int"), type("int"), type("int")},
-			{type("int"), type("int"), type("Vector2Int")}
-		};
-		addStandardType(vector4IntType);
+		addStandardType({
+			.name = "Vector4Int",
+			.cpuSize = sizeof(int) * 4,
+			.gpuSize = 16,
+			.attributes = {
+				{
+					.type = type("int"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int) * 2, .size = sizeof(int) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "w",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(int) * 3, .size = sizeof(int) },
+					.gpu = {.offset = 12, .size = 4 }
+				},
+				{
+					.type = type("int"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(int) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				},
+				{
+					.type = type("int"),
+					.name = "xyz",
+					.nbElement = 3,
+					.cpu = {.offset = 0, .size = sizeof(int) * 3 },
+					.gpu = {.offset = 0, .size = 12 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("int"), type("int"), type("int"), type("int")},
+				{type("Vector3Int"), type("int")},
+				{type("int"), type("Vector3Int")},
+				{type("Vector2Int"), type("Vector2Int")},
+				{type("int"), type("Vector2Int"), type("int")},
+				{type("Vector2Int"), type("int"), type("int")},
+				{type("int"), type("int"), type("Vector2Int")}
+			}
+			});
 
-		// Vector4UInt type
-		Type vector4UIntType;
-		vector4UIntType.name = "Vector4UInt";
-		vector4UIntType.attributes.push_back({ type("uint"), "x", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "y", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "z", 1 });
-		vector4UIntType.attributes.push_back({ type("uint"), "w", 1 });
-		vector4UIntType.attributes.push_back({ type("Vector2UInt"), "xy", 1 });
-		vector4UIntType.attributes.push_back({ type("Vector3UInt"), "xyz", 1 });
-		vector4UIntType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		vector4UIntType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		vector4UIntType.constructors = {
-			{type("uint"), type("uint"), type("uint"), type("uint")},
-			{type("Vector3UInt"), type("uint")},
-			{type("uint"), type("Vector3UInt")},
-			{type("Vector2UInt"), type("Vector2UInt")},
-			{type("uint"), type("Vector2UInt"), type("uint")},
-			{type("Vector2UInt"), type("uint"), type("uint")},
-			{type("uint"), type("uint"), type("Vector2UInt")}
-		};
-		addStandardType(vector4UIntType);
+		addStandardType({
+			.name = "Vector4UInt",
+			.cpuSize = sizeof(unsigned int) * 4,
+			.gpuSize = 16,
+			.attributes = {
+				{
+					.type = type("uint"),
+					.name = "x",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "y",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "z",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int) * 2, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "w",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(unsigned int) * 3, .size = sizeof(unsigned int) },
+					.gpu = {.offset = 12, .size = 4 }
+				},
+				{
+					.type = type("uint"),
+					.name = "xy",
+					.nbElement = 2,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 2 },
+					.gpu = {.offset = 0, .size = 8 }
+				},
+				{
+					.type = type("uint"),
+					.name = "xyz",
+					.nbElement = 3,
+					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 3 },
+					.gpu = {.offset = 0, .size = 12 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("uint"), type("uint"), type("uint"), type("uint")},
+				{type("Vector3UInt"), type("uint")},
+				{type("uint"), type("Vector3UInt")},
+				{type("Vector2UInt"), type("Vector2UInt")},
+				{type("uint"), type("Vector2UInt"), type("uint")},
+				{type("Vector2UInt"), type("uint"), type("uint")},
+				{type("uint"), type("uint"), type("Vector2UInt")}
+			}
+			});
 
-		// Vector4 type
-		Type colorType;
-		colorType.name = "Color";
-		colorType.attributes.push_back({ type("float"), "r", 1 });
-		colorType.attributes.push_back({ type("float"), "g", 1 });
-		colorType.attributes.push_back({ type("float"), "b", 1 });
-		colorType.attributes.push_back({ type("float"), "a", 1 });
-		colorType.attributes.push_back({ type("Vector3"), "rgb", 1 });
-		colorType.attributes.push_back({ type("Vector3"), "rgba", 1 });
-		colorType.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" }; // Assuming element-wise operations
-		colorType.comparaisonOperators = { "==", "!=" }; // Assuming vector comparison
-		colorType.constructors = {
-			{type("float"), type("float"), type("float"), type("float")},
-			{type("Vector3"), type("float")},
-			{type("float"), type("Vector3")},
-			{type("Vector2"), type("Vector2")},
-			{type("float"), type("Vector2"), type("float")},
-			{type("Vector2"), type("float"), type("float")},
-			{type("float"), type("float"), type("Vector2")}
-		};
-		addStandardType(colorType);
+		addStandardType({
+			.name = "Color",
+			.cpuSize = sizeof(float) * 4,
+			.gpuSize = 16,
+			.attributes = {
+				{
+					.type = type("float"),
+					.name = "r",
+					.nbElement = 1,
+					.cpu = {.offset = 0, .size = sizeof(float) },
+					.gpu = {.offset = 0, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "g",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
+					.gpu = {.offset = 4, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "b",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
+					.gpu = {.offset = 8, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "a",
+					.nbElement = 1,
+					.cpu = {.offset = sizeof(float) * 3, .size = sizeof(float) },
+					.gpu = {.offset = 12, .size = 4 }
+				},
+				{
+					.type = type("float"),
+					.name = "rgb",
+					.nbElement = 3,
+					.cpu = {.offset = 0, .size = sizeof(float) * 3},
+					.gpu = {.offset = 0, .size = 12 }
+				},
+				{
+					.type = type("float"),
+					.name = "rgba",
+					.nbElement = 4,
+					.cpu = {.offset = 0, .size = sizeof(float) * 4},
+					.gpu = {.offset = 0, .size = 16 }
+				}
+			},
+			.operators = { "+", "-", "*", "/", "+=", "-=", "*=", "/=" },
+			.comparaisonOperators = { "==", "!=" },
+			.constructors = {
+				{type("float"), type("float"), type("float"), type("float")},
+				{type("Vector3"), type("float")},
+				{type("float"), type("Vector3")},
+				{type("Vector2"), type("Vector2")},
+				{type("float"), type("Vector2"), type("float")},
+				{type("Vector2"), type("float"), type("float")},
+				{type("float"), type("float"), type("Vector2")}
+			}
+			});
 
 		// Accepted type conversions (unchanged)
 		type("int")->acceptedConversions = { type("float"), type("uint") };
@@ -431,31 +751,39 @@ namespace Lumina
 
 	void SemanticChecker::setupStructures()
 	{
-		// Matrix2x2 type
-		Type matrix2x2;
-		matrix2x2.name = "Matrix2x2";
-		matrix2x2.operators = { "*" };
-		matrix2x2.acceptedConversions = { type("Vector2"), type("Vector2Int"), type("Vector2UInt") };
-		addStructure(matrix2x2);
+		addStructure({
+			.name = "Matrix2x2",
+			.cpuSize = sizeof(float) * 4,  // 2x2 matrix
+			.gpuSize = 16,
+			.attributes = {},  // No attributes for matrices as a whole entity
+			.acceptedConversions = { type("Vector2"), type("Vector2Int"), type("Vector2UInt") },
+			.operators = { "*" },
+			});
 
-		// Matrix3x3 type
-		Type matrix3x3;
-		matrix3x3.name = "Matrix3x3";
-		matrix3x3.operators = { "*" };
-		matrix3x3.acceptedConversions = { type("Vector3"), type("Vector3Int"), type("Vector3UInt") };
-		addStructure(matrix3x3);
+		addStructure({
+			.name = "Matrix3x3",
+			.cpuSize = sizeof(float) * 9,  // 3x3 matrix
+			.gpuSize = 36,
+			.attributes = {},  // No attributes for matrices as a whole entity
+			.acceptedConversions = { type("Vector3"), type("Vector3Int"), type("Vector3UInt") },
+			.operators = { "*" },
+			});
 
-		// Matrix4x4 type
-		Type matrix4x4;
-		matrix4x4.name = "Matrix4x4";
-		matrix4x4.operators = { "*" };
-		matrix4x4.acceptedConversions = { type("Vector4"), type("Vector4Int"), type("Vector4UInt") };
-		addStructure(matrix4x4);
+		addStructure({
+			.name = "Matrix4x4",
+			.cpuSize = sizeof(float) * 16,  // 4x4 matrix
+			.gpuSize = 64,
+			.attributes = {},  // No attributes for matrices as a whole entity
+			.acceptedConversions = { type("Vector4"), type("Vector4Int"), type("Vector4UInt") },
+			.operators = { "*" },
+			});
 
 		type("Vector2")->acceptedConversions.insert(type("Matrix2x2"));
 		type("Vector3")->acceptedConversions.insert(type("Matrix3x3"));
 		type("Vector4")->acceptedConversions.insert(type("Matrix4x4"));
 	}
+
+
 	
 	void SemanticChecker::setupSymbols()
 	{
@@ -903,7 +1231,7 @@ namespace Lumina
 		os << "Attributes:\n";
 		for (const auto& attr : type.attributes)
 		{
-			os << "  - " << attr.name << ": " << (attr.type ? attr.type->name : "null") << (attr.size == 0 ? "" : "[" + std::to_string(attr.size) + "]") << "\n";
+			os << "  - " << attr.name << ": " << (attr.type ? attr.type->name : "null") << (attr.nbElement == 0 ? "" : "[" + std::to_string(attr.nbElement) + "]") << "\n";
 		}
 		os << "Accepted Conversions:\n";
 		for (const auto& conv : type.acceptedConversions)

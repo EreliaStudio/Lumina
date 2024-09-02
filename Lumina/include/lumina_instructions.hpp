@@ -470,6 +470,7 @@ namespace Lumina
 
 	struct SymbolBodyInstruction : public AbstractInstruction
 	{
+		std::vector<Token> completeBodyTokens;
 		std::vector<std::shared_ptr<Instruction>> elements;
 
 		SymbolBodyInstruction() :

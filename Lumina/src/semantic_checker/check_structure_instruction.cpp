@@ -1,5 +1,7 @@
 #include "lumina_semantic_checker.hpp"
 
+#include <regex>
+
 namespace Lumina
 {
 	void SemanticChecker::checkStructureInstruction(const std::filesystem::path& p_file, const std::shared_ptr<StructureBlockInstruction>& p_instruction)
@@ -21,6 +23,9 @@ namespace Lumina
 		Type newStructure;
 
 		newStructure.name = namespacePrefix + p_instruction->name.content;
+
+		size_t currentCpuOffset = 0;
+		size_t currentGpuOffset = 0;
 
 		for (const auto& element : p_instruction->elements)
 		{
@@ -45,7 +50,24 @@ namespace Lumina
 					throw TokenBasedError(p_file, "Type [" + typeToken.content + "] not found", typeToken);
 				}
 
-				newStructure.attributes.push_back({ attributeType, element->name.content, element->nbElement });
+
+				size_t attributeCpuSize = attributeType->cpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+				size_t attributeGpuSize = attributeType->gpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+
+				size_t alignment = 16;// std::min(attributeGpuSize, static_cast<size_t>(16));
+
+				currentGpuOffset = alignOffset(currentGpuOffset, attributeGpuSize, alignment);
+
+				newStructure.attributes.push_back({
+					attributeType,
+					element->name.content,
+					element->nbElement,
+					{ currentCpuOffset, attributeCpuSize },
+					{ currentGpuOffset, attributeGpuSize }
+					});
+
+				currentCpuOffset += attributeCpuSize;
+				currentGpuOffset += attributeGpuSize;
 			}
 			catch (TokenBasedError& e)
 			{
@@ -53,11 +75,33 @@ namespace Lumina
 			}
 		}
 
+		newStructure.cpuSize = currentCpuOffset;
+		newStructure.gpuSize = currentGpuOffset;
+
 		addStructure(newStructure);
 	}
 
 	void SemanticChecker::compileStructureInstruction(const std::shared_ptr<StructureBlockInstruction>& p_instruction)
 	{
-		// Implementation goes here
+		std::string namespacePrefix = createNamespacePrefix();
+		std::string structureName = std::regex_replace(namespacePrefix + p_instruction->name.content, std::regex("::"), "_");
+		std::string structureContent = "struct " + structureName + " {\n";
+			
+		for (const auto& element : p_instruction->elements)
+		{
+			Type* elementType = type(element->type->tokens);
+
+			structureContent += "    " + elementType->name + " " + element->name.content;
+			if (element->nbElement != 0)
+			{
+				structureContent += "[" + std::to_string(element->nbElement) + "]";
+			}
+			structureContent += ";\n";
+		}
+			
+		structureContent += "};\n";
+
+		_result.sections.vertexShader += structureContent;
+		_result.sections.fragmentShader += structureContent;
 	}
 }
