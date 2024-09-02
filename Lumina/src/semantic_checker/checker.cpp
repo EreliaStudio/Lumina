@@ -104,6 +104,8 @@ namespace Lumina
 			_index++;
 		}
 
+		_result.sections.convertLuminaToGLSL();
+
 		return _result;
 	}
 }

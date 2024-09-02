@@ -2,6 +2,21 @@
 
 namespace Lumina
 {
+	void SemanticChecker::Result::ShaderSection::_applyConversion(std::string& p_stringToConvert)
+	{
+		
+	}
+
+	void SemanticChecker::Result::ShaderSection::convertLuminaToGLSL()
+	{
+		_applyConversion(layout);
+		_applyConversion(constant);
+		_applyConversion(attribute);
+		_applyConversion(texture);
+		_applyConversion(vertexShader);
+		_applyConversion(fragmentShader);
+	}
+
 	size_t SemanticChecker::alignOffset(size_t p_currentOffset, size_t p_currentSize, size_t p_alignment)
 	{
 		size_t bytesLeft = p_currentOffset % p_alignment;

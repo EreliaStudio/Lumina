@@ -46,7 +46,7 @@ layout(attribute) uniform propertiesType {
 
 sampler2D texture;
 void main(){
-    min(fragmentUV, fragmentUV);
-    pixelColor = getPixel(texture, fragmentUV);
+    Vector2 tmpUv = fragmentUV;
+    pixelColor = getPixel(texture, tmpUv);
 }
 

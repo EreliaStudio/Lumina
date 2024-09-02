@@ -31,6 +31,9 @@ namespace Lumina
 				std::string texture;
 				std::string vertexShader;
 				std::string fragmentShader;
+
+				void _applyConversion(std::string& p_stringToConvert);
+				void convertLuminaToGLSL();
 			};
 
 			ShaderSection sections;
