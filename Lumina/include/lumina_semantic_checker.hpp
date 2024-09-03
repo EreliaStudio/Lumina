@@ -33,6 +33,7 @@ namespace Lumina
 				std::string fragmentShader;
 
 				void _applyConversion(std::string& p_stringToConvert);
+				void _applytextureRenaming(std::string& p_stringToConvert);
 				void convertLuminaToGLSL();
 			};
 
@@ -112,7 +113,6 @@ namespace Lumina
 
 		size_t _nbVertexPassLayout = 0;
 		size_t _nbFragmentPassLayout = 0;
-		size_t _nbTexture = 0;
 
 	public:
 		static Result checkSemantic(const std::filesystem::path& p_file, std::vector<std::shared_ptr<AbstractInstruction>>& p_instructions);

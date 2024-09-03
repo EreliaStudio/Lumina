@@ -17,7 +17,7 @@ propertiesType properties 16 16 {
 };
 
 ## TEXTURES DEFINITION ##
-texture 0
+test::texture luminaTexture_test_texture
 
 ## VERTEX SHADER CODE ##
 layout(location = 0) in vec2 modelPosition;
@@ -44,9 +44,9 @@ layout(attribute) uniform propertiesType {
 } properties;
 
 
-sampler2D texture;
+uniform sampler2D luminaTexture_test_texture;
 void main(){
     vec2 tmpUv = fragmentUV;
-    pixelColor = getPixel(texture, vec2(tmpUv.x, tmpUv.y));
+    pixelColor = texture(luminaTexture_test_texture, vec2(tmpUv.x, tmpUv.y));
 }
 

@@ -23,6 +23,24 @@ namespace Lumina
 		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Matrix2x2\b)"), "mat2");
 	}
 
+	void SemanticChecker::Result::ShaderSection::_applytextureRenaming(std::string& p_stringToConvert)
+	{
+		std::regex samplerRegex(R"(sampler2D\s+(\w+))");
+
+		std::smatch match;
+
+		if (std::regex_search(p_stringToConvert, match, samplerRegex))
+		{
+			std::string textureName = match[1].str();
+
+			std::regex textureNameRegex(R"(\b)" + textureName + R"(\b)");
+
+			p_stringToConvert = std::regex_replace(p_stringToConvert, textureNameRegex, "luminaTexture_" + textureName);
+		}
+
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\bgetPixel\b)"), "texture");
+	}
+
 	void SemanticChecker::Result::ShaderSection::convertLuminaToGLSL()
 	{
 		_applyConversion(layout);
@@ -31,6 +49,9 @@ namespace Lumina
 		_applyConversion(texture);
 		_applyConversion(vertexShader);
 		_applyConversion(fragmentShader);
+
+		_applytextureRenaming(vertexShader);
+		_applytextureRenaming(fragmentShader);
 	}
 
 	size_t SemanticChecker::alignOffset(size_t p_currentOffset, size_t p_currentSize, size_t p_alignment)

@@ -7,7 +7,10 @@ AttributeBlock properties
     Color color;
 };
 
+namespace test
+{
 Texture texture;
+}
 
 VertexPass()
 {
@@ -18,5 +21,5 @@ VertexPass()
 FragmentPass()
 {
     Vector2 tmpUv = fragmentUV;
-    pixelColor = getPixel(texture, Vector2(tmpUv.x, tmpUv.y));
+    pixelColor = getPixel(test::texture, Vector2(tmpUv.x, tmpUv.y));
 }
