@@ -42,6 +42,11 @@ namespace Lumina
 			result = it->type;
 		}
 
+		if (p_instruction->arrayAccessorExpression != nullptr)
+		{
+			std::cout << "Accessor value : " << p_instruction->arrayAccessorExpression->mergedToken().content << std::endl;
+		}
+
 		return (result);
 	}
 

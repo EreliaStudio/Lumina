@@ -1,38 +1,45 @@
 ## LAYOUTS DEFINITION ##
 0 2 5126
-1 2 5126
 
 ## CONSTANTS DEFINITION ##
+propertiesType properties 1600 1600 {
+    colors 0 1600 0 1600 {
+        r 0 4 0 4 {}
+        g 4 4 4 4 {}
+        b 8 4 8 4 {}
+        a 12 4 12 4 {}
+        rgb 0 12 0 12 {}
+        rgba 0 16 0 16 {}
+    }
+};
 
 ## ATTRIBUTES DEFINITION ##
 
 ## TEXTURES DEFINITION ##
-test::texture luminaTexture_test_texture 0
 
 ## VERTEX SHADER CODE ##
 #version 430
 
 layout(location = 0) in vec2 modelPosition;
 
-layout(location = 1) in vec2 modelUV;
-
-layout(location = 0) out vec2 fragmentUV;
+layout(constant) uniform propertiesType{
+    Color colors[100];
+} properties;
 
 void main(){
     gl_Position = vec4(modelPosition, 0.0, 1.0);
-    fragmentUV = modelUV;
 }
 
 ## FRAGMENT SHADER CODE ##
 #version 430
 
-layout(location = 0) in vec2 fragmentUV;
-
-uniform sampler2D luminaTexture_test_texture;
+layout(constant) uniform propertiesType{
+    Color colors[100];
+} properties;
 
 layout(location = 0) out vec4 pixelColor;
 
 void main(){
-    pixelColor = texture(luminaTexture_test_texture, fragmentUV);
+    pixelColor = properties.colors[0];
 }
 

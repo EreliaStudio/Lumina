@@ -236,6 +236,8 @@ namespace Lumina
 		}
 	};
 
+	struct ExpressionInstruction;
+
 	struct ExpressionElementInstruction : public AbstractInstruction
 	{
 		ExpressionElementInstruction(const AbstractInstruction::Type& p_type) :
@@ -328,6 +330,7 @@ namespace Lumina
 	struct VariableExpressionValueInstruction : public ExpressionElementInstruction
 	{
 		std::vector<Lumina::Token> tokens;
+		std::shared_ptr<ExpressionInstruction> arrayAccessorExpression = nullptr;
 
 		VariableExpressionValueInstruction() :
 			ExpressionElementInstruction(AbstractInstruction::Type::VariableExpressionValue)

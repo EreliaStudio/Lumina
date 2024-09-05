@@ -63,6 +63,12 @@ namespace Lumina
 			expect(Lumina::Token::Type::Accessor, "Expected an accessor token."+ DEBUG_INFORMATION);
 			result->tokens.push_back(expect(Lumina::Token::Type::Identifier, "Expected an identifier token."+ DEBUG_INFORMATION));
 		}
+		if (currentToken().type == Lumina::Token::Type::OpenBracket)
+		{
+			expect(Lumina::Token::Type::OpenBracket, "Expected an opening bracket token." + DEBUG_INFORMATION);
+			result->arrayAccessorExpression = parseExpression();
+			expect(Lumina::Token::Type::CloseBracket, "Expected a closing bracket token." + DEBUG_INFORMATION);
+		}
 
 		return result;
 	}

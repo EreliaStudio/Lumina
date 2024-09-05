@@ -1,19 +1,16 @@
 Input -> VertexPass : Vector2 modelPosition;
-Input -> VertexPass : Vector2 modelUV;
-VertexPass -> FragmentPass : Vector2 fragmentUV;
 
-namespace test
+ConstantBlock properties
 {
-Texture texture;
-}
+  Color colors[100];  
+};
 
 VertexPass()
 {
     pixelPosition = Vector4(modelPosition, 0.0, 1.0);
-    fragmentUV = modelUV;
 }
 
 FragmentPass()
 {
-    pixelColor = getPixel(test::texture, fragmentUV);
+    pixelColor = properties.colors[0];
 }
