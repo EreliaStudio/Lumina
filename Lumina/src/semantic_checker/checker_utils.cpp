@@ -291,8 +291,8 @@ namespace Lumina
 		addType(p_attribute);
 		_attributes.insert(type(p_attribute.name));
 
-		_vertexPassVariables[p_attribute.name] = type(p_attribute.name);
-		_fragmentPassVariables[p_attribute.name] = type(p_attribute.name);
+		_vertexPassVariables[p_attribute.name] = { type(p_attribute.name), 0 };
+		_fragmentPassVariables[p_attribute.name] = { type(p_attribute.name), 0 };
 	}
 
 	void SemanticChecker::addConstant(const SemanticChecker::Type& p_constant)
@@ -300,8 +300,8 @@ namespace Lumina
 		addType(p_constant);
 		_constants.insert(type(p_constant.name));
 
-		_vertexPassVariables[p_constant.name] = type(p_constant.name);
-		_fragmentPassVariables[p_constant.name] = type(p_constant.name);
+		_vertexPassVariables[p_constant.name] = { type(p_constant.name), 0 };
+		_fragmentPassVariables[p_constant.name] = { type(p_constant.name), 0 };
 	}
 	void SemanticChecker::setupTypes()
 	{

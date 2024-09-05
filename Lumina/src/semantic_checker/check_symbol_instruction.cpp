@@ -80,26 +80,26 @@ namespace Lumina
 
 		addSymbol(newSymbol);
 
-		std::unordered_map<std::string, Type*> functionVariables;
+		std::unordered_map<std::string, Variable> functionVariables;
 
 		for (const auto attribute : _attributes)
 		{
-			functionVariables[attribute->name] = attribute;
+			functionVariables[attribute->name] = { attribute, 0 };
 		}
 
 		for (const auto constant : _constants)
 		{
-			functionVariables[constant->name] = constant;
+			functionVariables[constant->name] = { constant, 0 };
 		}
 
 		for (const auto texture : _textures)
 		{
-			functionVariables[texture] = type("Texture");
+			functionVariables[texture] = { type("Texture"), 0 };
 		}
 
 		for (const auto& [name, type] : newSymbol.parameters)
 		{
-			functionVariables[name] = type;
+			functionVariables[name] = { type, 0 };
 		}
 
 		checkSymbolBodyInstruction(p_file, p_instruction->body, functionVariables, newSymbol.returnType);

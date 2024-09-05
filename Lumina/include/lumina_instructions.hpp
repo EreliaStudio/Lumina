@@ -423,6 +423,7 @@ namespace Lumina
 	struct VariableDesignationInstruction : public AbstractInstruction
 	{
 		std::vector<Lumina::Token> tokens;
+		std::shared_ptr<ExpressionInstruction> arrayAccessorExpression = nullptr;
 
 		VariableDesignationInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::VariableDesignation)

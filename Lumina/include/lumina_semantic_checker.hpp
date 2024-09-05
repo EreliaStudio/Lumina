@@ -67,6 +67,12 @@ namespace Lumina
 			friend std::ostream& operator<<(std::ostream& os, const Type& type);
 		};
 
+		struct Variable
+		{
+			Type* type;
+			size_t nbElement;
+		};
+
 		struct Symbol
 		{
 			struct Parameter
@@ -105,9 +111,9 @@ namespace Lumina
 		std::unordered_map<std::string, std::vector<Symbol>> _symbols;
 
 		bool _vertexParsed = false;
-		std::unordered_map<std::string, Type*> _vertexPassVariables;
+		std::unordered_map<std::string, Variable> _vertexPassVariables;
 		bool _fragmentParsed = false;
-		std::unordered_map<std::string, Type*> _fragmentPassVariables;
+		std::unordered_map<std::string, Variable> _fragmentPassVariables;
 
 		size_t _nbVertexPassLayout = 0;
 		size_t _nbFragmentPassLayout = 0;
@@ -156,27 +162,27 @@ namespace Lumina
 		void checkPipelineBodyInstruction(const std::filesystem::path& p_file, const std::shared_ptr<PipelineBodyInstruction>& p_instruction);
 
 		Type* getNumberExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<NumberExpressionValueInstruction>& p_instruction);
-		Type* getVariableExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables);
+		Type* getVariableExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables);
 		Type* getSymbolCallExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction);
-		Type* getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables);
-		Type* getExpressionType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables);
+		Type* getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables);
+		Type* getExpressionType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables);
 
 		void checkNumberExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<NumberExpressionValueInstruction>& p_instruction, Type* p_expectedType);
-		void checkVariableExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables, Type* p_expectedType);
-		void checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables, Type* p_expectedType);
-		void checkExpressionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, const std::unordered_map<std::string, Type*> p_variables, Type* p_expectedType);
-		
-		void checkConditionElementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionElementInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables);
-		void checkConditionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables);
-		
-		void checkVariableDeclarationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableDeclarationInstruction>& p_instruction, std::unordered_map<std::string, Type*>& p_variables);
-		void checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables);
-		void checkIfStatementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<IfStatementInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables, Type* returnType);
-		void checkWhileLoopInstruction(const std::filesystem::path& p_file, const std::shared_ptr<WhileLoopInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables, Type* returnType);
-		void checkReturnInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ReturnInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables, Type* returnType);
-		void checkDiscardInstruction(const std::filesystem::path& p_file, const std::shared_ptr<DiscardInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables);
-		
-		void checkSymbolBodyInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolBodyInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables, Type* returnType);
+		void checkVariableExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
+		void checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
+		void checkExpressionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
+
+		void checkConditionElementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionElementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);
+		void checkConditionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);
+
+		void checkVariableDeclarationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableDeclarationInstruction>& p_instruction, std::unordered_map<std::string, Variable>& p_variables);
+		void checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);
+		void checkIfStatementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<IfStatementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* returnType);
+		void checkWhileLoopInstruction(const std::filesystem::path& p_file, const std::shared_ptr<WhileLoopInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* returnType);
+		void checkReturnInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ReturnInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* returnType);
+		void checkDiscardInstruction(const std::filesystem::path& p_file, const std::shared_ptr<DiscardInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);
+
+		void checkSymbolBodyInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolBodyInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* returnType);
 		
 		void checkNamespaceInstruction(const std::filesystem::path& p_file, const std::shared_ptr<NamespaceInstruction>& p_instruction);
 

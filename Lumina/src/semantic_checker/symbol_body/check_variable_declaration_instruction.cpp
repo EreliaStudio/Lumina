@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkVariableDeclarationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableDeclarationInstruction>& p_instruction, std::unordered_map<std::string, SemanticChecker::Type*>& p_variables)
+	void SemanticChecker::checkVariableDeclarationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableDeclarationInstruction>& p_instruction, std::unordered_map<std::string, Variable>& p_variables)
 	{
 		Token typeToken = Token::merge(p_instruction->type->tokens, Token::Type::Identifier);
 		std::string typeName = typeToken.content;
@@ -17,7 +17,7 @@ namespace Lumina
 			throw TokenBasedError(p_file, "Variable [" + p_instruction->name.content + "] already declared in this scope", p_instruction->name);
 		}
 
-		p_variables[p_instruction->name.content] = varType;
+		p_variables[p_instruction->name.content] = { varType, p_instruction->};
 
 		if (p_instruction->initializer)
 		{

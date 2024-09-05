@@ -4,8 +4,8 @@ namespace Lumina
 {
 	void SemanticChecker::checkPipelineFlowInstruction(const std::filesystem::path& p_file, const std::shared_ptr<PipelineFlowInstruction>& p_instruction)
 	{
-		std::unordered_map<std::string, Type*>* target;
-		std::unordered_map<std::string, Type*>* targetSecond = nullptr;
+		std::unordered_map<std::string, Variable>* target;
+		std::unordered_map<std::string, Variable>* targetSecond = nullptr;
 
 		if (p_instruction->inputPipeline.content == "Input")
 		{
@@ -43,9 +43,9 @@ namespace Lumina
 			throw TokenBasedError(p_file, "Invalid pipeline flow type [" + typeToken.content + "]", typeToken);
 		}
 
-		(*target)[p_instruction->name.content] = tmpType;
+		(*target)[p_instruction->name.content] = {tmpType, 0};
 		if (targetSecond != nullptr)
-			(*targetSecond)[p_instruction->name.content] = tmpType;
+			(*targetSecond)[p_instruction->name.content] = { tmpType, 0 };
 	}
 
 	void SemanticChecker::compilePipelineFlowInstruction(const std::shared_ptr<PipelineFlowInstruction>& p_instruction)

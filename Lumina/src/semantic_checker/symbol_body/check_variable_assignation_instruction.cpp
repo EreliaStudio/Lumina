@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, SemanticChecker::Type*> p_variables)
+	void SemanticChecker::checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, SemanticChecker::Variable> p_variables)
 	{
 		if (p_variables.contains(p_instruction->name->tokens[0].content) == false)
 		{
