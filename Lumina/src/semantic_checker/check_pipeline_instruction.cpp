@@ -44,6 +44,7 @@ namespace Lumina
 		}
 		else
 		{
+			_result.sections.fragmentShader += "layout(location = 0) out vec4 pixelColor;\n\n";
 			_result.sections.fragmentShader += symbolContent;
 		}
 	}

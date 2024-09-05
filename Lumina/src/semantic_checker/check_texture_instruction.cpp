@@ -31,7 +31,8 @@ namespace Lumina
 		std::string namespacePrefix = createNamespacePrefix();
 		std::string textureName = std::regex_replace(namespacePrefix + p_instruction->name.content, std::regex("::"), "_");
 
-		_result.sections.texture += namespacePrefix + p_instruction->name.content + " luminaTexture_" + textureName + "\n";
-		_result.sections.fragmentShader += "uniform sampler2D " + textureName + ";\n";
+		_result.sections.texture += namespacePrefix + p_instruction->name.content + " luminaTexture_" + textureName + " " + std::to_string(_nbTexture) + "\n";
+		_result.sections.fragmentShader += "uniform sampler2D " + textureName + ";\n\n";
+		_nbTexture++;
 	}
 }

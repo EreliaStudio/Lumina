@@ -5,48 +5,34 @@
 ## CONSTANTS DEFINITION ##
 
 ## ATTRIBUTES DEFINITION ##
-propertiesType properties 16 16 {
-    color 0 16 0 16 {
-        r 0 4 0 4 {}
-        g 4 4 4 4 {}
-        b 8 4 8 4 {}
-        a 12 4 12 4 {}
-        rgb 0 12 0 12 {}
-        rgba 0 16 0 16 {}
-    }
-};
 
 ## TEXTURES DEFINITION ##
-test::texture luminaTexture_test_texture
+test::texture luminaTexture_test_texture 0
 
 ## VERTEX SHADER CODE ##
+#version 430
+
 layout(location = 0) in vec2 modelPosition;
 
 layout(location = 1) in vec2 modelUV;
 
 layout(location = 0) out vec2 fragmentUV;
 
-layout(attribute) uniform propertiesType {
-    Color color;
-} properties;
-
-
 void main(){
-    pixelPosition = vec4(modelPosition, 0.0, 1.0);
+    gl_Position = vec4(modelPosition, 0.0, 1.0);
     fragmentUV = modelUV;
 }
 
 ## FRAGMENT SHADER CODE ##
+#version 430
+
 layout(location = 0) in vec2 fragmentUV;
 
-layout(attribute) uniform propertiesType {
-    Color color;
-} properties;
-
-
 uniform sampler2D luminaTexture_test_texture;
+
+layout(location = 0) out vec4 pixelColor;
+
 void main(){
-    vec2 tmpUv = fragmentUV;
-    pixelColor = texture(luminaTexture_test_texture, vec2(tmpUv.x, tmpUv.y));
+    pixelColor = texture(luminaTexture_test_texture, fragmentUV);
 }
 

@@ -2,11 +2,6 @@ Input -> VertexPass : Vector2 modelPosition;
 Input -> VertexPass : Vector2 modelUV;
 VertexPass -> FragmentPass : Vector2 fragmentUV;
 
-AttributeBlock properties
-{
-    Color color;
-};
-
 namespace test
 {
 Texture texture;
@@ -20,6 +15,5 @@ VertexPass()
 
 FragmentPass()
 {
-    Vector2 tmpUv = fragmentUV;
-    pixelColor = getPixel(test::texture, Vector2(tmpUv.x, tmpUv.y));
+    pixelColor = getPixel(test::texture, fragmentUV);
 }

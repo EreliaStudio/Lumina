@@ -4,7 +4,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::Result::ShaderSection::_applyConversion(std::string& p_stringToConvert)
+	void _applyConversion(std::string& p_stringToConvert)
 	{
 		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector2\b)"), "vec2");
 		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Vector2Int\b)"), "ivec2");
@@ -23,7 +23,7 @@ namespace Lumina
 		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\Matrix2x2\b)"), "mat2");
 	}
 
-	void SemanticChecker::Result::ShaderSection::_applytextureRenaming(std::string& p_stringToConvert)
+	void _applytextureRenaming(std::string& p_stringToConvert)
 	{
 		std::regex samplerRegex(R"(sampler2D\s+(\w+))");
 
@@ -41,6 +41,16 @@ namespace Lumina
 		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\bgetPixel\b)"), "texture");
 	}
 
+	void _appendVersionString(std::string& p_stringToConvert)
+	{
+		p_stringToConvert = "#version 430\n\n" + p_stringToConvert;
+	}
+
+	void _convertPixelPositionToGL_Position(std::string& p_stringToConvert)
+	{
+		p_stringToConvert = std::regex_replace(p_stringToConvert, std::regex(R"(\pixelPosition\b)"), "gl_Position");
+	}
+
 	void SemanticChecker::Result::ShaderSection::convertLuminaToGLSL()
 	{
 		_applyConversion(layout);
@@ -52,6 +62,10 @@ namespace Lumina
 
 		_applytextureRenaming(vertexShader);
 		_applytextureRenaming(fragmentShader);
+
+		_appendVersionString(vertexShader);
+		_convertPixelPositionToGL_Position(vertexShader);
+		_appendVersionString(fragmentShader);
 	}
 
 	size_t SemanticChecker::alignOffset(size_t p_currentOffset, size_t p_currentSize, size_t p_alignment)
