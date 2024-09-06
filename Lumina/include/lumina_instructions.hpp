@@ -458,6 +458,7 @@ namespace Lumina
 	{
 		std::shared_ptr<TypeInstruction> type;
 		Lumina::Token name;
+		size_t size;
 		std::shared_ptr<ExpressionInstruction> initializer;
 
 		VariableDeclarationInstruction() :

@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkReturnInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ReturnInstruction>& p_instruction, std::unordered_map<std::string, SemanticChecker::Type*> p_variables, Type* p_returnType)
+	void SemanticChecker::checkReturnInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ReturnInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* p_returnType)
 	{
 		if (p_returnType == type("void"))
 		{

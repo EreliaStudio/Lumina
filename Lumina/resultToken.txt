@@ -11,9 +11,11 @@
 [               Identifier] | [  5::2  ] | Color
 [               Identifier] | [  5::8  ] | colors
 [              OpenBracket] | [  5::14 ] | [
-[                   Number] | [  5::15 ] | 100
-[             CloseBracket] | [  5::18 ] | ]
-[            EndOfSentence] | [  5::19 ] | ;
+[                   Number] | [  5::15 ] | 10
+[                 Operator] | [  5::18 ] | *
+[                   Number] | [  5::20 ] | 10
+[             CloseBracket] | [  5::22 ] | ]
+[            EndOfSentence] | [  5::23 ] | ;
 [        CloseCurlyBracket] | [  6::0  ] | }
 [            EndOfSentence] | [  6::1  ] | ;
 [             PipelineFlow] | [  8::0  ] | VertexPass

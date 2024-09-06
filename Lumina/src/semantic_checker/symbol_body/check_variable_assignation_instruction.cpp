@@ -2,14 +2,15 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, SemanticChecker::Variable> p_variables)
+	void SemanticChecker::checkVariableAssignationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableAssignationInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		if (p_variables.contains(p_instruction->name->tokens[0].content) == false)
 		{
 			throw TokenBasedError(p_file, "Variable [" + p_instruction->name->tokens[0].content + "] Doesn't exist." + DEBUG_INFORMATION, p_instruction->name->tokens[0]);
 		}
 
-		Type* variableType = p_variables.at(p_instruction->name->tokens[0].content);
+		Variable& variable = p_variables.at(p_instruction->name->tokens[0].content);
+		Type* variableType =  variable.type;
 
 		for (size_t i = 1; i < p_instruction->name->tokens.size(); i++)
 		{

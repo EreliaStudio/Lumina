@@ -9,6 +9,16 @@ namespace Lumina
 		result->type = parseTypeInstruction();
 		result->name = expect(Lumina::Token::Type::Identifier, "Expected an identifier name");
 
+		if (currentToken().type == Lumina::Token::Type::OpenBracket)
+		{
+			expect(Lumina::Token::Type::OpenBracket, "Expected an open bracket token." + DEBUG_INFORMATION);
+			while (currentToken().type == Lumina::Token::Type::Number)
+			{
+				
+			}
+			expect(Lumina::Token::Type::CloseBracket, "Expected a close bracket token." + DEBUG_INFORMATION);
+		}
+
 		if (currentToken().type != Lumina::Token::Type::EndOfSentence)
 		{
 			expect(Lumina::Token::Type::Assignator, "Expected an assignator token."+ DEBUG_INFORMATION);

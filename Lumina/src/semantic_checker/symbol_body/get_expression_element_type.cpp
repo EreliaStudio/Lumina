@@ -7,7 +7,7 @@ namespace Lumina
 		return (type("float"));
 	}
 
-	SemanticChecker::Type* SemanticChecker::getVariableExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables)
+	SemanticChecker::Type* SemanticChecker::getVariableExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		size_t index = 1; 
 		std::string variableName = p_instruction->tokens[0].content;
@@ -25,7 +25,8 @@ namespace Lumina
 			throw TokenBasedError(p_file, "Variable [" + variableName + "] Doesn't exist." + DEBUG_INFORMATION, p_instruction->tokens[0]);
 		}
 
-		Type* result = p_variables.at(variableName);
+		Variable variable = p_variables.at(variableName);
+		Type* result = variable.type;
 
 		for (size_t i = index; i < p_instruction->tokens.size(); i++)
 		{
@@ -85,7 +86,7 @@ namespace Lumina
 		return (result);
 	}
 
-	SemanticChecker::Type* SemanticChecker::getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables)
+	SemanticChecker::Type* SemanticChecker::getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		switch (p_instruction->type)
 		{

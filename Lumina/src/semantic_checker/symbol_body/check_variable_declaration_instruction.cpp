@@ -17,7 +17,7 @@ namespace Lumina
 			throw TokenBasedError(p_file, "Variable [" + p_instruction->name.content + "] already declared in this scope", p_instruction->name);
 		}
 
-		p_variables[p_instruction->name.content] = { varType, p_instruction->};
+		p_variables[p_instruction->name.content] = { varType, p_instruction->size};
 
 		if (p_instruction->initializer)
 		{

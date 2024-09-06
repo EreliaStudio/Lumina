@@ -2,7 +2,7 @@ Input -> VertexPass : Vector2 modelPosition;
 
 ConstantBlock properties
 {
-  Color colors[100];  
+  Color colors[10 * 10];  
 };
 
 VertexPass()

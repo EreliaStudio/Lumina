@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	SemanticChecker::Type* SemanticChecker::getExpressionType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, std::unordered_map<std::string, Type*> p_variables)
+	SemanticChecker::Type* SemanticChecker::getExpressionType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		Type* result = nullptr;
 
