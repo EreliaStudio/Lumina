@@ -5,8 +5,11 @@ namespace Lumina
 	void SemanticChecker::checkVariableDeclarationInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableDeclarationInstruction>& p_instruction, std::unordered_map<std::string, Variable>& p_variables)
 	{
 		Token typeToken = Token::merge(p_instruction->type->tokens, Token::Type::Identifier);
+		
 		std::string typeName = typeToken.content;
+		
 		Type* varType = type(typeName);
+
 		if (varType == nullptr)
 		{
 			throw TokenBasedError(p_file, "Type [" + typeName + "] not found", typeToken);
@@ -21,7 +24,7 @@ namespace Lumina
 
 		if (p_instruction->initializer)
 		{
-			checkExpressionInstruction(p_file, p_instruction->initializer, p_variables, varType);
+			checkExpressionInstruction(p_file, p_instruction->initializer, p_variables, varType, p_instruction->size);
 		}
 	}
 }
