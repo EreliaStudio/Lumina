@@ -51,7 +51,7 @@ namespace Lumina
 		return (result);
 	}
 
-	SemanticChecker::Type* SemanticChecker::getSymbolCallExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction)
+	SemanticChecker::Type* SemanticChecker::getSymbolCallExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElement>& p_instruction)
 	{
 		std::shared_ptr<SymbolCallInstruction> value = static_pointer_cast<SymbolCallInstruction>(p_instruction);
 
@@ -86,7 +86,7 @@ namespace Lumina
 		return (result);
 	}
 
-	SemanticChecker::Type* SemanticChecker::getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
+	SemanticChecker::Type* SemanticChecker::getExpressionElementType(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionElement>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		switch (p_instruction->type)
 		{

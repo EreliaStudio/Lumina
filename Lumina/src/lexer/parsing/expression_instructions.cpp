@@ -3,18 +3,18 @@
 namespace Lumina
 {
 
-	std::shared_ptr<ComparatorOperatorExpressionInstruction> LexerChecker::parseComparatorOperatorExpressionInstruction()
+	std::shared_ptr<ComparatorOperatorExpression> LexerChecker::parseComparatorOperatorExpression()
 	{
-		std::shared_ptr<ComparatorOperatorExpressionInstruction> result = std::make_shared<ComparatorOperatorExpressionInstruction>();
+		std::shared_ptr<ComparatorOperatorExpression> result = std::make_shared<ComparatorOperatorExpression>();
 
 		result->token = expect(Lumina::Token::Type::ComparatorOperator, "Expected a comparator operator token." + DEBUG_INFORMATION);
 
 		return result;
 	}
 
-	std::shared_ptr<OperatorExpressionInstruction> LexerChecker::parseOperatorExpressionInstruction()
+	std::shared_ptr<OperatorExpression> LexerChecker::parseOperatorExpression()
 	{
-		std::shared_ptr<OperatorExpressionInstruction> result = std::make_shared<OperatorExpressionInstruction>();
+		std::shared_ptr<OperatorExpression> result = std::make_shared<OperatorExpression>();
 
 		result->token = expect(Lumina::Token::Type::Operator, "Expected an operator token." + DEBUG_INFORMATION);
 
@@ -73,9 +73,9 @@ namespace Lumina
 		return result;
 	}
 
-	std::shared_ptr<ExpressionInstruction> LexerChecker::parseExpression()
+	std::shared_ptr<Expression> LexerChecker::parseExpression()
 	{
-		std::shared_ptr<ExpressionInstruction> result = std::make_shared<ExpressionInstruction>();
+		std::shared_ptr<Expression> result = std::make_shared<Expression>();
 
 		bool isParsing = true;
 		while (isParsing == true)
@@ -84,12 +84,12 @@ namespace Lumina
 			{
 			case Lumina::Token::Type::Operator:
 			{
-				result->elements.push_back(parseOperatorExpressionInstruction());
+				result->elements.push_back(parseOperatorExpression());
 				break;
 			}
 			case Lumina::Token::Type::ComparatorOperator:
 			{
-				result->elements.push_back(parseComparatorOperatorExpressionInstruction());
+				result->elements.push_back(parseComparatorOperatorExpression());
 				break;
 			}
 			case Lumina::Token::Type::BoolStatement:

@@ -53,8 +53,8 @@ namespace Lumina
 					throw TokenBasedError(p_file, "Type [" + typeToken.content + "] not found", typeToken);
 				}
 
-				size_t attributeCpuSize = constantType->cpuSize * (element->nbElement > 1 ? element->nbElement : 1);
-				size_t attributeGpuSize = constantType->gpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+				size_t attributeCpuSize = constantType->cpuSize;
+				size_t attributeGpuSize = constantType->gpuSize;
 
 				size_t alignment = std::min(attributeGpuSize, static_cast<size_t>(16));
 
@@ -63,7 +63,6 @@ namespace Lumina
 				newConstant.attributes.push_back({
 					constantType,
 					element->name.content,
-					element->nbElement,
 					{ currentCpuOffset, attributeCpuSize },
 					{ currentGpuOffset, attributeGpuSize }
 					});
@@ -104,8 +103,6 @@ namespace Lumina
 			std::string elementName = std::regex_replace(elementType->name, std::regex("::"), "_");
 
 			codeContent += "    " + elementName + " " + element->name.content;
-			if (element->nbElement != 0)
-				codeContent += "[" + std::to_string(element->nbElement) + "]";
 			codeContent += ";\n";
 		}
 		codeContent += "} " + typeName + ";\n";

@@ -57,15 +57,15 @@ namespace Lumina
 		std::shared_ptr<Lumina::ConstantBlockInstruction> parseConstantBlockInstruction();
 		std::shared_ptr<Lumina::TextureInstruction> parseTextureInstruction();
 		std::shared_ptr<Lumina::SymbolParameterInstruction> parseSymbolParameterInstruction();
-		std::shared_ptr<Lumina::ComparatorOperatorExpressionInstruction> parseComparatorOperatorExpressionInstruction();
-		std::shared_ptr<Lumina::OperatorExpressionInstruction> parseOperatorExpressionInstruction();
+		std::shared_ptr<Lumina::ComparatorOperatorExpression> parseComparatorOperatorExpression();
+		std::shared_ptr<Lumina::OperatorExpression> parseOperatorExpression();
 		std::shared_ptr<Lumina::BoolExpressionValueInstruction> parseBoolExpressionValueInstruction();
 		std::shared_ptr<Lumina::NumberExpressionValueInstruction> parseNumberExpressionValueInstruction();
 		std::shared_ptr<Lumina::StringLiteralsExpressionValueInstruction> parseStringLiteralsExpressionValueInstruction();
 		std::shared_ptr<Lumina::VariableExpressionValueInstruction> parseVariableExpressionValueInstruction();
 		std::shared_ptr<Lumina::SymbolNameInstruction> parseSymbolCallNameInstruction();
 		std::shared_ptr<Lumina::SymbolCallInstruction> parseSymbolCallInstruction();
-		std::shared_ptr<Lumina::ExpressionInstruction> parseExpression();
+		std::shared_ptr<Lumina::Expression> parseExpression();
 		std::shared_ptr<Lumina::VariableDeclarationInstruction> parseVariableDeclarationInstruction();
 		std::shared_ptr<Lumina::ReturnInstruction> parseReturnInstruction();
 		std::shared_ptr<Lumina::DiscardInstruction> parseDiscardInstruction();

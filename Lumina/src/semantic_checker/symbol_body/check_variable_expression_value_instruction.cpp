@@ -5,7 +5,7 @@ namespace Lumina
 	void SemanticChecker::checkVariableExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType, size_t p_expectedSize)
 	{
 		Token variableToken = Token::merge(p_instruction->tokens, Token::Type::Identifier);
-		Type* variableType = getExpressionElementType(p_file, static_pointer_cast<ExpressionElementInstruction>(p_instruction), p_variables);
+		Type* variableType = getExpressionElementType(p_file, static_pointer_cast<ExpressionElement>(p_instruction), p_variables);
 
 		if (p_expectedType != variableType && p_expectedType->acceptedConversions.contains(variableType) == false)
 		{

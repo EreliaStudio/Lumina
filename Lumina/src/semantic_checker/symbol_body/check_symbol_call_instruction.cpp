@@ -84,7 +84,7 @@ namespace Lumina
 
 		for (const auto& argument : p_instruction->arguments)
 		{
-			checkExpressionInstruction(p_file, argument, p_variables, getExpressionType(p_file, argument, p_variables), 0);
+			checkExpression(p_file, argument, p_variables, getExpressionType(p_file, argument, p_variables), 0);
 		}
 	}
 }

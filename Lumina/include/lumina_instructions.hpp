@@ -10,8 +10,6 @@ namespace Lumina
 	{
 		enum class Type
 		{
-			Identifier,
-			Type,
 			Include,
 			PipelineFlow,
 			StructureBlock,
@@ -62,30 +60,20 @@ namespace Lumina
 
 	using Instruction = AbstractInstruction;
 
-	struct IdentifierInstruction : public AbstractInstruction
+	struct IdentifierInstruction
 	{
 		Lumina::Token token;
 
-		IdentifierInstruction() :
-			AbstractInstruction(AbstractInstruction::Type::Identifier)
-		{
-
-		}
 		Token mergedToken() const
 		{
 			return (token);
 		}
 	};
 
-	struct TypeInstruction : public AbstractInstruction
+	struct TypeInstruction
 	{
 		std::vector<Lumina::Token> tokens;
 
-		TypeInstruction() :
-			AbstractInstruction(AbstractInstruction::Type::Type)
-		{
-
-		}
 		Token mergedToken() const
 		{
 			return Token::merge(tokens, Token::Type::Identifier);
@@ -130,11 +118,18 @@ namespace Lumina
 		}
 	};
 
+	struct Expression;
+
+	struct ArrayInstruction
+	{
+		std::shared_ptr<Expression> expression;
+	};
+
 	struct BlockElementInstruction
 	{
 		std::shared_ptr<TypeInstruction> type;
-		size_t nbElement = 0;
 		Lumina::Token name;
+		std::shared_ptr<ArrayInstruction> array;
 
 		BlockElementInstruction()
 		{
@@ -236,23 +231,23 @@ namespace Lumina
 		}
 	};
 
-	struct ExpressionInstruction;
+	struct Expression;
 
-	struct ExpressionElementInstruction : public AbstractInstruction
+	struct ExpressionElement : public AbstractInstruction
 	{
-		ExpressionElementInstruction(const AbstractInstruction::Type& p_type) :
+		ExpressionElement(const AbstractInstruction::Type& p_type) :
 			AbstractInstruction(p_type)
 		{
 
 		}
 	};
 
-	struct OperatorExpressionInstruction : public ExpressionElementInstruction
+	struct OperatorExpression : public ExpressionElement
 	{
 		Lumina::Token token;
 
-		OperatorExpressionInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::OperatorExpression)
+		OperatorExpression() :
+			ExpressionElement(AbstractInstruction::Type::OperatorExpression)
 		{
 
 		}
@@ -263,12 +258,12 @@ namespace Lumina
 		}
 	};
 
-	struct ComparatorOperatorExpressionInstruction : public ExpressionElementInstruction
+	struct ComparatorOperatorExpression : public ExpressionElement
 	{
 		Lumina::Token token;
 
-		ComparatorOperatorExpressionInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::ComparatorOperatorExpression)
+		ComparatorOperatorExpression() :
+			ExpressionElement(AbstractInstruction::Type::ComparatorOperatorExpression)
 		{
 
 		}
@@ -279,12 +274,12 @@ namespace Lumina
 		}
 	};
 
-	struct BoolExpressionValueInstruction : public ExpressionElementInstruction
+	struct BoolExpressionValueInstruction : public ExpressionElement
 	{
 		Lumina::Token token;
 
 		BoolExpressionValueInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::BoolExpressionValue)
+			ExpressionElement(AbstractInstruction::Type::BoolExpressionValue)
 		{
 
 		}
@@ -295,12 +290,12 @@ namespace Lumina
 		}
 	};
 
-	struct NumberExpressionValueInstruction : public ExpressionElementInstruction
+	struct NumberExpressionValueInstruction : public ExpressionElement
 	{
 		Lumina::Token token;
 
 		NumberExpressionValueInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::NumberExpressionValue)
+			ExpressionElement(AbstractInstruction::Type::NumberExpressionValue)
 		{
 
 		}
@@ -311,12 +306,12 @@ namespace Lumina
 		}
 	};
 
-	struct StringLiteralsExpressionValueInstruction : public ExpressionElementInstruction
+	struct StringLiteralsExpressionValueInstruction : public ExpressionElement
 	{
 		Lumina::Token token;
 
 		StringLiteralsExpressionValueInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::StringLiteralsExpressionValue)
+			ExpressionElement(AbstractInstruction::Type::StringLiteralsExpressionValue)
 		{
 
 		}
@@ -327,13 +322,13 @@ namespace Lumina
 		}
 	};
 
-	struct VariableExpressionValueInstruction : public ExpressionElementInstruction
+	struct VariableExpressionValueInstruction : public ExpressionElement
 	{
 		std::vector<Lumina::Token> tokens;
-		std::shared_ptr<ExpressionInstruction> arrayAccessorExpression = nullptr;
+		std::shared_ptr<Expression> arrayAccessorExpression = nullptr;
 
 		VariableExpressionValueInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::VariableExpressionValue)
+			ExpressionElement(AbstractInstruction::Type::VariableExpressionValue)
 		{
 
 		}
@@ -344,11 +339,11 @@ namespace Lumina
 		}
 	};
 
-	struct ExpressionInstruction : public AbstractInstruction
+	struct Expression : public AbstractInstruction
 	{
-		std::vector<std::shared_ptr<ExpressionElementInstruction>> elements;
+		std::vector<std::shared_ptr<ExpressionElement>> elements;
 
-		ExpressionInstruction() :
+		Expression() :
 			AbstractInstruction(AbstractInstruction::Type::Expression)
 		{
 
@@ -374,7 +369,7 @@ namespace Lumina
 	};
 
 
-	struct SymbolCallInstruction : public ExpressionElementInstruction
+	struct SymbolCallInstruction : public ExpressionElement
 	{
 		struct ResultAccessor : public AbstractInstruction
 		{
@@ -393,11 +388,11 @@ namespace Lumina
 		};
 
 		std::shared_ptr<SymbolNameInstruction> name;
-		std::vector<std::shared_ptr<ExpressionInstruction>> arguments;
+		std::vector<std::shared_ptr<Expression>> arguments;
 		std::shared_ptr<ResultAccessor> resultAccessor;
 
 		SymbolCallInstruction() :
-			ExpressionElementInstruction(AbstractInstruction::Type::SymbolCall)
+			ExpressionElement(AbstractInstruction::Type::SymbolCall)
 		{
 
 		}
@@ -423,7 +418,7 @@ namespace Lumina
 	struct VariableDesignationInstruction : public AbstractInstruction
 	{
 		std::vector<Lumina::Token> tokens;
-		std::shared_ptr<ExpressionInstruction> arrayAccessorExpression = nullptr;
+		std::shared_ptr<Expression> arrayAccessorExpression = nullptr;
 
 		VariableDesignationInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::VariableDesignation)
@@ -440,7 +435,7 @@ namespace Lumina
 	struct VariableAssignationInstruction : public AbstractInstruction
 	{
 		std::shared_ptr<VariableDesignationInstruction> name;
-		std::shared_ptr<ExpressionInstruction> initializer;
+		std::shared_ptr<Expression> initializer;
 
 		VariableAssignationInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::VariableAssignation)
@@ -450,7 +445,7 @@ namespace Lumina
 
 		Token mergedToken() const
 		{
-			return (Token::merge({name->mergedToken(), initializer->mergedToken()}, Token::Type::Identifier));
+			return (Token::merge({ name->mergedToken(), initializer->mergedToken() }, Token::Type::Identifier));
 		}
 	};
 
@@ -459,7 +454,7 @@ namespace Lumina
 		std::shared_ptr<TypeInstruction> type;
 		Lumina::Token name;
 		size_t size;
-		std::shared_ptr<ExpressionInstruction> initializer;
+		std::shared_ptr<Expression> initializer;
 
 		VariableDeclarationInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::VariableDeclaration)
@@ -499,7 +494,7 @@ namespace Lumina
 
 	struct ReturnInstruction : public AbstractInstruction
 	{
-		std::shared_ptr<ExpressionInstruction> argument;
+		std::shared_ptr<Expression> argument;
 
 		ReturnInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::Return)
@@ -529,9 +524,9 @@ namespace Lumina
 
 	struct ConditionElementInstruction : public AbstractInstruction
 	{
-		std::shared_ptr<ExpressionInstruction> lhs;
+		std::shared_ptr<Expression> lhs;
 		Token comparatorToken;
-		std::shared_ptr<ExpressionInstruction> rhs;
+		std::shared_ptr<Expression> rhs;
 
 		ConditionElementInstruction() :
 			AbstractInstruction(AbstractInstruction::Type::ConditionElement)
@@ -644,7 +639,7 @@ namespace Lumina
 	{
 		std::shared_ptr<AbstractInstruction> initializer;
 		std::shared_ptr<ConditionInstruction> condition;
-		std::shared_ptr<ExpressionInstruction> increment;
+		std::shared_ptr<Expression> increment;
 		std::shared_ptr<SymbolBodyInstruction> body;
 
 		ForLoopInstruction() :

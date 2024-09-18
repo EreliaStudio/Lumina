@@ -353,14 +353,12 @@ namespace Lumina
 				{
 					.type = type("float"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(float) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
 					.gpu = {.offset = 4, .size = 4 }
 				}
@@ -380,14 +378,12 @@ namespace Lumina
 				{
 					.type = type("int"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
 					.gpu = {.offset = 4, .size = 4 }
 				}
@@ -407,14 +403,12 @@ namespace Lumina
 				{
 					.type = type("uint"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
 					.gpu = {.offset = 4, .size = 4 }
 				}
@@ -434,28 +428,24 @@ namespace Lumina
 				{
 					.type = type("float"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(float) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(float) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				}
@@ -477,28 +467,24 @@ namespace Lumina
 				{
 					.type = type("int"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int) * 2, .size = sizeof(int) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(int) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				}
@@ -520,28 +506,24 @@ namespace Lumina
 				{
 					.type = type("uint"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int) * 2, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				}
@@ -563,42 +545,36 @@ namespace Lumina
 				{
 					.type = type("float"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(float) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "w",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float) * 3, .size = sizeof(float) },
 					.gpu = {.offset = 12, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(float) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				},
 				{
 					.type = type("float"),
 					.name = "xyz",
-					.nbElement = 3,
 					.cpu = {.offset = 0, .size = sizeof(float) * 3 },
 					.gpu = {.offset = 0, .size = 12 }
 				}
@@ -624,42 +600,36 @@ namespace Lumina
 				{
 					.type = type("int"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int), .size = sizeof(int) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int) * 2, .size = sizeof(int) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "w",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(int) * 3, .size = sizeof(int) },
 					.gpu = {.offset = 12, .size = 4 }
 				},
 				{
 					.type = type("int"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(int) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				},
 				{
 					.type = type("int"),
 					.name = "xyz",
-					.nbElement = 3,
 					.cpu = {.offset = 0, .size = sizeof(int) * 3 },
 					.gpu = {.offset = 0, .size = 12 }
 				}
@@ -685,42 +655,36 @@ namespace Lumina
 				{
 					.type = type("uint"),
 					.name = "x",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "y",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int), .size = sizeof(unsigned int) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "z",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int) * 2, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "w",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(unsigned int) * 3, .size = sizeof(unsigned int) },
 					.gpu = {.offset = 12, .size = 4 }
 				},
 				{
 					.type = type("uint"),
 					.name = "xy",
-					.nbElement = 2,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 2 },
 					.gpu = {.offset = 0, .size = 8 }
 				},
 				{
 					.type = type("uint"),
 					.name = "xyz",
-					.nbElement = 3,
 					.cpu = {.offset = 0, .size = sizeof(unsigned int) * 3 },
 					.gpu = {.offset = 0, .size = 12 }
 				}
@@ -746,42 +710,36 @@ namespace Lumina
 				{
 					.type = type("float"),
 					.name = "r",
-					.nbElement = 1,
 					.cpu = {.offset = 0, .size = sizeof(float) },
 					.gpu = {.offset = 0, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "g",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float), .size = sizeof(float) },
 					.gpu = {.offset = 4, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "b",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float) * 2, .size = sizeof(float) },
 					.gpu = {.offset = 8, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "a",
-					.nbElement = 1,
 					.cpu = {.offset = sizeof(float) * 3, .size = sizeof(float) },
 					.gpu = {.offset = 12, .size = 4 }
 				},
 				{
 					.type = type("float"),
 					.name = "rgb",
-					.nbElement = 3,
 					.cpu = {.offset = 0, .size = sizeof(float) * 3},
 					.gpu = {.offset = 0, .size = 12 }
 				},
 				{
 					.type = type("float"),
 					.name = "rgba",
-					.nbElement = 4,
 					.cpu = {.offset = 0, .size = sizeof(float) * 4},
 					.gpu = {.offset = 0, .size = 16 }
 				}
@@ -1310,7 +1268,7 @@ namespace Lumina
 		os << "Attributes:\n";
 		for (const auto& attr : type.attributes)
 		{
-			os << "  - " << attr.name << ": " << (attr.type ? attr.type->name : "null") << (attr.nbElement == 0 ? "" : "[" + std::to_string(attr.nbElement) + "]") << "\n";
+			os << "  - " << attr.name << ": " << (attr.type ? attr.type->name : "null") << "\n";
 		}
 		os << "Accepted Conversions:\n";
 		for (const auto& conv : type.acceptedConversions)

@@ -51,8 +51,8 @@ namespace Lumina
 				}
 
 
-				size_t attributeCpuSize = attributeType->cpuSize * (element->nbElement > 1 ? element->nbElement : 1);
-				size_t attributeGpuSize = attributeType->gpuSize * (element->nbElement > 1 ? element->nbElement : 1);
+				size_t attributeCpuSize = attributeType->cpuSize;
+				size_t attributeGpuSize = attributeType->gpuSize;
 
 				size_t alignment = 16;// std::min(attributeGpuSize, static_cast<size_t>(16));
 
@@ -61,7 +61,6 @@ namespace Lumina
 				newStructure.attributes.push_back({
 					attributeType,
 					element->name.content,
-					element->nbElement,
 					{ currentCpuOffset, attributeCpuSize },
 					{ currentGpuOffset, attributeGpuSize }
 					});
@@ -92,10 +91,6 @@ namespace Lumina
 			Type* elementType = type(element->type->tokens);
 
 			structureContent += "    " + elementType->name + " " + element->name.content;
-			if (element->nbElement != 0)
-			{
-				structureContent += "[" + std::to_string(element->nbElement) + "]";
-			}
 			structureContent += ";\n";
 		}
 			

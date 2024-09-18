@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkExpressionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ExpressionInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, SemanticChecker::Type* p_expectedType, size_t p_expectedSize)
+	void SemanticChecker::checkExpression(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, SemanticChecker::Type* p_expectedType, size_t p_expectedSize)
 	{
 		for (const auto& element : p_instruction->elements)
 		{

@@ -24,7 +24,7 @@ namespace Lumina
 
 		if (p_instruction->initializer)
 		{
-			checkExpressionInstruction(p_file, p_instruction->initializer, p_variables, varType, p_instruction->size);
+			checkExpression(p_file, p_instruction->initializer, p_variables, varType, p_instruction->size);
 		}
 	}
 }

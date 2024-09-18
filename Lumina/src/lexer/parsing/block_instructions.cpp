@@ -8,34 +8,6 @@ namespace Lumina
 
 		result->type = parseTypeInstruction();
 		result->name = expect(Lumina::Token::Type::Identifier, "Expected an identifier name");
-		if (currentToken().type != Lumina::Token::Type::EndOfSentence)
-		{
-			expect(Lumina::Token::Type::OpenBracket, "Expected an opening bracket to define an array or an end of sentence." + DEBUG_INFORMATION);
-			size_t size = std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-			while (currentToken().type == Lumina::Token::Type::Operator)
-			{
-				Token opeToken = expect(Lumina::Token::Type::Operator, "Expected an opening bracket to define an array or an end of sentence." + DEBUG_INFORMATION);
-
-				if (opeToken.content == "+")
-					size += std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-				else if (opeToken.content == "-")
-					size -= std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-				else if (opeToken.content == "*")
-					size *= std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-				else if (opeToken.content == "/")
-					size /= std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-				else if (opeToken.content == "%")
-					size %= std::stoi(expect(Lumina::Token::Type::Number, "Expected a number of element for the array." + DEBUG_INFORMATION).content);
-				else
-					throw TokenBasedError(_file, "Invalid token operator", opeToken);
-			}
-			result->nbElement = size;
-			expect(Lumina::Token::Type::CloseBracket, "Expected a closing bracket." + DEBUG_INFORMATION);
-		}
-		else
-		{
-			result->nbElement = 0;
-		}
 		expect(Lumina::Token::Type::EndOfSentence, "Expected end of sentence."+ DEBUG_INFORMATION);
 
 		return result;

@@ -4,10 +4,6 @@ std::string to_string(Lumina::AbstractInstruction::Type p_type)
 {
 	switch (p_type)
 	{
-	case Lumina::AbstractInstruction::Type::Identifier:
-		return "Identifier";
-	case Lumina::AbstractInstruction::Type::Type:
-		return "Type";
 	case Lumina::AbstractInstruction::Type::Include:
 		return "Include";
 	case Lumina::AbstractInstruction::Type::PipelineFlow:
@@ -75,7 +71,7 @@ std::string to_string(Lumina::AbstractInstruction::Type p_type)
 
 namespace Lumina
 {
-	Token Lumina::ExpressionInstruction::mergedToken() const
+	Token Lumina::Expression::mergedToken() const
 	{
 		std::vector<Token> tokens;
 

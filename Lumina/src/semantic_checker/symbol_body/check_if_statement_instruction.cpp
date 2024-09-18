@@ -5,9 +5,9 @@ namespace Lumina
 	void SemanticChecker::checkConditionElementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionElementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
 	{
 		Type* lhType = getExpressionType(p_file, p_instruction->lhs, p_variables);
-		checkExpressionInstruction(p_file, p_instruction->lhs, p_variables, lhType, 0);
+		checkExpression(p_file, p_instruction->lhs, p_variables, lhType, 0);
 		if (p_instruction->rhs != nullptr)
-			checkExpressionInstruction(p_file, p_instruction->rhs, p_variables, lhType, 0);
+			checkExpression(p_file, p_instruction->rhs, p_variables, lhType, 0);
 	}
 	
 	void SemanticChecker::checkConditionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables)
