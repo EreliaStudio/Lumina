@@ -42,7 +42,7 @@ namespace Lumina
 				}
 				case Instruction::Type::SymbolCall:
 				{
-					checkSymbolCallInstruction(p_file, std::static_pointer_cast<SymbolCallInstruction>(element), p_variables, nullptr, 0);
+					checkSymbolCallInstruction(p_file, std::static_pointer_cast<SymbolCallInstruction>(element), p_variables, nullptr);
 					break;
 				}
 				default:

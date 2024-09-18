@@ -27,6 +27,6 @@ namespace Lumina
 			variableType = it->type;
 		}
 
-		checkExpression(p_file, p_instruction->initializer, p_variables, variableType, variable.nbElement);
+		checkExpression(p_file, p_instruction->initializer, p_variables, variableType);
 	}
 }

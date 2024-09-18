@@ -17,4 +17,67 @@ namespace Lumina
 
 		return result;
 	}
+	
+	bool ArrayDefinition::isOnlyNumber() const
+	{
+		for (const auto& element : expression->elements)
+		{
+			switch (element->type)
+			{
+			case Instruction::Type::NumberExpressionValue:
+			case Instruction::Type::OperatorExpression:
+			{
+				break;
+			}
+			default:
+				return (false);
+			}
+		}
+		return (true);
+	}
+
+	std::shared_ptr<ArrayDefinition> LexerChecker::parseArrayDefinition()
+	{
+		std::shared_ptr<ArrayDefinition> result = std::make_shared<ArrayDefinition>();
+
+		expect(Lumina::Token::Type::OpenBracket, "Unexpected token found." + DEBUG_INFORMATION);
+		
+		result->expression = parseExpression();
+
+		expect(Lumina::Token::Type::CloseBracket, "Unexpected token found." + DEBUG_INFORMATION);
+
+		return (result);
+	}
+
+	Lumina::Token ArrayExpressionValueInstruction::mergedToken() const
+	{
+		std::vector<Token> expressionTokens;
+
+		for (const auto& expression : elements)
+		{
+			expressionTokens.push_back(expression->mergedToken());
+		}
+
+		return (Lumina::Token::merge(expressionTokens, Lumina::Token::Type::Identifier));
+	}
+
+	std::shared_ptr<ArrayExpressionValueInstruction> LexerChecker::parseArrayExpressionValueInstruction()
+	{
+		std::shared_ptr<ArrayExpressionValueInstruction> result = std::make_shared<ArrayExpressionValueInstruction>();
+
+		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' token.");
+
+		while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
+		{
+			if (result->elements.size() != 0)
+			{
+				expect(Lumina::Token::Type::Comma, "Expected a ',' token.");
+			}
+			result->elements.push_back(parseExpression());
+		}
+
+		expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' token.");
+
+		return (result);
+	}
 }

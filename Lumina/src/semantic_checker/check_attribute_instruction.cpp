@@ -15,6 +15,14 @@ namespace Lumina
 			throwException(p_file, "Attribute [" + p_instruction->name.content + "] already define", p_instruction->name);
 		}
 
+		for (const auto& element : p_instruction->elements)
+		{
+			if (element->array->isOnlyNumber() == false)
+			{
+				throwException(p_file, "Attribute element [" + element->name.content + "] can only", p_instruction->name);
+			}
+		}
+
 		std::vector<Symbol>* symbolVerification = symbolArray(p_instruction->name.content);
 
 		if (symbolVerification != nullptr)
@@ -102,6 +110,10 @@ namespace Lumina
 			std::string elementName = std::regex_replace(elementType->name, std::regex("::"), "_");
 
 			codeContent += "    " + elementName + " " + element->name.content;
+			if (element->array != nullptr)
+			{
+				codeContent += " [" + element->array->expression->mergedToken().content + "]";
+			}
 			codeContent += ";\n";
 		}
 		codeContent += "} " + typeName + ";\n\n";

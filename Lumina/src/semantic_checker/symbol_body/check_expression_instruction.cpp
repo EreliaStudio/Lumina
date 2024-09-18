@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkExpression(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, SemanticChecker::Type* p_expectedType, size_t p_expectedSize)
+	void SemanticChecker::checkExpression(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, SemanticChecker::Type* p_expectedType)
 	{
 		for (const auto& element : p_instruction->elements)
 		{
@@ -16,7 +16,7 @@ namespace Lumina
 				}
 				case Instruction::Type::VariableExpressionValue:
 				{
-					checkVariableExpressionValueInstruction(p_file, static_pointer_cast<VariableExpressionValueInstruction>(element), p_variables, p_expectedType, p_expectedSize);
+					checkVariableExpressionValueInstruction(p_file, static_pointer_cast<VariableExpressionValueInstruction>(element), p_variables, p_expectedType);
 					break;
 				}
 				case Instruction::Type::NumberExpressionValue:
@@ -26,7 +26,7 @@ namespace Lumina
 				}
 				case Instruction::Type::SymbolCall:
 				{
-					checkSymbolCallInstruction(p_file, static_pointer_cast<SymbolCallInstruction>(element), p_variables, p_expectedType, p_expectedSize);
+					checkSymbolCallInstruction(p_file, static_pointer_cast<SymbolCallInstruction>(element), p_variables, p_expectedType);
 					break;
 				}
 				case Instruction::Type::OperatorExpression:

@@ -69,7 +69,6 @@ namespace Lumina
 		struct Variable
 		{
 			Type* type;
-			size_t nbElement;
 		};
 
 		struct Symbol
@@ -167,9 +166,9 @@ namespace Lumina
 		Type* getExpressionType(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables);
 
 		void checkNumberExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<NumberExpressionValueInstruction>& p_instruction, Type* p_expectedType);
-		void checkVariableExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType, size_t p_expectedSize);
-		void checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType, size_t p_expectedSize);
-		void checkExpression(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType, size_t p_expectedSize);
+		void checkVariableExpressionValueInstruction(const std::filesystem::path& p_file, const std::shared_ptr<VariableExpressionValueInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
+		void checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
+		void checkExpression(const std::filesystem::path& p_file, const std::shared_ptr<Expression>& p_instruction, const std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType);
 
 		void checkConditionElementInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionElementInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);
 		void checkConditionInstruction(const std::filesystem::path& p_file, const std::shared_ptr<ConditionInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables);

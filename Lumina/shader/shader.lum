@@ -1,12 +1,19 @@
 Input -> VertexPass : Vector2 modelPosition;
 
+int length()
+{
+    return (10);
+}
+
 ConstantBlock properties
 {
-  Color colors[10 * 10];  
+  Color colors[length()];  
 };
 
 VertexPass()
 {
+    Vector2 value[length()];
+
     pixelPosition = Vector4(modelPosition, 0.0, 1.0);
 }
 

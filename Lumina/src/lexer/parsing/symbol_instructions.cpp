@@ -11,12 +11,7 @@ namespace Lumina
 
 		if (currentToken().type == Lumina::Token::Type::OpenBracket)
 		{
-			expect(Lumina::Token::Type::OpenBracket, "Expected an open bracket token." + DEBUG_INFORMATION);
-			while (currentToken().type == Lumina::Token::Type::Number)
-			{
-				
-			}
-			expect(Lumina::Token::Type::CloseBracket, "Expected a close bracket token." + DEBUG_INFORMATION);
+			result->array = parseArrayDefinition();
 		}
 
 		if (currentToken().type != Lumina::Token::Type::EndOfSentence)

@@ -24,6 +24,7 @@ namespace Lumina
 			NumberExpressionValue,
 			StringLiteralsExpressionValue,
 			VariableExpressionValue,
+			ArrayExpressionValue,
 			Expression,
 			VariableDesignation,
 			VariableAssignation,
@@ -120,16 +121,18 @@ namespace Lumina
 
 	struct Expression;
 
-	struct ArrayInstruction
+	struct ArrayDefinition
 	{
 		std::shared_ptr<Expression> expression;
+
+		bool isOnlyNumber() const;
 	};
 
 	struct BlockElementInstruction
 	{
 		std::shared_ptr<TypeInstruction> type;
 		Lumina::Token name;
-		std::shared_ptr<ArrayInstruction> array;
+		std::shared_ptr<ArrayDefinition> array;
 
 		BlockElementInstruction()
 		{
@@ -288,6 +291,19 @@ namespace Lumina
 		{
 			return (token);
 		}
+	};
+
+	struct ArrayExpressionValueInstruction : public ExpressionElement
+	{
+		std::vector<std::shared_ptr<Expression>> elements;
+
+		ArrayExpressionValueInstruction() :
+			ExpressionElement(AbstractInstruction::Type::ArrayExpressionValue)
+		{
+
+		}
+
+		Token mergedToken() const;
 	};
 
 	struct NumberExpressionValueInstruction : public ExpressionElement
@@ -453,7 +469,7 @@ namespace Lumina
 	{
 		std::shared_ptr<TypeInstruction> type;
 		Lumina::Token name;
-		size_t size;
+		std::shared_ptr<ArrayDefinition> array;
 		std::shared_ptr<Expression> initializer;
 
 		VariableDeclarationInstruction() :

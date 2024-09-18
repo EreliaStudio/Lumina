@@ -43,15 +43,13 @@ namespace Lumina
 			throw TokenBasedError(p_file, "Invalid pipeline flow type [" + typeToken.content + "]", typeToken);
 		}
 
-		(*target)[p_instruction->name.content] = {tmpType, 0};
+		(*target)[p_instruction->name.content] = {tmpType};
 		if (targetSecond != nullptr)
-			(*targetSecond)[p_instruction->name.content] = { tmpType, 0 };
+			(*targetSecond)[p_instruction->name.content] = { tmpType };
 	}
 
 	void SemanticChecker::compilePipelineFlowInstruction(const std::shared_ptr<PipelineFlowInstruction>& p_instruction)
 	{
-
-		size_t nbElement = 0;
 		size_t type = 0;
 		std::string glslName = "";
 
@@ -59,92 +57,78 @@ namespace Lumina
 
 		if (flowType == "int")
 		{
-			nbElement = 1;
 			type = 0x1404;
 			glslName = "int";
 		}
 		else if (flowType == "float")
 		{
-			nbElement = 1;
 			type = 0x1406;
 			glslName = "float";
 		}
 		else if (flowType == "uint")
 		{
-			nbElement = 1;
 			type = 0x1405;
 			glslName = "uint";
 		}
 		else if (flowType == "bool")
 		{
-			nbElement = 1;
 			type = 0x1400;
 			glslName = "bool";
 		}
 		else if (flowType == "Vector2Int")
 		{
-			nbElement = 2;
 			type = 0x1404;
 			glslName = "ivec2";
 		}
 		else if (flowType == "Vector2")
 		{
-			nbElement = 2;
 			type = 0x1406;
 			glslName = "vec2";
 		}
 		else if (flowType == "Vector2UInt")
 		{
-			nbElement = 2;
 			type = 0x1405;
 			glslName = "uvec2";
 		}
 		else if (flowType == "Vector3Int")
 		{
-			nbElement = 3;
 			type = 0x1404;
 			glslName = "ivec3";
 		}
 		else if (flowType == "Vector3")
 		{
-			nbElement = 3;
 			type = 0x1406;
 			glslName = "vec3";
 		}
 		else if (flowType == "Vector3UInt")
 		{
-			nbElement = 3;
 			type = 0x1405;
 			glslName = "uvec3";
 		}
 		else if (flowType == "Vector4Int")
 		{
-			nbElement = 4;
 			type = 0x1404;
 			glslName = "ivec4";
 		}
 		else if (flowType == "Vector4")
 		{
-			nbElement = 4;
 			type = 0x1406;
 			glslName = "vec4";
 		}
 		else if (flowType == "Vector4UInt")
 		{
-			nbElement = 4;
 			type = 0x1405;
 			glslName = "uvec4";
 		}
 		else if (flowType == "Color")
 		{
-			nbElement = 4;
 			type = 0x1406;
 			glslName = "vec4";
 		}
 
 		if (p_instruction->inputPipeline.content == "Input")
 		{
-			_result.sections.layout += std::to_string(_nbVertexPassLayout) + " " + std::to_string(nbElement) + " " + std::to_string(type) + "\n";
+			_result.sections.layout += std::to_string(_nbVertexPassLayout) + " " + std::to_string(type) + "\n";
 			
 			_result.sections.vertexShader += "layout(location = " + std::to_string(_nbVertexPassLayout) + ") in " + glslName + " " + p_instruction->name.content + ";\n\n";
 

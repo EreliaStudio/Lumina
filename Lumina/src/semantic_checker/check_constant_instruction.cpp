@@ -103,6 +103,10 @@ namespace Lumina
 			std::string elementName = std::regex_replace(elementType->name, std::regex("::"), "_");
 
 			codeContent += "    " + elementName + " " + element->name.content;
+			if (element->array != nullptr)
+			{
+				codeContent += " [" + element->array->expression->mergedToken().content + "]";
+			}
 			codeContent += ";\n";
 		}
 		codeContent += "} " + typeName + ";\n";

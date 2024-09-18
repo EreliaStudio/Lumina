@@ -91,6 +91,10 @@ namespace Lumina
 			Type* elementType = type(element->type->tokens);
 
 			structureContent += "    " + elementType->name + " " + element->name.content;
+			if (element->array != nullptr)
+			{
+				structureContent += " [" + element->array->expression->mergedToken().content + "]";
+			}
 			structureContent += ";\n";
 		}
 			

@@ -22,8 +22,8 @@ namespace Lumina
 			throwException(p_file, "Conflict name [" + p_instruction->name.content + "] : Name already used previously", p_instruction->name);
 		}
 
-		_vertexPassVariables[textureName] = { type("Texture"), 0 };
-		_fragmentPassVariables[textureName] = {type("Texture"), 0 };
+		_vertexPassVariables[textureName] = { type("Texture") };
+		_fragmentPassVariables[textureName] = {type("Texture") };
 	}
 
 	void SemanticChecker::compileTextureInstruction(const std::shared_ptr<TextureInstruction>& p_instruction)

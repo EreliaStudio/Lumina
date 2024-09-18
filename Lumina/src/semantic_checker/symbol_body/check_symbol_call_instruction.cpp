@@ -2,7 +2,7 @@
 
 namespace Lumina
 {
-	void SemanticChecker::checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType, size_t p_expectedSize)
+	void SemanticChecker::checkSymbolCallInstruction(const std::filesystem::path& p_file, const std::shared_ptr<SymbolCallInstruction>& p_instruction, std::unordered_map<std::string, Variable> p_variables, Type* p_expectedType)
 	{
 		Token nameToken = Token::merge(p_instruction->name->tokens, Token::Type::Identifier);
 		std::vector<Symbol>* targetSymbolArray = symbolArray(nameToken.content);
@@ -84,7 +84,7 @@ namespace Lumina
 
 		for (const auto& argument : p_instruction->arguments)
 		{
-			checkExpression(p_file, argument, p_variables, getExpressionType(p_file, argument, p_variables), 0);
+			checkExpression(p_file, argument, p_variables, getExpressionType(p_file, argument, p_variables));
 		}
 	}
 }

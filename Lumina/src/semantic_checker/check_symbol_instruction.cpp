@@ -45,12 +45,13 @@ namespace Lumina
 			newSymbol.parameters.push_back({ parameter->name.content, parameterType });
 		}
 
-		const std::vector<Symbol>& tmpSymbolArray = _symbols[createNamespacePrefix() + newSymbol.name];
+		std::string symbolName = createNamespacePrefix() + newSymbol.name;
+		const std::vector<Symbol>& tmpSymbolArray = _symbols[symbolName];
 
 		if (tmpSymbolArray.size() != 0 &&
 			tmpSymbolArray.back().returnType != newSymbol.returnType)
 		{
-			throw TokenBasedError(p_file, "Symbol [" + returnTypeToken.content + "] already define with another return type.", returnTypeToken);
+			throw TokenBasedError(p_file, "Symbol [" + symbolName + "] already define with another return type.", p_instruction->name);
 		}
 
 		for (const auto& symbol : tmpSymbolArray)
@@ -84,22 +85,22 @@ namespace Lumina
 
 		for (const auto attribute : _attributes)
 		{
-			functionVariables[attribute->name] = { attribute, 0 };
+			functionVariables[attribute->name] = { attribute };
 		}
 
 		for (const auto constant : _constants)
 		{
-			functionVariables[constant->name] = { constant, 0 };
+			functionVariables[constant->name] = { constant };
 		}
 
 		for (const auto texture : _textures)
 		{
-			functionVariables[texture] = { type("Texture"), 0 };
+			functionVariables[texture] = { type("Texture") };
 		}
 
 		for (const auto& [name, type] : newSymbol.parameters)
 		{
-			functionVariables[name] = { type, 0 };
+			functionVariables[name] = { type };
 		}
 
 		checkSymbolBodyInstruction(p_file, p_instruction->body, functionVariables, newSymbol.returnType);
