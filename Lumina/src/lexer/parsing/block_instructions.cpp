@@ -12,7 +12,17 @@ namespace Lumina
 		if (currentToken().type != Lumina::Token::Type::EndOfSentence)
 		{
 			result->array = parseArrayDefinition();
+
+			if (result->array->expression->elements.size() == 0)
+			{
+				throw TokenBasedError(_file, "Block element [" + result->name.content + "] array size must be defined using numbers and operators.", result->name);
+			}
+			if (result->array->isOnlyNumber() == false)
+			{
+				throw TokenBasedError(_file, "Block element [" + result->name.content + "] array size can only be defined using numbers and operators.", result->name);
+			}
 		}
+
 		expect(Lumina::Token::Type::EndOfSentence, "Expected end of sentence."+ DEBUG_INFORMATION);
 
 		return result;

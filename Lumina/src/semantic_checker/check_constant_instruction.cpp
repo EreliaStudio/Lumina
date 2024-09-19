@@ -15,7 +15,6 @@ namespace Lumina
 			throwException(p_file, "Constant [" + p_instruction->name.content + "] already define", p_instruction->name);
 		}
 
-
 		std::vector<Symbol>* symbolVerification = symbolArray(p_instruction->name.content);
 
 		if (symbolVerification != nullptr)

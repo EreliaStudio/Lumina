@@ -22,21 +22,28 @@ propertiesType properties 16 16 {
 
 layout(location = 0) in vec2 modelPosition;
 
+int arrayLength(){
+    return (10);
+}
+
 layout(constant) uniform propertiesType{
-    Color colors [10 * 10];
+    Color colors [10];
 } properties;
 
 void main(){
-    int length = 10;
-    vec2 value[length];
+    vec2 value[10];
     gl_Position = vec4(modelPosition, 0.0, 1.0);
 }
 
 ## FRAGMENT SHADER CODE ##
 #version 430
 
+int arrayLength(){
+    return (10);
+}
+
 layout(constant) uniform propertiesType{
-    Color colors [10 * 10];
+    Color colors [10];
 } properties;
 
 layout(location = 0) out vec4 pixelColor;

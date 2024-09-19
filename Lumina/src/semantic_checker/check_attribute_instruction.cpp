@@ -15,14 +15,6 @@ namespace Lumina
 			throwException(p_file, "Attribute [" + p_instruction->name.content + "] already define", p_instruction->name);
 		}
 
-		for (const auto& element : p_instruction->elements)
-		{
-			if (element->array->isOnlyNumber() == false)
-			{
-				throwException(p_file, "Attribute element [" + element->name.content + "] can only", p_instruction->name);
-			}
-		}
-
 		std::vector<Symbol>* symbolVerification = symbolArray(p_instruction->name.content);
 
 		if (symbolVerification != nullptr)
