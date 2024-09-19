@@ -1,23 +1,7 @@
 Input -> VertexPass : Vector2 modelPosition;
 
-int arrayLength()
+struct Test
 {
-    return (10);
-}
-
-ConstantBlock properties
-{
-  Color colors[10];  
+	int value;
+	float test;
 };
-
-VertexPass()
-{
-    Vector2 value[10];
-
-    pixelPosition = Vector4(modelPosition, 0.0, 1.0);
-}
-
-FragmentPass()
-{
-    pixelColor = properties.colors[0];
-}

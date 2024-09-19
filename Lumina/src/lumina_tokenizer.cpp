@@ -3,6 +3,8 @@
 #include <cctype>
 #include <string>
 
+#include "lumina_utils.hpp"
+
 namespace Lumina
 {
 	namespace
@@ -138,7 +140,7 @@ namespace Lumina
 		return (p_rawCode.substr(startIndex, endIndex - startIndex));
 	}
 
-	std::vector<Token> Tokenizer::tokenize(const std::string& p_rawCode)
+	std::vector<Token> Tokenizer::tokenize(const std::filesystem::path& p_path)
 	{
 		std::vector<Token> result;
 		size_t index = 0;
@@ -147,31 +149,30 @@ namespace Lumina
 		int columnNumber = 0;
 		std::string currentLine;
 
-		while (index < p_rawCode.size())
+		std::string rawInput = Lumina::readFileAsString(p_path);
+
+		while (index < rawInput.size())
 		{
 			if (currentLineNumber != lineNumber)
 			{
-				currentLine = getLine(p_rawCode, index);
+				currentLine = getLine(rawInput, index);
 				currentLineNumber = lineNumber;
 			}
 
-			if (std::isspace(p_rawCode[index]))
+			if (std::isspace(rawInput[index]))
 			{
-				if (p_rawCode[index] == '\n')
+				if (rawInput[index] == '\n')
 				{
 					lineNumber++;
 					columnNumber = 0;
-					//currentLine.clear();
 				}
-				else if (p_rawCode[index] == '\t')
+				else if (rawInput[index] == '\t')
 				{
 					columnNumber += 4;
-					//currentLine.clear();
 				}
 				else
 				{
 					columnNumber++;
-					//currentLine += p_rawCode[index];
 				}
 				index++;
 				continue;
@@ -182,25 +183,25 @@ namespace Lumina
 			int beginColumnNumber = columnNumber;
 			int beginLineNumber = lineNumber;
 
-			if (p_rawCode.substr(index, 8) == "#include")
+			if (rawInput.substr(index, 8) == "#include")
 			{
-				tokenStr = parseSpecialToken(p_rawCode, index, "#include");
+				tokenStr = parseSpecialToken(rawInput, index, "#include");
 				tokenType = Token::Type::Include;
 			}
-			else if (p_rawCode[index] == '\"')
+			else if (rawInput[index] == '\"')
 			{
-				tokenStr = parseStringLiteral(p_rawCode, index);
+				tokenStr = parseStringLiteral(rawInput, index);
 				tokenType = Token::Type::StringLitteral;
 			}
-			else if (p_rawCode[index] == '/' && (p_rawCode[index + 1] == '/' || p_rawCode[index + 1] == '*'))
+			else if (rawInput[index] == '/' && (rawInput[index + 1] == '/' || rawInput[index + 1] == '*'))
 			{
-				tokenStr = parseComment(p_rawCode, index);
+				tokenStr = parseComment(rawInput, index);
 				tokenType = Token::Type::Comment;
 			}
-			else if (p_rawCode[index] == '<')
+			else if (rawInput[index] == '<')
 			{
 				size_t beginIndex = index;
-				tokenStr = parseIncludeLiterals(p_rawCode, index);
+				tokenStr = parseIncludeLiterals(rawInput, index);
 				if (!tokenStr.empty())
 				{
 					tokenType = Token::Type::IncludeLitteral;
@@ -208,13 +209,13 @@ namespace Lumina
 				else
 				{
 					index = beginIndex;
-					tokenStr = parseSpecialToken(p_rawCode, index, std::string(1, p_rawCode[index]));
+					tokenStr = parseSpecialToken(rawInput, index, std::string(1, rawInput[index]));
 					tokenType = Token::Type::ComparatorOperator;
 				}
 			}
-			else if (isIdentifierStart(p_rawCode[index]))
+			else if (isIdentifierStart(rawInput[index]))
 			{
-				tokenStr = parseIdentifier(p_rawCode, index);
+				tokenStr = parseIdentifier(rawInput, index);
 				if (tokenStr == "Input" || tokenStr == "VertexPass" || tokenStr == "FragmentPass")
 				{
 					tokenType = Token::Type::PipelineFlow;
@@ -272,19 +273,19 @@ namespace Lumina
 					tokenType = Token::Type::Identifier;
 				}
 			}
-			else if (isDigit(p_rawCode[index]) || (p_rawCode[index] == '.' && isDigit(p_rawCode[index + 1])))
+			else if (isDigit(rawInput[index]) || (rawInput[index] == '.' && isDigit(rawInput[index + 1])))
 			{
-				tokenStr = parseNumber(p_rawCode, index);
+				tokenStr = parseNumber(rawInput, index);
 				tokenType = Token::Type::Number;
 			}
-			else if (p_rawCode.substr(index, 2) == "->")
+			else if (rawInput.substr(index, 2) == "->")
 			{
-				tokenStr = parseSpecialToken(p_rawCode, index, "->");
+				tokenStr = parseSpecialToken(rawInput, index, "->");
 				tokenType = Token::Type::PipelineFlowSeparator;
 			}
-			else if (p_rawCode.substr(index, 2) == "::")
+			else if (rawInput.substr(index, 2) == "::")
 			{
-				tokenStr = parseSpecialToken(p_rawCode, index, "::");
+				tokenStr = parseSpecialToken(rawInput, index, "::");
 				tokenType = Token::Type::NamespaceSeparator;
 			}
 			else
@@ -294,9 +295,9 @@ namespace Lumina
 				bool foundOperator = false;
 				for (const std::string& op : operators)
 				{
-					if (p_rawCode.substr(index, op.size()) == op)
+					if (rawInput.substr(index, op.size()) == op)
 					{
-						tokenStr = parseSpecialToken(p_rawCode, index, op);
+						tokenStr = parseSpecialToken(rawInput, index, op);
 						tokenType = Token::Type::ComparatorOperator;
 						foundOperator = true;
 						break;
@@ -307,9 +308,9 @@ namespace Lumina
 				bool foundConditionOperator = false;
 				for (const std::string& op : conditionOperators)
 				{
-					if (p_rawCode.substr(index, op.size()) == op)
+					if (rawInput.substr(index, op.size()) == op)
 					{
-						tokenStr = parseSpecialToken(p_rawCode, index, op);
+						tokenStr = parseSpecialToken(rawInput, index, op);
 						tokenType = Token::Type::ConditionOperator;
 						foundConditionOperator = true;
 						break;
@@ -320,9 +321,9 @@ namespace Lumina
 				bool foundAssignator = false;
 				for (const std::string& op : assignators)
 				{
-					if (p_rawCode.substr(index, op.size()) == op)
+					if (rawInput.substr(index, op.size()) == op)
 					{
-						tokenStr = parseSpecialToken(p_rawCode, index, op);
+						tokenStr = parseSpecialToken(rawInput, index, op);
 						tokenType = Token::Type::Assignator;
 						foundOperator = true;
 						break;
@@ -333,9 +334,9 @@ namespace Lumina
 				bool foundIncrementor = false;
 				for (const std::string& op : incrementor)
 				{
-					if (p_rawCode.substr(index, op.size()) == op)
+					if (rawInput.substr(index, op.size()) == op)
 					{
-						tokenStr = parseSpecialToken(p_rawCode, index, op);
+						tokenStr = parseSpecialToken(rawInput, index, op);
 						tokenType = Token::Type::Incrementor;
 						foundOperator = true;
 						break;
@@ -343,51 +344,51 @@ namespace Lumina
 				}
 				if (!foundOperator && !foundAssignator && !foundIncrementor && !foundConditionOperator)
 				{
-					switch (p_rawCode[index])
+					switch (rawInput[index])
 					{
 					case '{':
-						tokenStr = parseSpecialToken(p_rawCode, index, "{");
+						tokenStr = parseSpecialToken(rawInput, index, "{");
 						tokenType = Token::Type::OpenCurlyBracket;
 						break;
 					case '}':
-						tokenStr = parseSpecialToken(p_rawCode, index, "}");
+						tokenStr = parseSpecialToken(rawInput, index, "}");
 						tokenType = Token::Type::CloseCurlyBracket;
 						break;
 					case '[':
-						tokenStr = parseSpecialToken(p_rawCode, index, "[");
+						tokenStr = parseSpecialToken(rawInput, index, "[");
 						tokenType = Token::Type::OpenBracket;
 						break;
 					case ']':
-						tokenStr = parseSpecialToken(p_rawCode, index, "]");
+						tokenStr = parseSpecialToken(rawInput, index, "]");
 						tokenType = Token::Type::CloseBracket;
 						break;
 					case '(':
-						tokenStr = parseSpecialToken(p_rawCode, index, "(");
+						tokenStr = parseSpecialToken(rawInput, index, "(");
 						tokenType = Token::Type::OpenParenthesis;
 						break;
 					case ')':
-						tokenStr = parseSpecialToken(p_rawCode, index, ")");
+						tokenStr = parseSpecialToken(rawInput, index, ")");
 						tokenType = Token::Type::CloseParenthesis;
 						break;
 					case '.':
-						tokenStr = parseSpecialToken(p_rawCode, index, ".");
+						tokenStr = parseSpecialToken(rawInput, index, ".");
 						tokenType = Token::Type::Accessor;
 						break;
 					case ';':
-						tokenStr = parseSpecialToken(p_rawCode, index, ";");
+						tokenStr = parseSpecialToken(rawInput, index, ";");
 						tokenType = Token::Type::EndOfSentence;
 						break;
 					case ':':
-						tokenStr = parseSpecialToken(p_rawCode, index, ":");
+						tokenStr = parseSpecialToken(rawInput, index, ":");
 						tokenType = Token::Type::Separator;
 						break;
 					case ',':
-						tokenStr = parseSpecialToken(p_rawCode, index, ",");
+						tokenStr = parseSpecialToken(rawInput, index, ",");
 						tokenType = Token::Type::Comma;
 						break;
 					case '<':
 					case '>':
-						tokenStr = parseSpecialToken(p_rawCode, index, std::string(1, p_rawCode[index]));
+						tokenStr = parseSpecialToken(rawInput, index, std::string(1, rawInput[index]));
 						tokenType = Token::Type::ComparatorOperator;
 						break;
 					case '+':
@@ -401,11 +402,11 @@ namespace Lumina
 					case '^':
 					case '~':
 					case '?':
-						tokenStr = parseSpecialToken(p_rawCode, index, std::string(1, p_rawCode[index]));
+						tokenStr = parseSpecialToken(rawInput, index, std::string(1, rawInput[index]));
 						tokenType = Token::Type::Operator;
 						break;
 					default:
-						tokenStr = p_rawCode.substr(index, 1);
+						tokenStr = rawInput.substr(index, 1);
 						index++;
 						break;
 					}
@@ -428,7 +429,14 @@ namespace Lumina
 				}
 			}
 
-			result.emplace_back(tokenStr, tokenType, beginLineNumber, beginColumnNumber, currentLine);
+			Token::Context context;
+
+			context.column = beginColumnNumber;
+			context.line = beginLineNumber;
+			context.originFile = p_path;
+			context.inputLine = currentLine;
+
+			result.push_back(Token(tokenStr, tokenType, context));
 			beginColumnNumber = columnNumber;
 			beginLineNumber = lineNumber;
 		}

@@ -2,11 +2,12 @@
 
 namespace Lumina
 {
-	Token::Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::string& p_inputLine) :
+	Token::Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::filesystem::path& p_originFile, const std::string& p_inputLine) :
 		type(p_type),
 		content(p_content),
-		context{ p_line, p_column, p_inputLine }
+		context{ p_line, p_column, p_originFile, p_inputLine }
 	{
+
 	}
 
 	Token::Token(const std::string& p_content, Type p_type, const Context& p_context) :

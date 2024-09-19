@@ -2,12 +2,12 @@
 
 namespace Lumina
 {
-	TokenBasedError::TokenBasedError(const std::filesystem::path& p_file, const std::string& p_message, const Token& p_token)
+	TokenBasedError::TokenBasedError(const std::string& p_message, const Token& p_token)
 	{
 		size_t tokenSize = std::min(p_token.content.size(), p_token.context.inputLine.size());
 		std::stringstream ss;
 
-		ss << "In file [" << p_file.string() << "] : " << std::endl;
+		ss << "In file [" << p_token.context.originFile.string() << "] : " << std::endl;
 
 		// Check for invalid token (type == Unknow)
 		if (p_token.type == Token::Type::Unknow)

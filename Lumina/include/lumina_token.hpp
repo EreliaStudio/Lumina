@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <filesystem>
 
 namespace Lumina
 {
@@ -13,6 +14,7 @@ namespace Lumina
 		{
 			int line = 0;
 			int column = 0;
+			std::filesystem::path originFile = "";
 			std::string inputLine = "";
 		};
 
@@ -63,7 +65,7 @@ namespace Lumina
 
 		Token() = default;
 
-		Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::string& p_inputLine);
+		Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::filesystem::path& p_originFile, const std::string& p_inputLine);
 		Token(const std::string& p_content, Type p_type, const Context& p_context);
 
 		friend std::ostream& operator << (std::ostream& p_os, const Token::Type& p_type);
