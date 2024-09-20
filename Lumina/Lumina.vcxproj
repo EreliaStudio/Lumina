@@ -160,6 +160,9 @@
     <ClInclude Include="include\lumina_tokenizer.hpp" />
     <ClInclude Include="include\lumina_utils.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\test.lum" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

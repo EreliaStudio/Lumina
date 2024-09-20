@@ -1,0 +1,5 @@
+struct test
+{
+	a a;
+	b b;
+};

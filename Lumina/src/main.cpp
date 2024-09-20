@@ -2,6 +2,7 @@
 
 #include "lumina_tokenizer.hpp"
 #include "lumina_exception.hpp"
+#include "lumina_utils.hpp"
 
 using TokenType = Lumina::Token::Type;
 
@@ -25,17 +26,6 @@ struct MetaToken
 
 	MetaToken(Type p_type) : 
 		type(p_type)
-	{
-
-	}
-};
-
-struct IncludeMetaToken : public MetaToken
-{
-	std::string filePath;
-
-	IncludeMetaToken() :
-		MetaToken(Type::Include)
 	{
 
 	}
@@ -183,6 +173,7 @@ public:
 	using Product = Lumina::Expected<std::vector<std::shared_ptr<MetaToken>>>;
 
 private:
+	Product _result;
 	std::vector<Lumina::Token> _tokens;
 	size_t _index = 0;
 	Lumina::Token noToken;
@@ -192,15 +183,19 @@ private:
 
 	}
 
-	std::shared_ptr<IncludeMetaToken> parseIncludeMetaToken()
+	void expendInclude()
 	{
-		std::shared_ptr<IncludeMetaToken> result = std::make_shared<IncludeMetaToken>();
-
 		expect(TokenType::Include, "Expected a '#include' token.");
-		std::string pathToken = expect({ TokenType::IncludeLitteral, TokenType::StringLitteral }, "Expected an include file path.").content;
-		result->filePath = pathToken.substr(1, pathToken.size() - 2);
+		Lumina::Token pathToken = expect({ TokenType::IncludeLitteral, TokenType::StringLitteral }, "Expected an include file path.");
 
-		return (result);
+		std::filesystem::path filePath = Lumina::composeFilePath(
+			pathToken.content.substr(1, pathToken.content.size() - 2),
+			{ pathToken.context.originFile.parent_path() }
+		);
+
+		std::vector<Lumina::Token> includeContent = Lumina::Tokenizer::tokenize(filePath);
+
+		_tokens.insert(_tokens.begin() + _index, includeContent.begin(), includeContent.end());
 	}
 
 	TypeDescriptor parseTypeDescriptor()
@@ -376,10 +371,17 @@ private:
 		expect(TokenType::OpenCurlyBracket, "Expected a '{' token.");
 		while (hasTokenLeft() && currentToken().type != TokenType::CloseCurlyBracket)
 		{
-			VariableDescriptor newElement = parseVariableDescriptor();
-
-			expect(TokenType::EndOfSentence, "Expected a ';' token.");
-			result->elements.push_back(newElement);
+			try
+			{
+				VariableDescriptor newElement = parseVariableDescriptor();
+				result->elements.push_back(newElement);
+				expect(TokenType::EndOfSentence, "Expected a ';' token.");
+			}
+			catch (Lumina::TokenBasedError& e)
+			{
+				_result.errors.push_back(e);
+				skipUntilReach(TokenType::EndOfSentence);
+			}
 		}
 		expect(TokenType::CloseCurlyBracket, "Expected a '}' token.");
 		expect(TokenType::EndOfSentence, "Expected a ';' token.");
@@ -452,7 +454,16 @@ private:
 			{
 				expect(TokenType::Comma, "Expected a ',' token.");
 			}
-			result->parameters.push_back(parseVariableDescriptor());
+
+			try
+			{
+				result->parameters.push_back(parseVariableDescriptor());
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_result.errors.push_back(e);
+				skipUntilReach({ TokenType::Comma, TokenType::CloseParenthesis });
+			}
 		}
 
 		expect(TokenType::CloseParenthesis, "Expected a ')' token.");
@@ -473,7 +484,7 @@ private:
 		return (result);
 	}
 
-	std::shared_ptr<NamespaceMetaToken> parseNamespaceMetaToken(Product& p_product)
+	std::shared_ptr<NamespaceMetaToken> parseNamespaceMetaToken()
 	{
 		std::shared_ptr<NamespaceMetaToken> result = std::make_shared<NamespaceMetaToken>();
 
@@ -505,7 +516,7 @@ private:
 				}
 				case TokenType::Namespace:
 				{
-					result->innerMetaTokens.push_back(parseNamespaceMetaToken(p_product));
+					result->innerMetaTokens.push_back(parseNamespaceMetaToken());
 					break;
 				}
 				default:
@@ -514,7 +525,7 @@ private:
 			}
 			catch (const Lumina::TokenBasedError& e)
 			{
-				p_product.errors.push_back(e);
+				_result.errors.push_back(e);
 				skipLine();
 			}
 		}
@@ -525,8 +536,7 @@ private:
 
 	Product _analyse(const std::vector<Lumina::Token>& p_tokens)
 	{
-		Product result;
-
+		_result = Product();
 		_tokens = p_tokens;
 
 		while (hasTokenLeft() == true)
@@ -537,42 +547,42 @@ private:
 				{
 				case TokenType::Include:
 				{
-					result.value.push_back(parseIncludeMetaToken());
+					expendInclude();
 					break;
 				}
 				case TokenType::StructureBlock:
 				case TokenType::ConstantBlock:
 				case TokenType::AttributeBlock:
 				{
-					result.value.push_back(parseBlockMetaToken(currentToken().type));
+					_result.value.push_back(parseBlockMetaToken(currentToken().type));
 					break;
 				}
 				case TokenType::PipelineFlow:
 				{
 					if (nextToken().type == TokenType::PipelineFlowSeparator)
 					{
-						result.value.push_back(parsePipelineFlowMetaToken());
+						_result.value.push_back(parsePipelineFlowMetaToken());
 						break;
 					}
 					else
 					{
-						result.value.push_back(parsePipelineBodyMetaToken());
+						_result.value.push_back(parsePipelineBodyMetaToken());
 						break;
 					}
 				}
 				case TokenType::Identifier:
 				{
-					result.value.push_back(parseFunctionMetaToken());
+					_result.value.push_back(parseFunctionMetaToken());
 					break;
 				}
 				case TokenType::Texture:
 				{
-					result.value.push_back(parseTextureMetaToken());
+					_result.value.push_back(parseTextureMetaToken());
 					break;
 				}
 				case TokenType::Namespace:
 				{
-					result.value.push_back(parseNamespaceMetaToken(result));
+					_result.value.push_back(parseNamespaceMetaToken());
 					break;
 				}
 				default:
@@ -581,12 +591,12 @@ private:
 			}
 			catch (const Lumina::TokenBasedError& e)
 			{
-				result.errors.push_back(e);
+				_result.errors.push_back(e);
 				skipLine();
 			}
 		}
 
-		return (result);
+		return (_result);
 	}
 
 	bool hasTokenLeft() const
@@ -632,6 +642,33 @@ private:
 		while (hasTokenLeft() == true &&
 			currentLine == currentToken().context.line)
 		{
+			skipToken();
+		}
+	}
+
+	void skipUntilReach(const TokenType& p_type)
+	{
+		while (hasTokenLeft() == true &&
+			currentToken().type != p_type)
+		{
+			skipToken();
+		}
+		if (hasTokenLeft() == true)
+			skipToken();
+	}
+
+	void skipUntilReach(const std::vector<TokenType>& p_types)
+	{
+		while (hasTokenLeft())
+		{
+			for (const auto& type : p_types)
+			{
+				if (currentToken().type == type)
+				{
+					skipToken();
+					return;
+				}
+			}
 			skipToken();
 		}
 	}
