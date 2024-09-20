@@ -6,6 +6,8 @@ struct Test
 	float test;
 };
 
+Texture texture;
+
 void test(Vector2 variables)
 {
 
@@ -13,6 +15,8 @@ void test(Vector2 variables)
 
 namespace Test
 {
+	Texture texture;
+
 	ConstantBlock Test
 	{
 		int value;

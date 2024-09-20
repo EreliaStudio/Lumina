@@ -76,7 +76,7 @@ Texture myTexture;
 ```cpp
 FragmentPass()
 {
-    pixelColor = getPixel()
+    pixelColor = getPixel(myTexture, UV);
 }
 ```
 

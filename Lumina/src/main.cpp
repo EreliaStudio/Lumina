@@ -16,6 +16,7 @@ struct MetaToken
 		Constant,
 		Attribute,
 		Structure,
+		Texture,
 		Function,
 		Namespace
 	};
@@ -116,13 +117,12 @@ struct StructureMetaToken : public BlockMetaToken
 	}
 };
 
-struct NamespaceMetaToken : public MetaToken
+struct TextureMetaToken : public MetaToken
 {
 	Lumina::Token name;
-	std::vector<std::shared_ptr<MetaToken>> innerMetaTokens;
 
-	NamespaceMetaToken() :
-		MetaToken(MetaToken::Type::Namespace)
+	TextureMetaToken() :
+		MetaToken(MetaToken::Type::Texture)
 	{
 
 	}
@@ -160,6 +160,18 @@ struct PipelineBodyMetaToken : public MetaToken
 
 	PipelineBodyMetaToken() :
 		MetaToken(MetaToken::Type::PipelineBody)
+	{
+
+	}
+};
+
+struct NamespaceMetaToken : public MetaToken
+{
+	Lumina::Token name;
+	std::vector<std::shared_ptr<MetaToken>> innerMetaTokens;
+
+	NamespaceMetaToken() :
+		MetaToken(MetaToken::Type::Namespace)
 	{
 
 	}
@@ -375,6 +387,17 @@ private:
 		return (result);
 	}
 
+	std::shared_ptr<TextureMetaToken> parseTextureMetaToken()
+	{
+		std::shared_ptr<TextureMetaToken> result = std::make_shared<TextureMetaToken>();
+
+		expect(TokenType::Texture, "Expected a texture keyword.");
+		result->name = expect(TokenType::Identifier, "Expected an identifier token.");
+		expect(TokenType::EndOfSentence, "Expected a ';' token.");
+
+		return (result);
+	}
+
 	ReturnTypeDescriptor parseReturnTypeDescriptor()
 	{
 		ReturnTypeDescriptor result;
@@ -475,6 +498,11 @@ private:
 					result->innerMetaTokens.push_back(parseFunctionMetaToken());
 					break;
 				}
+				case TokenType::Texture:
+				{
+					result->innerMetaTokens.push_back(parseTextureMetaToken());
+					break;
+				}
 				case TokenType::Namespace:
 				{
 					result->innerMetaTokens.push_back(parseNamespaceMetaToken(p_product));
@@ -535,6 +563,11 @@ private:
 				case TokenType::Identifier:
 				{
 					result.value.push_back(parseFunctionMetaToken());
+					break;
+				}
+				case TokenType::Texture:
+				{
+					result.value.push_back(parseTextureMetaToken());
 					break;
 				}
 				case TokenType::Namespace:
