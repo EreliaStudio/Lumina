@@ -5,3 +5,33 @@ struct Test
 	int value;
 	float test;
 };
+
+void test(Vector2 variables)
+{
+
+}
+
+namespace Test
+{
+	ConstantBlock Test
+	{
+		int value;
+		float test;
+	};
+
+	AttributeBlock Test
+	{
+		Test::int value;
+		float test;
+	};
+}
+
+VertexPass()
+{
+
+}
+
+FragmentPass()
+{
+
+}

@@ -12,9 +12,12 @@ struct MetaToken
 		Unknow,
 		Include,
 		PipelineFlow,
+		PipelineBody,
 		Constant,
 		Attribute,
 		Structure,
+		Function,
+		Namespace
 	};
 
 	Type type;
@@ -108,6 +111,55 @@ struct StructureMetaToken : public BlockMetaToken
 {
 	StructureMetaToken() :
 		BlockMetaToken(MetaToken::Type::Structure)
+	{
+
+	}
+};
+
+struct NamespaceMetaToken : public MetaToken
+{
+	Lumina::Token name;
+	std::vector<std::shared_ptr<MetaToken>> innerMetaTokens;
+
+	NamespaceMetaToken() :
+		MetaToken(MetaToken::Type::Namespace)
+	{
+
+	}
+};
+
+struct ReturnTypeDescriptor
+{
+	TypeDescriptor type;
+	size_t arraySize;
+};
+
+struct SymbolBody
+{
+
+};
+
+struct FunctionMetaToken : public MetaToken
+{
+	ReturnTypeDescriptor returnType;
+	Lumina::Token name;
+	std::vector<VariableDescriptor> parameters;
+	SymbolBody body;
+
+	FunctionMetaToken() :
+		MetaToken(MetaToken::Type::Function)
+	{
+
+	}
+};
+
+struct PipelineBodyMetaToken : public MetaToken
+{
+	Lumina::Token type;
+	SymbolBody body;
+
+	PipelineBodyMetaToken() :
+		MetaToken(MetaToken::Type::PipelineBody)
 	{
 
 	}
@@ -284,7 +336,7 @@ private:
 		return (result);
 	}
 
-	std::shared_ptr<BlockMetaToken> parseBlock(const TokenType& p_tokenType)
+	std::shared_ptr<BlockMetaToken> parseBlockMetaToken(const TokenType& p_tokenType)
 	{
 		std::shared_ptr<BlockMetaToken> result;
 
@@ -323,6 +375,126 @@ private:
 		return (result);
 	}
 
+	ReturnTypeDescriptor parseReturnTypeDescriptor()
+	{
+		ReturnTypeDescriptor result;
+
+		result.type = parseTypeDescriptor();
+		if (currentToken().type == TokenType::OpenBracket)
+		{
+			expect(TokenType::OpenBracket, "Expected a '[' token.");
+			result.arraySize = parseArraySize();
+
+			if (result.arraySize == 0)
+			{
+				throw Lumina::TokenBasedError("Array size evaluated to 0", result.type.value);
+			}
+			expect(TokenType::CloseBracket, "Expected a ']' token.");
+		}
+		else
+		{
+			result.arraySize = 0;
+		}
+
+		return (result);
+	}
+
+	SymbolBody parseSymbolBody()
+	{
+		SymbolBody result;
+
+		expect(TokenType::OpenCurlyBracket, "Expected a '{' token.");
+
+		while (hasTokenLeft() == true && currentToken().type != TokenType::CloseCurlyBracket)
+		{
+			skipLine();
+		}
+
+		expect(TokenType::CloseCurlyBracket, "Expected a '}' token.");
+
+		return (result);
+	}
+
+	std::shared_ptr<FunctionMetaToken> parseFunctionMetaToken()
+	{
+		std::shared_ptr<FunctionMetaToken> result = std::make_shared<FunctionMetaToken>();
+
+		result->returnType = parseReturnTypeDescriptor();
+		result->name = expect(TokenType::Identifier, "Expected an identifier token.");
+		expect(TokenType::OpenParenthesis, "Expected a '(' token.");
+		
+		while (hasTokenLeft() == true && currentToken().type != TokenType::CloseParenthesis)
+		{
+			if (result->parameters.size() != 0)
+			{
+				expect(TokenType::Comma, "Expected a ',' token.");
+			}
+			result->parameters.push_back(parseVariableDescriptor());
+		}
+
+		expect(TokenType::CloseParenthesis, "Expected a ')' token.");
+		result->body = parseSymbolBody();
+
+		return (result);
+	}
+
+	std::shared_ptr<PipelineBodyMetaToken> parsePipelineBodyMetaToken()
+	{
+		std::shared_ptr<PipelineBodyMetaToken> result = std::make_shared<PipelineBodyMetaToken>();
+
+		result->type = expect(TokenType::PipelineFlow, "Expected a pipeline token.");
+		expect(TokenType::OpenParenthesis, "Expected a '(' token.");
+		expect(TokenType::CloseParenthesis, "Expected a ')' token.");
+		result->body = parseSymbolBody();
+
+		return (result);
+	}
+
+	std::shared_ptr<NamespaceMetaToken> parseNamespaceMetaToken(Product& p_product)
+	{
+		std::shared_ptr<NamespaceMetaToken> result = std::make_shared<NamespaceMetaToken>();
+
+		expect(TokenType::Namespace, "Expected a namespace keyword.");
+		result->name = expect(TokenType::Identifier, "Expected an identifier token.");
+		expect(TokenType::OpenCurlyBracket, "Expected a '{' token.");
+		while (hasTokenLeft() && currentToken().type != TokenType::CloseCurlyBracket)
+		{
+			try
+			{
+				switch (currentToken().type)
+				{
+				case TokenType::StructureBlock:
+				case TokenType::ConstantBlock:
+				case TokenType::AttributeBlock:
+				{
+					result->innerMetaTokens.push_back(parseBlockMetaToken(currentToken().type));
+					break;
+				}
+				case TokenType::Identifier:
+				{
+					result->innerMetaTokens.push_back(parseFunctionMetaToken());
+					break;
+				}
+				case TokenType::Namespace:
+				{
+					result->innerMetaTokens.push_back(parseNamespaceMetaToken(p_product));
+					break;
+				}
+				default:
+					throw Lumina::TokenBasedError("Invalid token type [" + Lumina::to_string(currentToken().type) + "].", currentToken());
+				}
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				p_product.errors.push_back(e);
+				skipLine();
+			}
+		}
+		expect(TokenType::CloseCurlyBracket, "Expected a '}' token.");
+
+		return (result);
+	}
+
 	Product _analyse(const std::vector<Lumina::Token>& p_tokens)
 	{
 		Product result;
@@ -344,7 +516,7 @@ private:
 				case TokenType::ConstantBlock:
 				case TokenType::AttributeBlock:
 				{
-					result.value.push_back(parseBlock(currentToken().type));
+					result.value.push_back(parseBlockMetaToken(currentToken().type));
 					break;
 				}
 				case TokenType::PipelineFlow:
@@ -356,8 +528,19 @@ private:
 					}
 					else
 					{
-
+						result.value.push_back(parsePipelineBodyMetaToken());
+						break;
 					}
+				}
+				case TokenType::Identifier:
+				{
+					result.value.push_back(parseFunctionMetaToken());
+					break;
+				}
+				case TokenType::Namespace:
+				{
+					result.value.push_back(parseNamespaceMetaToken(result));
+					break;
 				}
 				default:
 					throw Lumina::TokenBasedError("Invalid token type [" + Lumina::to_string(currentToken().type) + "].", currentToken());
