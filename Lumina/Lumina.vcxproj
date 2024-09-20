@@ -147,6 +147,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\lumina_descriptors.cpp" />
+    <ClCompile Include="src\lumina_metatokenizer.cpp" />
+    <ClCompile Include="src\lumina_metatokenizer_parsing.cpp" />
+    <ClCompile Include="src\lumina_metatokenizer_utils.cpp" />
+    <ClCompile Include="src\lumina_metatokens.cpp" />
     <ClCompile Include="src\lumina_token.cpp" />
     <ClCompile Include="src\lumina_tokenizer.cpp" />
     <ClCompile Include="src\lumina_token_based_exception.cpp" />
@@ -154,8 +159,11 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\lumina_descriptors.hpp" />
     <ClInclude Include="include\lumina_exception.hpp" />
     <ClInclude Include="include\lumina_instruction.hpp" />
+    <ClInclude Include="include\lumina_metatokenizer.hpp" />
+    <ClInclude Include="include\lumina_metatokens.hpp" />
     <ClInclude Include="include\lumina_token.hpp" />
     <ClInclude Include="include\lumina_tokenizer.hpp" />
     <ClInclude Include="include\lumina_utils.hpp" />
