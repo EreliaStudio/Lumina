@@ -45,6 +45,9 @@
     <ClCompile Include="src\lumina_metatokenizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lumina_metatokenizer_symbol_body_parsing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\lumina_exception.hpp">

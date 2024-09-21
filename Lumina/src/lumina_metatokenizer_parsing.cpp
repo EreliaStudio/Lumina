@@ -227,22 +227,6 @@ namespace Lumina
         return result;
     }
 
-    SymbolBody MetaTokenizer::parseSymbolBody()
-    {
-        SymbolBody result;
-
-        expect(TokenType::OpenCurlyBracket, "Expected a '{' token.");
-
-        while (hasTokenLeft() && currentToken().type != TokenType::CloseCurlyBracket)
-        {
-            skipLine();
-        }
-
-        expect(TokenType::CloseCurlyBracket, "Expected a '}' token.");
-
-        return result;
-    }
-
     std::shared_ptr<FunctionMetaToken> MetaTokenizer::parseFunctionMetaToken()
     {
         std::shared_ptr<FunctionMetaToken> result = std::make_shared<FunctionMetaToken>();

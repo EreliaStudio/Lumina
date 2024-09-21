@@ -10,164 +10,154 @@
 
 namespace Lumina
 {
-    // Base class for all instructions
-    struct Instruction {
-        enum class Type {
-            Unknown,
-            VariableDeclaration,
-            VariableAssignation,
-            SymbolCall,
-            IfStatement,
-            WhileStatement,
-            ForStatement,
-            ReturnStatement,
-            DiscardStatement,
-            SymbolBody
-        };
+	struct Instruction {
+		enum class Type {
+			Unknown,
+			VariableDeclaration,
+			VariableAssignation,
+			SymbolCall,
+			IfStatement,
+			WhileStatement,
+			ForStatement,
+			ReturnStatement,
+			DiscardStatement,
+			SymbolBody
+		};
 
-        Type type;
+		Type type;
 
-        Instruction(Type p_type) : type(p_type) {}
-        virtual ~Instruction() = default;
-    };
+		Instruction(Type p_type) : type(p_type) {}
+		virtual ~Instruction() = default;
+	};
 
-    // Represents an expression, which is composed of multiple elements
-    struct Expression : public Instruction {
-        // Base class for elements inside an expression
-        struct Element {
-            enum class Type {
-                Unknown,
-                Number,
-                Boolean,
-                VariableDesignation,
-                Operator,
-                SymbolCall
-            };
+	struct Expression : public Instruction {
+		struct Element : public Instruction {
+			enum class Type {
+				Unknown,
+				Number,
+				Boolean,
+				VariableDesignation,
+				Operator,
+				SymbolCall
+			};
 
-            Type type;
+			Type type;
 
-            Element(Type p_type) : type(p_type) {}
-            virtual ~Element() = default;
-        };
+			Element(Type p_type) : type(p_type), Instruction(Instruction::Type::SymbolBody) {}
+			virtual ~Element() = default;
+		};
 
-        // Represents a numeric value inside an expression
-        struct NumberElement : public Element {
-            Lumina::Token value; // Token representing the number
+		struct NumberElement : public Element {
+			Lumina::Token value;
 
-            NumberElement() : Element(Type::Number) {}
-        };
+			NumberElement() : Element(Type::Number) {}
+		};
 
-        // Represents a boolean value inside an expression
-        struct BooleanElement : public Element {
-            Lumina::Token value; // Token representing true or false
+		struct BooleanElement : public Element {
+			Lumina::Token value;
 
-            BooleanElement() : Element(Type::Boolean) {}
-        };
+			BooleanElement() : Element(Type::Boolean) {}
+		};
 
-        // Represents a variable or member access inside an expression
-        struct VariableDesignationElement : public Element {
-            std::vector<Lumina::Token> namespaceChain; // Optional namespace or struct member chain
-            Lumina::Token name; // The actual variable name
-            std::optional<std::shared_ptr<Expression>> index; // Optional array index or expression
+		struct VariableDesignationElement : public Element {
+			std::vector<Lumina::Token> namespaceChain;
+			Lumina::Token name;
+			std::optional<std::shared_ptr<Expression>> index;
 
-            VariableDesignationElement() : Element(Type::VariableDesignation) {}
-        };
+			VariableDesignationElement() : Element(Type::VariableDesignation) {}
+		};
 
-        // Represents an operator inside an expression
-        struct OperatorElement : public Element {
-            Lumina::Token operatorToken; // Token representing the operator, e.g., +, -, *, /
+		struct OperatorElement : public Element {
+			Lumina::Token operatorToken;
 
-            OperatorElement() : Element(Type::Operator) {}
-        };
+			OperatorElement() : Element(Type::Operator) {}
+		};
 
-        // Represents a function or symbol call inside an expression
-        struct SymbolCallElement : public Element {
-            std::vector<Lumina::Token> namespaceChain; // Optional namespace chain
-            Lumina::Token functionName; // The function or symbol being called
-            std::vector<std::shared_ptr<Expression>> parameters; // Parameters for the function call
+		struct SymbolCallElement : public Element {
+			std::vector<Lumina::Token> namespaceChain;
+			Lumina::Token functionName;
+			std::vector<std::shared_ptr<Expression>> parameters;
 
-            SymbolCallElement() : Element(Type::SymbolCall) {}
-        };
+			SymbolCallElement() : Element(Type::SymbolCall) {}
+		};
 
-        std::vector<std::shared_ptr<Element>> elements; // Elements making up the expression
+		std::vector<std::shared_ptr<Instruction>> elements;
 
-        Expression() : Instruction(Type::SymbolBody) {} // Adjust the type based on your needs
-    };
+		Expression() : Instruction(Type::SymbolBody) {}
+	};
 
-    // Represents a variable declaration (including type)
-    struct VariableDeclaration : public Instruction {
-        VariableDescriptor descriptor; // Contains type and name (e.g., int value)
-        std::optional<std::shared_ptr<Expression>> initialValue; // Optional initial value (e.g., int value = 5)
+	struct VariableDeclaration : public Instruction {
+		VariableDescriptor descriptor;
+		std::optional<std::shared_ptr<Expression>> initialValue;
 
-        VariableDeclaration() : Instruction(Type::VariableDeclaration) {}
-    };
+		VariableDeclaration() : Instruction(Type::VariableDeclaration) {}
+	};
 
-    // Represents a variable assignment
-    struct VariableAssignation : public Instruction {
-        std::shared_ptr<Expression::VariableDesignationElement> target; // The target variable being assigned (without type)
-        std::shared_ptr<Expression> value; // The value being assigned (e.g., value = expression)
+	struct VariableAssignation : public Instruction {
+		std::shared_ptr<Expression::VariableDesignationElement> target;
+		std::shared_ptr<Expression> value;
 
-        VariableAssignation() : Instruction(Type::VariableAssignation) {}
-    };
+		VariableAssignation() : Instruction(Type::VariableAssignation) {}
+	};
 
-    // Represents a function or symbol call
-    struct SymbolCall : public Instruction {
-        std::vector<Lumina::Token> namespaceChain; // Optional namespace chain
-        Lumina::Token functionName; // The function or symbol being called
-        std::vector<std::shared_ptr<Expression>> parameters; // Parameters for the function call
+	struct SymbolCall : public Instruction
+	{
+		std::vector<Lumina::Token> namespaceChain;
+		Lumina::Token functionName;
+		std::vector<std::shared_ptr<Expression>> parameters;
 
-        SymbolCall() : Instruction(Type::SymbolCall) {}
-    };
+		SymbolCall() : Instruction(Type::SymbolCall) {}
+	};
 
-    // Represents a single branch in an if-else structure (if, else if, else)
-    struct ConditionalBranch {
-        std::shared_ptr<Expression> condition; // Optional condition, null for 'else'
-        std::vector<std::shared_ptr<Instruction>> body; // Instructions executed in this branch
+	struct ConditionalBranch
+	{
+		std::shared_ptr<Expression> condition;
+		std::vector<std::shared_ptr<Instruction>> body;
 
-        ConditionalBranch() = default;
-    };
+		ConditionalBranch() = default;
+	};
 
-    // Represents an if-else statement with multiple branches
-    struct IfStatement : public Instruction {
-        std::vector<ConditionalBranch> branches; // List of all branches (if, else if, else)
+	struct IfStatement : public Instruction
+	{
+		std::vector<ConditionalBranch> branches;
 
-        IfStatement() : Instruction(Type::IfStatement) {}
-    };
+		IfStatement() : Instruction(Type::IfStatement) {}
+	};
 
-    // Represents a while statement
-    struct WhileStatement : public Instruction {
-        std::shared_ptr<Expression> condition; // The loop condition
-        std::vector<std::shared_ptr<Instruction>> body; // Instructions executed each loop iteration
+	struct WhileStatement : public Instruction
+	{
+		std::shared_ptr<Expression> condition;
+		std::vector<std::shared_ptr<Instruction>> body;
 
-        WhileStatement() : Instruction(Type::WhileStatement) {}
-    };
+		WhileStatement() : Instruction(Type::WhileStatement) {}
+	};
 
-    // Represents a for statement
-    struct ForStatement : public Instruction {
-        std::shared_ptr<VariableDeclaration> initializer; // The initial variable declaration
-        std::shared_ptr<Expression> condition; // The loop condition
-        std::shared_ptr<VariableAssignation> increment; // The increment expression
-        std::vector<std::shared_ptr<Instruction>> body; // Instructions executed each loop iteration
+	struct ForStatement : public Instruction
+	{
+		std::shared_ptr<VariableDeclaration> initializer;
+		std::shared_ptr<Expression> condition;
+		std::shared_ptr<Instruction> increment;
+		std::vector<std::shared_ptr<Instruction>> body;
 
-        ForStatement() : Instruction(Type::ForStatement) {}
-    };
+		ForStatement() : Instruction(Type::ForStatement) {}
+	};
 
-    // Represents a return statement
-    struct ReturnStatement : public Instruction {
-        std::optional<std::shared_ptr<Expression>> returnValue; // Optional value to return
+	struct ReturnStatement : public Instruction
+	{
+		std::optional<std::shared_ptr<Expression>> returnValue;
 
-        ReturnStatement() : Instruction(Type::ReturnStatement) {}
-    };
+		ReturnStatement() : Instruction(Type::ReturnStatement) {}
+	};
 
-    // Represents a discard statement
-    struct DiscardStatement : public Instruction {
-        DiscardStatement() : Instruction(Type::DiscardStatement) {}
-    };
+	struct DiscardStatement : public Instruction
+	{
+		DiscardStatement() : Instruction(Type::DiscardStatement) {}
+	};
 
-    // Composite class for symbol body, containing multiple instructions
-    struct SymbolBody : public Instruction {
-        std::vector<std::shared_ptr<Instruction>> instructions;
+	struct SymbolBody : public Instruction
+	{
+		std::vector<std::shared_ptr<Instruction>> instructions;
 
-        SymbolBody() : Instruction(Type::SymbolBody) {}
-    };
+		SymbolBody() : Instruction(Type::SymbolBody) {}
+	};
 }

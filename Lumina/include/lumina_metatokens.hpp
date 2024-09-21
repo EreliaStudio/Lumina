@@ -2,6 +2,7 @@
 
 #include "lumina_token.hpp"
 #include "lumina_descriptors.hpp"
+#include "lumina_instruction.hpp"
 
 namespace Lumina
 {

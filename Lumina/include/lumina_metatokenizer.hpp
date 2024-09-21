@@ -3,6 +3,7 @@
 #include "lumina_metatokens.hpp"
 #include "lumina_descriptors.hpp"
 #include "lumina_exception.hpp"
+#include "lumina_instruction.hpp"
 
 namespace Lumina
 {
@@ -28,10 +29,21 @@ namespace Lumina
         std::shared_ptr<BlockMetaToken> parseBlockMetaToken(const TokenType& p_tokenType);
         std::shared_ptr<TextureMetaToken> parseTextureMetaToken();
         ReturnTypeDescriptor parseReturnTypeDescriptor();
-        SymbolBody parseSymbolBody();
         std::shared_ptr<FunctionMetaToken> parseFunctionMetaToken();
         std::shared_ptr<PipelineBodyMetaToken> parsePipelineBodyMetaToken();
         std::shared_ptr<NamespaceMetaToken> parseNamespaceMetaToken();
+
+		std::shared_ptr<VariableDeclaration> parseVariableDeclaration();
+		std::shared_ptr<Instruction> parseVariableAssignationOrSymbolCall();
+		std::shared_ptr<Expression::VariableDesignationElement> parseVariableDesignation();
+		std::shared_ptr<Expression> parseExpression();
+		std::shared_ptr<IfStatement> parseIfStatement();
+		std::shared_ptr<WhileStatement> parseWhileStatement();
+		std::shared_ptr<ForStatement> parseForStatement();
+		std::shared_ptr<ReturnStatement> parseReturnStatement();
+		std::shared_ptr<DiscardStatement> parseDiscardStatement();
+		bool isType(const Token& token);
+		SymbolBody parseSymbolBody();
 
         Product _analyse(const std::vector<Lumina::Token>& p_tokens);
         bool hasTokenLeft() const;

@@ -150,6 +150,7 @@
     <ClCompile Include="src\lumina_descriptors.cpp" />
     <ClCompile Include="src\lumina_metatokenizer.cpp" />
     <ClCompile Include="src\lumina_metatokenizer_parsing.cpp" />
+    <ClCompile Include="src\lumina_metatokenizer_symbol_body_parsing.cpp" />
     <ClCompile Include="src\lumina_metatokenizer_utils.cpp" />
     <ClCompile Include="src\lumina_metatokens.cpp" />
     <ClCompile Include="src\lumina_token.cpp" />

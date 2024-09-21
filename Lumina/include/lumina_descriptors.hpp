@@ -23,9 +23,4 @@ namespace Lumina
         TypeDescriptor type;
         size_t arraySize;
     };
-
-    struct SymbolBody
-    {
-        // Empty struct for now, could be expanded later.
-    };
 }
