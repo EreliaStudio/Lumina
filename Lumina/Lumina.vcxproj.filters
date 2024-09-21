@@ -59,9 +59,6 @@
     <ClInclude Include="include\lumina_utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\lumina_instruction.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\lumina_metatokens.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -69,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\lumina_metatokenizer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lumina_instruction.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
