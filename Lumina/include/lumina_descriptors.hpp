@@ -4,23 +4,23 @@
 
 namespace Lumina
 {
-    struct TypeDescriptor
-    {
-        Lumina::Token value;
+	struct TypeDescriptor
+	{
+		Lumina::Token value;
 
-        void append(const Lumina::Token& p_newToken);
-    };
+		void append(const Lumina::Token& p_newToken);
+	};
 
-    struct VariableDescriptor
-    {
-        TypeDescriptor type;
-        Lumina::Token name;
-        size_t arraySize;
-    };
+	struct VariableDescriptor
+	{
+		TypeDescriptor type;
+		Lumina::Token name;
+		size_t arraySize = 0;
+	};
 
-    struct ReturnTypeDescriptor
-    {
-        TypeDescriptor type;
-        size_t arraySize;
-    };
+	struct ReturnTypeDescriptor
+	{
+		TypeDescriptor type;
+		size_t arraySize;
+	};
 }

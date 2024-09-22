@@ -60,9 +60,15 @@ namespace Lumina
 		};
 
 		struct VariableDesignationElement : public Element {
+			struct AccessorElement : public Instruction
+			{
+				Lumina::Token name;
+
+				AccessorElement() : Instruction(Instruction::Type::SymbolBody) {}
+			};
 			std::vector<Lumina::Token> namespaceChain;
 			Lumina::Token name;
-			std::optional<std::shared_ptr<Expression>> index;
+			std::vector<std::shared_ptr<Instruction>> accessors;
 
 			VariableDesignationElement() : Element(Type::VariableDesignation) {}
 		};

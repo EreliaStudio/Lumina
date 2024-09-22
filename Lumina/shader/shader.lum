@@ -1,43 +1,5 @@
-#include "test.lum"
-
-Input -> VertexPass : Vector2 modelPosition;
-
-struct Test
+void test()
 {
-	int value;
-	float test;
-};
-
-Texture texture;
-
-void test(Vector2 variables)
-{
-
-}
-
-namespace Test
-{
-	Texture texture;
-
-	ConstantBlock Test
-	{
-		int value;
-		float test;
-	};
-
-	AttributeBlock Test
-	{
-		Test::int value;
-		float test;
-	};
-}
-
-VertexPass()
-{
-
-}
-
-FragmentPass()
-{
+	Vector2 value = test(54);
 
 }

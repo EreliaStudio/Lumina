@@ -3,6 +3,66 @@
 
 namespace Lumina
 {
+	bool MetaTokenizer::isDeclaration() const
+	{
+		size_t currentIndex = 0;
+
+		if (tokenAtIndex(currentIndex).type == TokenType::NamespaceSeparator)
+			currentIndex++;
+
+		while (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::NamespaceSeparator)
+		{
+			currentIndex += 2;
+		}
+
+		if (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::Identifier)
+			return (true);
+
+		return (false);
+	}
+
+	bool MetaTokenizer::isAssignation() const
+	{
+		size_t currentIndex = 0;
+
+		if (tokenAtIndex(currentIndex).type == TokenType::NamespaceSeparator)
+			currentIndex++;
+
+		while (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::NamespaceSeparator)
+		{
+			currentIndex += 2;
+		}
+
+		if (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::Assignator)
+			return (true);
+
+		return (false);
+	}
+
+	bool MetaTokenizer::isSymbolCall() const
+	{
+		size_t currentIndex = 0;
+
+		if (tokenAtIndex(currentIndex).type == TokenType::NamespaceSeparator)
+			currentIndex++;
+
+		while (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::NamespaceSeparator)
+		{
+			currentIndex += 2;
+		}
+
+		if (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::OpenParenthesis)
+			return (true);
+
+		return (false);
+	}
+
 	SymbolBody MetaTokenizer::parseSymbolBody()
 	{
 		SymbolBody result;
@@ -18,13 +78,21 @@ namespace Lumina
 				{
 				case TokenType::Identifier:
 				{
-					if (isType(currentToken()))
+					if (isDeclaration())
 					{
 						result.instructions.push_back(parseVariableDeclaration());
 					}
+					else if (isAssignation())
+					{
+						result.instructions.push_back(parseVariableAssignation());
+					}
+					else if (isSymbolCall())
+					{
+						result.instructions.push_back(parseSymbolCall());
+					}
 					else
 					{
-						result.instructions.push_back(parseVariableAssignationOrSymbolCall());
+						throw TokenBasedError("Unrecognized identifier instruction.", currentToken());
 					}
 					break;
 				}
@@ -77,7 +145,7 @@ namespace Lumina
 		if (currentToken().type == TokenType::Assignator)
 		{
 			expect(TokenType::Assignator, "Expected '=' for variable initialization.");
-			declaration->initialValue = std::make_shared<Expression>(parseExpression());
+			declaration->initialValue = parseExpression();
 		}
 
 		expect(TokenType::EndOfSentence, "Expected ';' at the end of variable declaration.");
@@ -85,108 +153,192 @@ namespace Lumina
 		return declaration;
 	}
 
-	std::shared_ptr<Instruction> MetaTokenizer::parseVariableAssignationOrSymbolCall()
+	std::shared_ptr<VariableAssignation> MetaTokenizer::parseVariableAssignation()
 	{
-		size_t startIndex = _index; // Save the current index to backtrack if needed
+		std::shared_ptr<VariableAssignation> result = std::make_shared<VariableAssignation>();
 
-		try
+		result->target = parseVariableDesignation();
+		result->value = parseExpression();
+
+		return (result);
+	}
+
+	std::shared_ptr<SymbolCall> MetaTokenizer::parseSymbolCall()
+	{
+		auto result = std::make_shared<SymbolCall>();
+
+		if (currentToken().type == TokenType::NamespaceSeparator)
 		{
-			auto variableAssignation = std::make_shared<VariableAssignation>();
-
-			// Parse the target variable
-			variableAssignation->target = std::make_shared<Expression::VariableDesignationElement>(parseVariableDesignation());
-
-			// Check for assignment '='
-			expect(TokenType::Assignator, "Expected '=' for variable assignation.");
-			variableAssignation->value = std::make_shared<Expression>(parseExpression());
-
-			expect(TokenType::EndOfSentence, "Expected ';' at the end of variable assignation.");
-			return variableAssignation;
-		}
-		catch (const TokenBasedError&)
-		{
-			_index = startIndex; // Backtrack and try parsing as a symbol call
+			result->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
 		}
 
-		// Parse symbol call as fallback
-		auto symbolCall = std::make_shared<SymbolCall>();
-		symbolCall->functionName = expect(TokenType::Identifier, "Expected function name.");
+		while (currentToken().type == TokenType::Identifier && nextToken().type == TokenType::NamespaceSeparator)
+		{
+			result->namespaceChain.push_back(expect(TokenType::Identifier, "Expected a namespace identifier"));
+			result->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
+		}
+
+		result->functionName = expect(TokenType::Identifier, "Expected function name.");
 		expect(TokenType::OpenParenthesis, "Expected '(' after function name.");
 
 		while (currentToken().type != TokenType::CloseParenthesis)
 		{
-			if (!symbolCall->parameters.empty())
+			if (result->parameters.size() != 0)
 			{
 				expect(TokenType::Comma, "Expected ',' between parameters.");
 			}
-			symbolCall->parameters.push_back(std::make_shared<Expression>(parseExpression()));
+			result->parameters.push_back(parseExpression());
 		}
 
 		expect(TokenType::CloseParenthesis, "Expected ')' after parameters.");
 		expect(TokenType::EndOfSentence, "Expected ';' at the end of function call.");
 
-		return symbolCall;
+		return (result);
 	}
 
 	std::shared_ptr<Expression::VariableDesignationElement> MetaTokenizer::parseVariableDesignation()
 	{
 		auto designation = std::make_shared<Expression::VariableDesignationElement>();
 
-		// Parse namespace chain
+		if (currentToken().type == TokenType::NamespaceSeparator)
+		{
+			designation->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
+		}
+
 		while (currentToken().type == TokenType::Identifier && nextToken().type == TokenType::NamespaceSeparator)
 		{
-			designation->namespaceChain.push_back(currentToken());
-			advance(); // Skip the identifier
-			advance(); // Skip the '::'
+			designation->namespaceChain.push_back(expect(TokenType::Identifier, "Expected a namespace identifier"));
+			designation->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
 		}
 
 		designation->name = expect(TokenType::Identifier, "Expected variable name.");
 
-		// Optional array indexing
-		if (currentToken().type == TokenType::OpenBracket)
+		while (currentToken().type == TokenType::Accessor || currentToken().type == TokenType::OpenBracket)
 		{
-			advance(); // Skip '['
-			designation->index = std::make_shared<Expression>(parseExpression());
-			expect(TokenType::CloseBracket, "Expected ']' after array index.");
+			if (currentToken().type == TokenType::Accessor)
+			{
+				expect(TokenType::Accessor, "Expected a '.' token.");
+				auto newAccessor = std::make_shared<Expression::VariableDesignationElement::AccessorElement>();
+
+				newAccessor->name = expect(TokenType::Identifier, "Expected an identifier token.");
+
+				designation->accessors.push_back(newAccessor);
+			}
+			if (currentToken().type == TokenType::OpenBracket)
+			{
+				expect(TokenType::OpenBracket, "Expected '[' before array index.");
+				designation->accessors.push_back(parseExpression());
+				expect(TokenType::CloseBracket, "Expected ']' after array index.");
+			}
 		}
 
 		return designation;
+	}
+	std::shared_ptr<Expression::NumberElement> MetaTokenizer::parseNumberElement()
+	{
+		auto result = std::make_shared<Expression::NumberElement>();
+
+		result->value = expect(TokenType::Number, "Expected a valid number token.");
+
+		return (result);
+	}
+
+	std::shared_ptr<Expression::BooleanElement> MetaTokenizer::parseBooleanElement()
+	{
+		auto result = std::make_shared<Expression::BooleanElement>();
+
+		result->value = expect(TokenType::BoolStatement, "Expected a valid boolean value");
+
+		return (result);
+	}
+
+	std::shared_ptr<Expression::OperatorElement> MetaTokenizer::parseOperatorElement()
+	{
+		auto result = std::make_shared<Expression::OperatorElement>();
+
+		result->operatorToken = expect(TokenType::Operator, "Expected an operator token.");
+
+		return (result);
+	}
+
+	std::shared_ptr<Expression::SymbolCallElement> MetaTokenizer::parseSymbolCallElement()
+	{
+		auto result = std::make_shared<Expression::SymbolCallElement>();
+
+		if (currentToken().type == TokenType::NamespaceSeparator)
+		{
+			result->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
+		}
+
+		while (currentToken().type == TokenType::Identifier && nextToken().type == TokenType::NamespaceSeparator)
+		{
+			result->namespaceChain.push_back(expect(TokenType::Identifier, "Expected a namespace identifier"));
+			result->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
+		}
+
+		result->functionName = expect(TokenType::Identifier, "Expected function name.");
+		expect(TokenType::OpenParenthesis, "Expected '(' after function name.");
+
+		while (currentToken().type != TokenType::CloseParenthesis)
+		{
+			if (result->parameters.size() != 0)
+			{
+				expect(TokenType::Comma, "Expected ',' between parameters.");
+			}
+			result->parameters.push_back(parseExpression());
+		}
+
+		expect(TokenType::CloseParenthesis, "Expected ')' after parameters.");
+
+		return (result);
+	}
+
+	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionElement()
+	{
+		switch (currentToken().type)
+		{
+		case TokenType::Number:
+			return (parseNumberElement());
+			break;
+
+		case TokenType::BoolStatement:
+			return (parseBooleanElement());
+			break;
+
+		case TokenType::Identifier:
+			if (isSymbolCall() == true)
+			{
+				return (parseSymbolCallElement());
+			}
+			else
+			{
+				return (parseVariableDesignation());
+			}
+			break;
+
+		case TokenType::Operator:
+			return (parseOperatorElement());
+			break;
+
+		case TokenType::OpenParenthesis:
+			return (parseExpression());
+			break;
+
+		default:
+			throw TokenBasedError("Unexpected token in expression.", currentToken());
+		}
 	}
 
 	std::shared_ptr<Expression> MetaTokenizer::parseExpression()
 	{
 		auto expression = std::make_shared<Expression>();
 
-		// Parse individual elements of the expression
-		while (currentToken().type != TokenType::EndOfSentence && currentToken().type != TokenType::CloseParenthesis)
+		expression->elements.push_back(parseExpressionElement());
+
+		while (currentToken().type == TokenType::Operator)
 		{
-			switch (currentToken().type)
-			{
-			case TokenType::Number:
-				expression->elements.push_back(std::make_shared<Expression::NumberElement>());
-				break;
-
-			case TokenType::BoolStatement:
-				expression->elements.push_back(std::make_shared<Expression::BooleanElement>());
-				break;
-
-			case TokenType::Identifier:
-				expression->elements.push_back(std::make_shared<Expression::VariableDesignationElement>(parseVariableDesignation()));
-				break;
-
-			case TokenType::Operator:
-				expression->elements.push_back(std::make_shared<Expression::OperatorElement>());
-				break;
-
-			case TokenType::OpenParenthesis:
-				expression->elements.push_back(parseExpression());
-				break;
-
-			default:
-				throw TokenBasedError("Unexpected token in expression.", currentToken());
-			}
-
-			advance();
+			expression->elements.push_back(parseOperatorElement());
+			expression->elements.push_back(parseExpressionElement());
 		}
 
 		return expression;
@@ -253,7 +405,7 @@ namespace Lumina
 		forStatement->initializer = parseVariableDeclaration();
 		forStatement->condition = parseExpression();
 		expect(TokenType::EndOfSentence, "Expected ';' after condition.");
-		forStatement->increment = parseVariableAssignationOrSymbolCall();
+		forStatement->increment = parseExpression();
 
 		expect(TokenType::CloseParenthesis, "Expected ')' after for-loop header.");
 		forStatement->body = parseSymbolBody().instructions;
@@ -268,7 +420,7 @@ namespace Lumina
 		expect(TokenType::Return, "Expected 'return'.");
 		if (currentToken().type != TokenType::EndOfSentence)
 		{
-			returnStatement->returnValue = std::make_shared<Expression>(parseExpression());
+			returnStatement->returnValue = parseExpression();
 		}
 
 		expect(TokenType::EndOfSentence, "Expected ';' after return statement.");
@@ -286,4 +438,3 @@ namespace Lumina
 		return discardStatement;
 	}
 }
-a
