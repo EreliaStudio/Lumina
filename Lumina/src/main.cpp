@@ -5,6 +5,62 @@
 #include "lumina_utils.hpp"
 #include "lumina_metatokenizer.hpp"
 
+namespace Lumina
+{
+struct Shader
+{
+	std::string layouts;
+	std::string constants;
+	std::string attributes;
+	std::string textures;
+	std::string vertexShaderCode;
+	std::string fragmentShaderCode;
+};
+
+struct Compiler
+{
+private:
+	Expected<Shader> _result;
+	std::vector<std::shared_ptr<MetaToken>> _metaTokens;
+	size_t _index;
+
+	Expected<Shader> _compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
+	{
+		_result = Expected<Shader>();
+
+		_metaTokens = p_metaTokens;
+		_index = 0;
+
+		while (hasMetaTokenLeft() == true)
+		{
+			switch (currentMetaToken()->type)
+			{
+
+			}
+			_index++;
+		}
+
+		return (_result);
+	}
+
+	const std::shared_ptr<MetaToken> currentMetaToken() const
+	{
+		return (_metaTokens[_index]);
+	}
+
+	bool hasMetaTokenLeft() const
+	{
+		return (_index < _metaTokens.size());
+	}
+
+public:
+	static Expected<Shader> compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
+	{
+		return (Compiler()._compile(p_metaTokens));
+	}
+};
+}
+
 int main(int argc, char** argv)
 {
 	if (argc != 3)

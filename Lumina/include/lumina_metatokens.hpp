@@ -11,7 +11,6 @@ namespace Lumina
 		enum class Type
 		{
 			Unknow,
-			Include,
 			PipelineFlow,
 			PipelineBody,
 			Constant,
