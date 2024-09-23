@@ -135,6 +135,12 @@ namespace Lumina
 			{ pathToken.context.originFile.parent_path() }
 		);
 
+		if (std::filesystem::exists(filePath) == false)
+		{
+			backOff();
+			throw TokenBasedError("Include file not found: " + filePath.string(), pathToken);
+		}
+
 		std::vector<Lumina::Token> includeContent = Lumina::Tokenizer::tokenize(filePath);
 
 		_tokens.insert(_tokens.begin() + _index, includeContent.begin(), includeContent.end());
