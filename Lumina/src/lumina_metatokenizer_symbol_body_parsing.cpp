@@ -7,6 +7,13 @@ namespace Lumina
 	{
 		size_t currentIndex = 0;
 
+		if (tokenAtIndex(currentIndex).type == TokenType::Operator &&
+			tokenAtIndex(currentIndex).content == "--" ||
+			tokenAtIndex(currentIndex).content == "++")
+		{
+			currentIndex++;
+		}
+
 		if (tokenAtIndex(currentIndex).type == TokenType::NamespaceSeparator)
 			currentIndex++;
 
@@ -210,6 +217,15 @@ namespace Lumina
 	{
 		auto designation = std::make_shared<Expression::VariableDesignationElement>();
 
+		if (currentToken().type == TokenType::Operator)
+		{
+			designation->signOperator = expect(TokenType::Operator, "Expected an operator token '+' or '-'");
+			if (designation->signOperator.content != "+" && designation->signOperator.content != "-")
+			{
+				throw TokenBasedError("Expected an operator token '+' or '-'", designation->signOperator);
+			}
+		}
+
 		if (currentToken().type == TokenType::NamespaceSeparator)
 		{
 			designation->namespaceChain.push_back(expect(TokenType::NamespaceSeparator, "Expected a namespace separator"));
@@ -330,6 +346,38 @@ namespace Lumina
 		return (result);
 	}
 
+	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionOperator()
+	{
+		while (hasTokenLeft() == true)
+		{
+			switch (currentToken().type)
+			{
+			case TokenType::Comment:
+			{
+				skipToken();
+				break;
+			}
+			case TokenType::Operator:
+				return (parseOperatorElement());
+				break;
+
+			case TokenType::ComparatorOperator:
+				return (parseComparatorOperatorElement());
+				break;
+
+			case TokenType::ConditionOperator:
+				return (parseConditionOperatorElement());
+				break;
+
+
+			default:
+				throw TokenBasedError("Unexpected token in expression.", currentToken());
+			}
+		}
+		return (nullptr);
+
+	}
+
 	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionElement()
 	{
 		while (hasTokenLeft() == true)
@@ -349,6 +397,7 @@ namespace Lumina
 			return (parseBooleanElement());
 			break;
 
+		case TokenType::Operator:
 		case TokenType::Identifier:
 			if (isSymbolCall() == true)
 			{
@@ -358,18 +407,6 @@ namespace Lumina
 			{
 				return (parseVariableDesignation());
 			}
-			break;
-
-		case TokenType::Operator:
-			return (parseOperatorElement());
-			break;
-
-		case TokenType::ComparatorOperator:
-			return (parseComparatorOperatorElement());
-			break;
-
-		case TokenType::ConditionOperator:
-			return (parseConditionOperatorElement());
 			break;
 
 		case TokenType::OpenParenthesis:

@@ -13,6 +13,11 @@ namespace Lumina
 			{
 				switch (currentToken().type)
 				{
+				case TokenType::Comment:
+				{
+					skipToken();
+					break;
+				}
 				case TokenType::Include:
 				{
 					expendInclude();

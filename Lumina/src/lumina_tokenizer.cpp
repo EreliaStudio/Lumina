@@ -42,7 +42,13 @@ namespace Lumina
 		std::string parseNumber(const std::string& code, size_t& index)
 		{
 			size_t start = index;
-			while (index < code.size() && (isDigit(code[index]) || code[index] == '.'))
+
+			while (index < code.size() &&
+				(isDigit(code[index]) ||
+					code[index] == '.' ||
+					code[index] == '-' ||
+					code[index] == '+')
+				)
 			{
 				index++;
 			}
@@ -273,7 +279,9 @@ namespace Lumina
 					tokenType = Token::Type::Identifier;
 				}
 			}
-			else if (isDigit(rawInput[index]) || (rawInput[index] == '.' && isDigit(rawInput[index + 1])))
+			else if (isDigit(rawInput[index]) || ((rawInput[index] == '.' && isDigit(rawInput[index + 1])) ||
+				(rawInput[index] == '+' && isDigit(rawInput[index + 1])) ||
+				(rawInput[index] == '-' && isDigit(rawInput[index + 1]))))
 			{
 				tokenStr = parseNumber(rawInput, index);
 				tokenType = Token::Type::Number;

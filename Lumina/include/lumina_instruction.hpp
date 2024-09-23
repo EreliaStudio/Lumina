@@ -76,6 +76,7 @@ namespace Lumina
 
 				AccessorElement() : Instruction(Instruction::Type::SymbolBody) {}
 			};
+			Lumina::Token signOperator;
 			std::vector<Lumina::Token> namespaceChain;
 			Lumina::Token name;
 			std::vector<std::shared_ptr<Instruction>> accessors;

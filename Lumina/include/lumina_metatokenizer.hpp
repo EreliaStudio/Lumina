@@ -45,6 +45,8 @@ namespace Lumina
 		std::shared_ptr<Expression::IncrementorElement> parseIncrementor();
 		std::shared_ptr<Expression::VariableDesignationElement> parseVariableDesignation();
 		std::shared_ptr<VariableAssignation> parseVariableAssignation();
+
+		std::shared_ptr<Instruction> parseExpressionOperator();
 		std::shared_ptr<Instruction> parseExpressionElement();
 		std::shared_ptr<Expression> parseExpression();
 		std::shared_ptr<SymbolCall> parseSymbolCall();
