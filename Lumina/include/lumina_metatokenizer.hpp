@@ -25,6 +25,8 @@ namespace Lumina
 		TypeDescriptor parseTypeDescriptor();
 		size_t parseArraySize();
 		VariableDescriptor parseVariableDescriptor();
+		Condition parseCondition();
+
 		std::shared_ptr<PipelineFlowMetaToken> parsePipelineFlowMetaToken();
 		std::shared_ptr<BlockMetaToken> parseBlockMetaToken(const TokenType& p_tokenType);
 		std::shared_ptr<TextureMetaToken> parseTextureMetaToken();
@@ -37,12 +39,16 @@ namespace Lumina
 		std::shared_ptr<Expression::NumberElement> parseNumberElement();
 		std::shared_ptr<Expression::BooleanElement> parseBooleanElement();
 		std::shared_ptr<Expression::OperatorElement> parseOperatorElement();
+		std::shared_ptr<Expression::ComparatorOperatorElement> parseComparatorOperatorElement();
+		std::shared_ptr<Expression::ConditionOperatorElement> parseConditionOperatorElement();
 		std::shared_ptr<Expression::SymbolCallElement> parseSymbolCallElement();
+		std::shared_ptr<Expression::IncrementorElement> parseIncrementor();
 		std::shared_ptr<Expression::VariableDesignationElement> parseVariableDesignation();
 		std::shared_ptr<VariableAssignation> parseVariableAssignation();
 		std::shared_ptr<Instruction> parseExpressionElement();
 		std::shared_ptr<Expression> parseExpression();
 		std::shared_ptr<SymbolCall> parseSymbolCall();
+		std::shared_ptr<ConditionalOperator> parseConditionalOperator();
 		std::shared_ptr<IfStatement> parseIfStatement();
 		std::shared_ptr<WhileStatement> parseWhileStatement();
 		std::shared_ptr<ForStatement> parseForStatement();
@@ -53,6 +59,7 @@ namespace Lumina
 		bool isSymbolCall() const;
 		SymbolBody parseSymbolBody();
 
+		Lumina::Token composeToken(size_t p_startingIndex, size_t p_endIndex, Lumina::Token::Type p_type);
 		Product _analyse(const std::vector<Lumina::Token>& p_tokens);
 		bool hasTokenLeft() const;
 		void backOff();

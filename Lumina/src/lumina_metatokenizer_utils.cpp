@@ -6,6 +6,18 @@ namespace Lumina
 {
 	MetaTokenizer::MetaTokenizer() {}
 
+	Lumina::Token MetaTokenizer::composeToken(size_t p_startingIndex, size_t p_endIndex, Lumina::Token::Type p_type)
+	{
+		std::vector<Lumina::Token> tokenList;
+
+		for (size_t i = p_startingIndex; i < p_endIndex; i++)
+		{
+			tokenList.push_back(_tokens[i]);
+		}
+
+		return (Lumina::Token::merge(tokenList, p_type));
+	}
+
 	bool MetaTokenizer::hasTokenLeft() const
 	{
 		return (_index < _tokens.size());

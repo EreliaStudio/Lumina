@@ -15,7 +15,7 @@ namespace Lumina
 	{
 		TypeDescriptor type;
 		Lumina::Token name;
-		size_t arraySize = 0;
+		std::vector<size_t> arraySizes;
 	};
 
 	struct ReturnTypeDescriptor

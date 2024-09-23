@@ -1,5 +1,27 @@
 void test()
 {
-	Vector2 value = test(54);
+	int index = 4;
+    vec4 color;
 
+    // Complex variable designation with namespace, member access, and array index
+    color = MyNamespace::myConstant.xyz[index].r;
+
+    // Simple designation with member access
+    float redChannel = color.r;
+
+    // Nested member access with array indexing
+    mat4 matrixArray[10];
+    matrixArray[3][index] = vec4(1.0, 1.0, 1.0, 1.0);
+
+    while ((test == true) && (value == test && (value)))
+    {
+        type name = value;
+    }
+
+    for (test = 0; test < 14; test++)
+    {
+        test = true;
+    }
+
+    return test;
 }

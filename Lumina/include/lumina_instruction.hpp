@@ -30,6 +30,13 @@ namespace Lumina
 		virtual ~Instruction() = default;
 	};
 
+	struct SymbolBody : public Instruction
+	{
+		std::vector<std::shared_ptr<Instruction>> instructions;
+
+		SymbolBody() : Instruction(Type::SymbolBody) {}
+	};
+
 	struct Expression : public Instruction {
 		struct Element : public Instruction {
 			enum class Type {
@@ -38,6 +45,9 @@ namespace Lumina
 				Boolean,
 				VariableDesignation,
 				Operator,
+				ComparaisonOperator,
+				ConditionOperator,
+				Incrementor,
 				SymbolCall
 			};
 
@@ -79,6 +89,24 @@ namespace Lumina
 			OperatorElement() : Element(Type::Operator) {}
 		};
 
+		struct ComparatorOperatorElement : public Element {
+			Lumina::Token operatorToken;
+
+			ComparatorOperatorElement() : Element(Type::ComparaisonOperator) {}
+		};
+
+		struct ConditionOperatorElement : public Element {
+			Lumina::Token operatorToken;
+
+			ConditionOperatorElement() : Element(Type::ConditionOperator) {}
+		};
+
+		struct IncrementorElement : public Element {
+			Lumina::Token operatorToken;
+
+			IncrementorElement() : Element(Type::Incrementor) {}
+		};
+
 		struct SymbolCallElement : public Element {
 			std::vector<Lumina::Token> namespaceChain;
 			Lumina::Token functionName;
@@ -90,6 +118,22 @@ namespace Lumina
 		std::vector<std::shared_ptr<Instruction>> elements;
 
 		Expression() : Instruction(Type::SymbolBody) {}
+	};
+
+	struct ConditionalOperator : public Instruction
+	{
+		Lumina::Token token;
+
+		ConditionalOperator() :
+			Instruction(Instruction::Type::SymbolBody)
+		{
+
+		}
+	};
+
+	struct Condition
+	{
+		std::vector< std::shared_ptr<Instruction>> values;		
 	};
 
 	struct VariableDeclaration : public Instruction {
@@ -117,8 +161,8 @@ namespace Lumina
 
 	struct ConditionalBranch
 	{
-		std::shared_ptr<Expression> condition;
-		std::vector<std::shared_ptr<Instruction>> body;
+		Condition condition;
+		SymbolBody body;
 
 		ConditionalBranch() = default;
 	};
@@ -140,7 +184,7 @@ namespace Lumina
 
 	struct ForStatement : public Instruction
 	{
-		std::shared_ptr<VariableDeclaration> initializer;
+		std::shared_ptr<Instruction> initializer;
 		std::shared_ptr<Expression> condition;
 		std::shared_ptr<Instruction> increment;
 		std::vector<std::shared_ptr<Instruction>> body;
@@ -158,12 +202,5 @@ namespace Lumina
 	struct DiscardStatement : public Instruction
 	{
 		DiscardStatement() : Instruction(Type::DiscardStatement) {}
-	};
-
-	struct SymbolBody : public Instruction
-	{
-		std::vector<std::shared_ptr<Instruction>> instructions;
-
-		SymbolBody() : Instruction(Type::SymbolBody) {}
 	};
 }

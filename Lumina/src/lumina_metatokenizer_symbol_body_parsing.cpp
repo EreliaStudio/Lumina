@@ -37,6 +37,10 @@ namespace Lumina
 		}
 
 		if (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
+			tokenAtIndex(currentIndex + 1).type == TokenType::OpenBracket)
+			return (true);
+
+		if (tokenAtIndex(currentIndex).type == TokenType::Identifier &&
 			tokenAtIndex(currentIndex + 1).type == TokenType::Assignator)
 			return (true);
 
@@ -76,6 +80,11 @@ namespace Lumina
 				// Determine the type of instruction to parse
 				switch (currentToken().type)
 				{
+				case TokenType::Comment:
+				{
+					skipToken();
+					break;
+				}
 				case TokenType::Identifier:
 				{
 					if (isDeclaration())
@@ -138,8 +147,7 @@ namespace Lumina
 		auto declaration = std::make_shared<VariableDeclaration>();
 
 		// Parse type and name
-		declaration->descriptor.type = parseTypeDescriptor();
-		declaration->descriptor.name = expect(TokenType::Identifier, "Expected variable name.");
+		declaration->descriptor = parseVariableDescriptor();
 
 		// Check for optional initial value
 		if (currentToken().type == TokenType::Assignator)
@@ -148,7 +156,7 @@ namespace Lumina
 			declaration->initialValue = parseExpression();
 		}
 
-		expect(TokenType::EndOfSentence, "Expected ';' at the end of variable declaration.");
+		expect(TokenType::EndOfSentence, "Expected ';' token.");
 
 		return declaration;
 	}
@@ -158,7 +166,9 @@ namespace Lumina
 		std::shared_ptr<VariableAssignation> result = std::make_shared<VariableAssignation>();
 
 		result->target = parseVariableDesignation();
+		expect(TokenType::Assignator, "Expected a '=' token.");
 		result->value = parseExpression();
+		expect(TokenType::EndOfSentence, "Expected ';' token.");
 
 		return (result);
 	}
@@ -261,6 +271,33 @@ namespace Lumina
 		return (result);
 	}
 
+	std::shared_ptr<Expression::ComparatorOperatorElement> MetaTokenizer::parseComparatorOperatorElement()
+	{
+		auto result = std::make_shared<Expression::ComparatorOperatorElement>();
+
+		result->operatorToken = expect(TokenType::ComparatorOperator, "Expected a comparator operator token.");
+
+		return (result);
+	}
+
+	std::shared_ptr<Expression::ConditionOperatorElement> MetaTokenizer::parseConditionOperatorElement()
+	{
+		auto result = std::make_shared<Expression::ConditionOperatorElement>();
+
+		result->operatorToken = expect(TokenType::ConditionOperator, "Expected a condition operator '&&' or '||' token.");
+
+		return (result);
+	}
+
+	std::shared_ptr<Expression::IncrementorElement> MetaTokenizer::parseIncrementor()
+	{
+		auto result = std::make_shared<Expression::IncrementorElement>();
+
+		result->operatorToken = expect(TokenType::Incrementor, "Expected an incrementor '++' or '--' token.");
+
+		return (result);
+	}
+
 	std::shared_ptr<Expression::SymbolCallElement> MetaTokenizer::parseSymbolCallElement()
 	{
 		auto result = std::make_shared<Expression::SymbolCallElement>();
@@ -295,8 +332,15 @@ namespace Lumina
 
 	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionElement()
 	{
+		while (hasTokenLeft() == true)
+		{
 		switch (currentToken().type)
 		{
+		case TokenType::Comment:
+		{
+			skipToken();
+			break;
+		}
 		case TokenType::Number:
 			return (parseNumberElement());
 			break;
@@ -320,13 +364,27 @@ namespace Lumina
 			return (parseOperatorElement());
 			break;
 
-		case TokenType::OpenParenthesis:
-			return (parseExpression());
+		case TokenType::ComparatorOperator:
+			return (parseComparatorOperatorElement());
 			break;
+
+		case TokenType::ConditionOperator:
+			return (parseConditionOperatorElement());
+			break;
+
+		case TokenType::OpenParenthesis:
+		{
+			expect(TokenType::OpenParenthesis, "Expected a '(' parenthesis.");
+			std::shared_ptr<Expression> innerExpression = parseExpression();
+			expect(TokenType::CloseParenthesis, "Expected a ')' parenthesis.");
+			return (innerExpression);
+		}
 
 		default:
 			throw TokenBasedError("Unexpected token in expression.", currentToken());
 		}
+		}
+		return (nullptr);
 	}
 
 	std::shared_ptr<Expression> MetaTokenizer::parseExpression()
@@ -335,13 +393,57 @@ namespace Lumina
 
 		expression->elements.push_back(parseExpressionElement());
 
-		while (currentToken().type == TokenType::Operator)
+		while ( currentToken().type == TokenType::Operator ||
+				currentToken().type == TokenType::ComparatorOperator ||
+				currentToken().type == TokenType::ConditionOperator ||
+				currentToken().type == TokenType::Incrementor)
 		{
-			expression->elements.push_back(parseOperatorElement());
-			expression->elements.push_back(parseExpressionElement());
+			if (currentToken().type == TokenType::Operator)
+			{
+				expression->elements.push_back(parseOperatorElement());
+				expression->elements.push_back(parseExpressionElement());
+			}
+			else if(currentToken().type == TokenType::ComparatorOperator)
+			{
+				expression->elements.push_back(parseComparatorOperatorElement());
+				expression->elements.push_back(parseExpressionElement());
+			}
+			else if (currentToken().type == TokenType::ConditionOperator)
+			{
+				expression->elements.push_back(parseConditionOperatorElement());
+				expression->elements.push_back(parseExpressionElement());
+			}
+			else
+			{
+				expression->elements.push_back(parseIncrementor());
+			}
 		}
 
 		return expression;
+	}
+
+	std::shared_ptr<ConditionalOperator> MetaTokenizer::parseConditionalOperator()
+	{
+		auto result = std::make_shared<ConditionalOperator>();
+
+		result->token = expect(TokenType::ConditionOperator, "Expected a condition operator token.");
+
+		return (result);
+	}
+
+	Condition MetaTokenizer::parseCondition()
+	{
+		Condition result;
+
+		result.values.push_back(parseExpression());
+
+		while (currentToken().type == TokenType::ConditionOperator)
+		{
+			result.values.push_back(parseConditionalOperator());
+			result.values.push_back(parseExpression());
+		}
+
+		return (result);
 	}
 
 	std::shared_ptr<IfStatement> MetaTokenizer::parseIfStatement()
@@ -351,10 +453,10 @@ namespace Lumina
 		ConditionalBranch branch;
 		expect(TokenType::IfStatement, "Expected 'if'.");
 		expect(TokenType::OpenParenthesis, "Expected '(' after 'if'.");
-		branch.condition = parseExpression();
+		branch.condition = parseCondition();
 		expect(TokenType::CloseParenthesis, "Expected ')' after condition.");
 
-		branch.body = parseSymbolBody().instructions;
+		branch.body = parseSymbolBody();
 
 		ifStatement->branches.push_back(branch);
 
@@ -366,15 +468,15 @@ namespace Lumina
 			{
 				advance();
 				expect(TokenType::OpenParenthesis, "Expected '(' after 'else if'.");
-				branch.condition = parseExpression();
+				branch.condition = parseCondition();
 				expect(TokenType::CloseParenthesis, "Expected ')' after condition.");
 			}
 			else
 			{
-				branch.condition = nullptr;
+				branch.condition.values.clear();
 			}
 
-			branch.body = parseSymbolBody().instructions;
+			branch.body = parseSymbolBody();
 			ifStatement->branches.push_back(branch);
 		}
 
@@ -402,7 +504,14 @@ namespace Lumina
 		expect(TokenType::OpenParenthesis, "Expected '(' after 'for'.");
 
 		// Parse initializer, condition, and increment
-		forStatement->initializer = parseVariableDeclaration();
+		if (isDeclaration() == true)
+		{
+			forStatement->initializer = parseVariableDeclaration();
+		}
+		else
+		{
+			forStatement->initializer = parseVariableAssignation();
+		}
 		forStatement->condition = parseExpression();
 		expect(TokenType::EndOfSentence, "Expected ';' after condition.");
 		forStatement->increment = parseExpression();
