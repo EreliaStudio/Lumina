@@ -1,5 +1,9 @@
 #pragma once
 
+#include <fstream>
+#include <set>
+#include <map>
+
 #include "lumina_tokenizer.hpp"
 #include "lumina_exception.hpp"
 #include "lumina_utils.hpp"
@@ -7,58 +11,786 @@
 
 namespace Lumina
 {
-struct Shader
-{
-	std::string layouts;
-	std::string constants;
-	std::string attributes;
-	std::string textures;
-	std::string vertexShaderCode;
-	std::string fragmentShaderCode;
-};
-
-struct Compiler
-{
-private:
-	Expected<Shader> _result;
-	std::vector<std::shared_ptr<MetaToken>> _metaTokens;
-	size_t _index;
-
-	Expected<Shader> _compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
+	struct Shader
 	{
-		_result = Expected<Shader>();
+		std::string inputLayouts;
+		std::string outputLayouts;
+		std::string constants;
+		std::string attributes;
+		std::string textures;
+		std::string vertexShaderCode;
+		std::string fragmentShaderCode;
+	};
 
-		_metaTokens = p_metaTokens;
-		_index = 0;
-
-		while (hasMetaTokenLeft() == true)
+	struct Compiler
+	{
+	public:
+		using Product = Expected<Shader>;
+	private:
+		struct Type
 		{
-			switch (currentMetaToken()->type)
-			{
+			std::string name = "";
+			size_t cpuSize;
+			size_t gpuSize;
+			size_t padding = 0;
 
+			struct Element
+			{
+				const Type* type;
+				std::string name;
+				size_t cpuOffset;
+				size_t gpuOffset;
+				std::vector<size_t> arraySize;
+			};
+
+			std::vector<Element> innerElements;
+
+			bool contains(const std::string& p_name)
+			{
+				for (const auto& element : innerElements)
+				{
+					if (element.name == p_name)
+						return (true);
+				}
+				return (false);
 			}
-			_index++;
+		
+			bool operator<(const Type& other) const
+			{
+				return name < other.name;
+			}
+		};
+
+		Product _result;
+
+		size_t nbVertexLayout = 0;
+		size_t nbFragmentLayout = 0;
+		size_t nbOutputLayout = 0;
+
+		std::set<Type> _types;
+		std::set<Type> _standardTypes;
+		std::set<Type> _structureTypes;
+		std::set<Type> _attributeTypes;
+		std::set<Type> _constantTypes;
+
+		void compilePipelineFlow(std::shared_ptr<PipelineFlowMetaToken> p_metaToken)
+		{
+			if (p_metaToken->inputFlow == "Input")
+			{
+				if (p_metaToken->outputFlow == "VertexPass")
+				{
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+
+					if (flowType == nullptr)
+					{
+						throw TokenBasedError("Type : " + p_metaToken->variableDescriptor.type.value.content + " not found", p_metaToken->variableDescriptor.type.value);
+					}
+
+					_result.value.inputLayouts += std::to_string(nbVertexLayout) + " " + p_metaToken->variableDescriptor.type.value.content + "\n";
+
+					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbVertexLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+					nbVertexLayout++;
+				}
+				else
+				{
+					throw TokenBasedError("Invalid pipeline flow ouput token. Only \"VertexPass\" is valid with \"Input\" input token.", p_metaToken->outputFlow);
+				}
+			}
+			else if (p_metaToken->inputFlow == "VertexPass")
+			{
+				if (p_metaToken->outputFlow == "FragmentPass")
+				{
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+
+					if (flowType == nullptr)
+					{
+						throw TokenBasedError("Type : " + p_metaToken->variableDescriptor.type.value.content + " not found", p_metaToken->variableDescriptor.type.value);
+					}
+
+					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+
+					nbFragmentLayout++;
+				}
+				else
+				{
+					throw TokenBasedError("Invalid pipeline flow ouput token. Only \"FragmentPass\" is valid with \"VertexPass\" input token.", p_metaToken->outputFlow);
+				}
+			}
+			else if (p_metaToken->inputFlow == "FragmentPass")
+			{
+				if (p_metaToken->outputFlow == "Output")
+				{
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+
+					if (flowType == nullptr)
+					{
+						throw TokenBasedError("Type : " + p_metaToken->variableDescriptor.type.value.content + " not found", p_metaToken->variableDescriptor.type.value);
+					}
+
+					_result.value.outputLayouts += std::to_string(nbOutputLayout) + " " + p_metaToken->variableDescriptor.type.value.content + "\n";
+					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbOutputLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+
+					nbOutputLayout++;
+				}
+				else
+				{
+					throw TokenBasedError("Invalid pipeline flow ouput token. Only \"Output\" is valid with \"FragmentPass\" input token.", p_metaToken->outputFlow);
+				}
+			}
+			else
+			{
+				throw TokenBasedError("Invalid pipeline flow input token. Only \"Input\", \"VertexPass\" and \"FragmentPass\" are valid pipeline flow input.", p_metaToken->inputFlow);
+			}
 		}
 
-		return (_result);
-	}
+		Type composeType(std::shared_ptr<BlockMetaToken> p_metaToken)
+		{
+			if (type(p_metaToken->name.content) != nullptr)
+			{
+				throw TokenBasedError("Type [" + p_metaToken->name.content + "] already defined.", p_metaToken->name);
+			}
 
-	const std::shared_ptr<MetaToken> currentMetaToken() const
-	{
-		return (_metaTokens[_index]);
-	}
+			Type result = Type();
 
-	bool hasMetaTokenLeft() const
-	{
-		return (_index < _metaTokens.size());
-	}
+			size_t cpuOffset = 0;
+			size_t gpuOffset = 0;
+			result.name = p_metaToken->name.content;
+			for (const auto& element : p_metaToken->elements)
+			{
+				if (result.contains(element.name.content) == true)
+				{
+					throw TokenBasedError("Attribute [" + element.name.content + "] already defined in [" + result.name + "] structure.", element.name);
+				}
 
-public:
-	static Expected<Shader> compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
-	{
-		return (Compiler()._compile(p_metaTokens));
-	}
-};
+				Type::Element newElement;
+
+				newElement.name = element.name.content;
+				newElement.type = type(element.type.value.content);
+				newElement.arraySize = element.arraySizes;
+
+				size_t totalSize = 1;
+				for (const auto& size : newElement.arraySize)
+					totalSize *= size;
+
+				size_t padding = 0;
+				if (newElement.type->gpuSize == 12)
+					padding = 4;
+				else if (newElement.type->gpuSize >= 16)
+					padding = (16 - (newElement.type->gpuSize % 16)) % 16;
+
+				if ((gpuOffset % 16) != 0)
+				{
+					size_t bytesLeft = 16 - (gpuOffset % 16);
+					if (bytesLeft < newElement.type->gpuSize)
+					{
+						gpuOffset += bytesLeft;
+					}
+				}
+
+				newElement.gpuOffset = gpuOffset;
+				gpuOffset += (newElement.type->gpuSize + padding) * totalSize;
+
+				newElement.cpuOffset = cpuOffset;
+				cpuOffset += newElement.type->cpuSize * totalSize;
+
+
+				if (newElement.type == nullptr)
+				{
+					throw TokenBasedError("Type [" + element.type.value.content + "] not found.", p_metaToken->name);
+				}
+
+				result.innerElements.push_back(newElement);
+			}
+
+			result.gpuSize = gpuOffset;
+			result.cpuSize = cpuOffset;
+
+			return (result);
+		}
+
+		void compileStructure(std::shared_ptr<StructureMetaToken> p_metaToken)
+		{
+			
+		}
+
+		void insertElement(std::string& p_stringToFill, const Type::Element& p_elementToInsert, size_t p_nbSpace)
+		{
+			p_stringToFill += std::string(p_nbSpace, ' ') + p_elementToInsert.name + " " + std::to_string(p_elementToInsert.cpuOffset) + " " + std::to_string(p_elementToInsert.type->cpuSize) + " " + std::to_string(p_elementToInsert.gpuOffset) + " " + std::to_string(p_elementToInsert.type->gpuSize);
+			if (p_elementToInsert.type->innerElements.size() == 0)
+			{
+				p_stringToFill += " {}";
+			}
+			else
+			{
+				p_stringToFill += " {\n";
+				for (const auto& innerElement : p_elementToInsert.type->innerElements)
+				{
+					insertElement(p_stringToFill, innerElement, p_nbSpace + 4);
+				}
+				p_stringToFill += std::string(p_nbSpace, ' ') + "}";
+			}
+			if (p_elementToInsert.arraySize.size() != 0)
+			{
+				size_t bufferSize = 1;
+				for (const auto& size : p_elementToInsert.arraySize)
+					bufferSize *= size;
+				size_t padding = 0;
+				if (p_elementToInsert.type->gpuSize == 12)
+					padding = 4;
+				else if (p_elementToInsert.type->gpuSize >= 16)
+					padding = (16 - (p_elementToInsert.type->gpuSize % 16)) % 16;
+				p_stringToFill += " " + std::to_string(bufferSize) + " " + std::to_string(padding);
+			}
+			p_stringToFill += "\n";
+		}
+
+		void compileAttribute(std::shared_ptr<AttributeMetaToken> p_metaToken)
+		{
+			Type attributeType = composeType(p_metaToken);
+
+			_result.value.attributes += attributeType.name + "Type " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
+			for (const auto& element : attributeType.innerElements)
+			{
+				insertElement(_result.value.attributes, element, 4);
+			}
+			_result.value.attributes += "}\n";
+		}
+
+		void compileConstant(std::shared_ptr<ConstantMetaToken> p_metaToken)
+		{
+			Type attributeType = composeType(p_metaToken);
+
+			_result.value.constants += attributeType.name + "Type " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
+			for (const auto& element : attributeType.innerElements)
+			{
+				insertElement(_result.value.constants, element, 4);
+			}
+			_result.value.constants += "}\n";
+		}
+
+		void compileTexture(std::shared_ptr<TextureMetaToken> p_metaToken)
+		{
+
+		}
+
+		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken)
+		{
+
+		}
+
+		void compilePipelineBody(std::shared_ptr<PipelineBodyMetaToken> p_metaToken)
+		{
+
+		}
+
+		void compileNamespace(std::shared_ptr<NamespaceMetaToken> p_metaToken)
+		{
+
+		}
+
+		Product _compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
+		{
+			_result = Product();
+
+			_result.value.outputLayouts += "0 Vector4\n";
+			_result.value.fragmentShaderCode += "layout(location = 0) out vec4 pixelColor;\n";
+			nbOutputLayout++;
+
+			for (const auto& metaToken : p_metaTokens)
+			{
+				try
+				{
+				switch (metaToken->type)
+				{
+					case MetaToken::Type::PipelineFlow:
+					{
+						compilePipelineFlow(static_pointer_cast<PipelineFlowMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::PipelineBody:
+					{
+						compilePipelineBody(static_pointer_cast<PipelineBodyMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Constant:
+					{
+						compileConstant(static_pointer_cast<ConstantMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Attribute:
+					{
+						compileAttribute(static_pointer_cast<AttributeMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Structure:
+					{
+						compileStructure(static_pointer_cast<StructureMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Texture:
+					{
+						compileTexture(static_pointer_cast<TextureMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Function:
+					{
+						compileFunction(static_pointer_cast<FunctionMetaToken>(metaToken));
+						break;
+					}
+					case MetaToken::Type::Namespace:
+					{
+						compileNamespace(static_pointer_cast<NamespaceMetaToken>(metaToken));
+						break;
+					}
+					default:
+					{
+						throw TokenBasedError("Unknow meta token type", Token());
+						break;
+					}
+				}
+				}
+				catch (TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			return (_result);
+		}
+
+		void createScalarTypes()
+		{
+			addStandardType({
+				.name = "float",
+				.cpuSize = 4,
+				.gpuSize = 4,
+				.padding = 4,
+				.innerElements = {}
+				});
+
+			addStandardType({
+				.name = "int",
+				.cpuSize = 4,
+				.gpuSize = 4,
+				.padding = 4,
+				.innerElements = {}
+				});
+
+			addStandardType({
+				.name = "uint",
+				.cpuSize = 4,
+				.gpuSize = 4,
+				.padding = 4,
+				.innerElements = {}
+				});
+
+			addStandardType({
+				.name = "bool",
+				.cpuSize = 1,
+				.gpuSize = 1,
+				.padding = 1,
+				.innerElements = {}
+				});
+		}
+
+		void createFloatVectorTypes()
+		{
+			const Type* floatTypePtr = type("float");
+			if (!floatTypePtr)
+			{
+				throw std::runtime_error("Type 'float' not found");
+			}
+
+			addStandardType({
+				.name = "Vector2",
+				.cpuSize = 8,
+				.gpuSize = 8,
+				.padding = 8,
+				.innerElements = {
+					{
+						.type = floatTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector3",
+				.cpuSize = 12,
+				.gpuSize = 12,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = floatTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector4",
+				.cpuSize = 16,
+				.gpuSize = 16,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = floatTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					},
+					{
+						.type = floatTypePtr,
+						.name = "w",
+						.cpuOffset = 12,
+						.gpuOffset = 12,
+						.arraySize = {}
+					}
+				}
+				});
+		}
+
+		void createIntVectorTypes()
+		{
+			const Type* intTypePtr = type("int");
+			if (!intTypePtr)
+			{
+				throw std::runtime_error("Type 'int' not found");
+			}
+
+			addStandardType({
+				.name = "Vector2Int",
+				.cpuSize = 8,
+				.gpuSize = 8,
+				.padding = 8,
+				.innerElements = {
+					{
+						.type = intTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector3Int",
+				.cpuSize = 12,
+				.gpuSize = 12,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = intTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector4Int",
+				.cpuSize = 16,
+				.gpuSize = 16,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = intTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					},
+					{
+						.type = intTypePtr,
+						.name = "w",
+						.cpuOffset = 12,
+						.gpuOffset = 12,
+						.arraySize = {}
+					}
+				}
+				});
+		}
+
+		void createUIntVectorTypes()
+		{
+			const Type* uintTypePtr = type("uint");
+			if (!uintTypePtr)
+			{
+				throw std::runtime_error("Type 'uint' not found");
+			}
+
+			addStandardType({
+				.name = "Vector2UInt",
+				.cpuSize = 8,
+				.gpuSize = 8,
+				.padding = 8,
+				.innerElements = {
+					{
+						.type = uintTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector3UInt",
+				.cpuSize = 12,
+				.gpuSize = 12,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = uintTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					}
+				}
+				});
+
+			addStandardType({
+				.name = "Vector4UInt",
+				.cpuSize = 16,
+				.gpuSize = 16,
+				.padding = 16,
+				.innerElements = {
+					{
+						.type = uintTypePtr,
+						.name = "x",
+						.cpuOffset = 0,
+						.gpuOffset = 0,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "y",
+						.cpuOffset = 4,
+						.gpuOffset = 4,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "z",
+						.cpuOffset = 8,
+						.gpuOffset = 8,
+						.arraySize = {}
+					},
+					{
+						.type = uintTypePtr,
+						.name = "w",
+						.cpuOffset = 12,
+						.gpuOffset = 12,
+						.arraySize = {}
+					}
+				}
+				});
+		}
+
+		void createMatrixTypes()
+		{
+			const Type* floatTypePtr = type("float");
+			if (!floatTypePtr)
+			{
+				throw std::runtime_error("Type 'float' not found");
+			}
+
+			addStandardType({
+				.name = "Matrix2x2",
+				.cpuSize = 16,
+				.gpuSize = 16,
+				.padding = 16,
+				.innerElements = {}
+				});
+
+			addStandardType({
+				.name = "Matrix3x3",
+				.cpuSize = 36,
+				.gpuSize = 36,
+				.padding = 16,
+				.innerElements = {}
+				});
+
+			addStandardType({
+				.name = "Matrix4x4",
+				.cpuSize = 64,
+				.gpuSize = 64,
+				.padding = 16,
+				.innerElements = {}
+				});
+		}
+
+		Compiler()
+		{
+			createScalarTypes();
+
+			createFloatVectorTypes();
+			createIntVectorTypes();
+			createUIntVectorTypes();
+
+			createMatrixTypes();
+		}
+
+		void addStandardType(const Type& p_type)
+		{
+			if (_types.contains(p_type) == true)
+			{
+				throw std::runtime_error("Type [" + p_type.name + "] already defined");
+			}
+			_types.insert(p_type);
+			_standardTypes.insert(p_type);
+		}
+
+		void addConstantType(const Type& p_type)
+		{
+			if (_types.contains(p_type) == true)
+			{
+				throw std::runtime_error("Type [" + p_type.name + "] already defined");
+			}
+			_types.insert(p_type);
+			_constantTypes.insert(p_type);
+		}
+
+		void addAttributeType(const Type& p_type)
+		{
+			if (_types.contains(p_type) == true)
+			{
+				throw std::runtime_error("Type [" + p_type.name + "] already defined");
+			}
+			_types.insert(p_type);
+			_attributeTypes.insert(p_type);
+		}
+
+		void addStructureType(const Type& p_type)
+		{
+			if (_types.contains(p_type) == true)
+			{
+				throw std::runtime_error("Type [" + p_type.name + "] already defined");
+			}
+			_types.insert(p_type);
+			_structureTypes.insert(p_type);
+		}
+
+		const Type* type(const std::string& p_typeName) const
+		{
+			auto it = _types.find(Type{ p_typeName, {}, {} });
+			if (it != _types.end())
+			{
+				return &(*it);
+			}
+			return nullptr;
+		}
+
+	public:
+		static Expected<Shader> compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
+		{
+			return (Compiler()._compile(p_metaTokens));
+		}
+	};
 }
 
 int main(int argc, char** argv)
@@ -81,6 +813,47 @@ int main(int argc, char** argv)
 		}
 		return (-1);
 	}
+
+	Lumina::Compiler::Product shader = Lumina::Compiler::compile(metaTokens.value);
+
+	if (shader.errors.size() != 0)
+	{
+		for (const auto& error : shader.errors)
+		{
+			std::cout << error.what() << std::endl;
+		}
+		return (-1);
+	}
+
+	std::fstream compiledShader(argv[2], std::ios_base::out);
+
+	const std::string INPUT_LAYOUTS_DELIMITER = "## INPUT LAYOUTS DEFINITION ##";
+	const std::string OUTPUT_LAYOUTS_DELIMITER = "## OUTPUT LAYOUTS DEFINITION ##";
+	const std::string CONSTANTS_DELIMITER = "## CONSTANTS DEFINITION ##";
+	const std::string ATTRIBUTES_DELIMITER = "## ATTRIBUTES DEFINITION ##";
+	const std::string TEXTURES_DELIMITER = "## TEXTURES DEFINITION ##";
+	const std::string VERTEX_DELIMITER = "## VERTEX SHADER CODE ##";
+	const std::string FRAGMENT_DELIMITER = "## FRAGMENT SHADER CODE ##";
+
+	compiledShader << INPUT_LAYOUTS_DELIMITER << std::endl;
+	compiledShader << shader.value.inputLayouts << std::endl;
+	compiledShader << OUTPUT_LAYOUTS_DELIMITER << std::endl;
+	compiledShader << shader.value.outputLayouts << std::endl;
+	compiledShader << CONSTANTS_DELIMITER << std::endl;
+	compiledShader << shader.value.constants << std::endl;
+	compiledShader << ATTRIBUTES_DELIMITER << std::endl;
+	compiledShader << shader.value.attributes << std::endl;
+	compiledShader << TEXTURES_DELIMITER << std::endl;
+	compiledShader << shader.value.textures << std::endl;
+	compiledShader << VERTEX_DELIMITER << std::endl;
+	compiledShader << shader.value.vertexShaderCode << std::endl;
+	compiledShader << FRAGMENT_DELIMITER << std::endl;
+	compiledShader << shader.value.fragmentShaderCode << std::endl;
+
+	compiledShader.close();
+
+	std::cout << Lumina::readFileAsString(argv[2]);
+
 
 	return (0);
 }

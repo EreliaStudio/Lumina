@@ -1,0 +1,29 @@
+## INPUT LAYOUTS DEFINITION ##
+
+## OUTPUT LAYOUTS DEFINITION ##
+0 Vector4
+
+## CONSTANTS DEFINITION ##
+
+## ATTRIBUTES DEFINITION ##
+MaterialType Material 48 64 {
+    diffuseColor 0 12 0 12 {
+        x 0 4 0 4 {}
+        y 4 4 4 4 {}
+        z 8 4 8 4 {}
+    } 2 4
+    shininess 24 4 32 4 {} 3 0
+    diffuseColor2 36 12 48 12 {
+        x 0 4 0 4 {}
+        y 4 4 4 4 {}
+        z 8 4 8 4 {}
+    }
+}
+
+## TEXTURES DEFINITION ##
+
+## VERTEX SHADER CODE ##
+
+## FRAGMENT SHADER CODE ##
+layout(location = 0) out vec4 pixelColor;
+

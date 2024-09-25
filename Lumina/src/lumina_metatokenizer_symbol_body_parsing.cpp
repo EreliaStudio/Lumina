@@ -8,8 +8,8 @@ namespace Lumina
 		size_t currentIndex = 0;
 
 		if (tokenAtIndex(currentIndex).type == TokenType::Operator &&
-			tokenAtIndex(currentIndex).content == "--" ||
-			tokenAtIndex(currentIndex).content == "++")
+			tokenAtIndex(currentIndex) == "--" ||
+			tokenAtIndex(currentIndex) == "++")
 		{
 			currentIndex++;
 		}

@@ -68,6 +68,9 @@ namespace Lumina
 		Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::filesystem::path& p_originFile, const std::string& p_inputLine);
 		Token(const std::string& p_content, Type p_type, const Context& p_context);
 
+		bool operator == (const std::string& p_string) const;
+		bool operator != (const std::string& p_string) const;
+
 		friend std::ostream& operator << (std::ostream& p_os, const Token::Type& p_type);
 		friend std::ostream& operator << (std::ostream& p_os, const Token& p_token);
 

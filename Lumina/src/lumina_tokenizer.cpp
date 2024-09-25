@@ -220,7 +220,7 @@ namespace Lumina
 			else if (isIdentifierStart(p_inputCode[index]))
 			{
 				tokenStr = parseIdentifier(p_inputCode, index);
-				if (tokenStr == "Input" || tokenStr == "VertexPass" || tokenStr == "FragmentPass")
+				if (tokenStr == "Input" || tokenStr == "VertexPass" || tokenStr == "FragmentPass" || tokenStr == "Output")
 				{
 					tokenType = Token::Type::PipelineFlow;
 				}

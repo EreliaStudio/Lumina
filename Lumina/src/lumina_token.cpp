@@ -18,6 +18,16 @@ namespace Lumina
 
 	}
 
+	bool Token::operator == (const std::string& p_string) const
+	{
+		return (content == p_string);
+	}
+
+	bool Token::operator != (const std::string& p_string) const
+	{
+		return (content != p_string);
+	}
+
 	std::ostream& operator << (std::ostream& p_os, const Token::Type& p_type)
 	{
 		p_os << to_string(p_type);

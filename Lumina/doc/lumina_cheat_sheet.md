@@ -14,10 +14,15 @@ Lumina is a wrapper around GLSL behavior, designed to simplify the creation of s
 
 ### Pipeline Flow
 - Define data flow between shader stages.
+- Available pipeline flow :
+    - Input -> VertexPass
+    - VertexPass -> FragmentPass
+    - FragmentPass -> Ouput
 - Data passed thought flow must remain native data, such as vec2, ivec2, float, int, etc
 ```cpp
 Input -> VertexPass: float variableNameA;
 VertexPass -> FragmentPass: Vector3 variableNameB;
+FragmentPass -> Ouput: Vector4 variableNameC;
 ```
 
 ### Functions

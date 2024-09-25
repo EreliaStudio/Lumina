@@ -49,7 +49,7 @@ namespace Lumina
 			size_t leftValue = applyPrimary();
 
 			while (currentToken().type == TokenType::Operator &&
-				(currentToken().content == "*" || currentToken().content == "/" || currentToken().content == "%"))
+				(currentToken() == "*" || currentToken() == "/" || currentToken() == "%"))
 			{
 				std::string op = currentToken().content;
 				advance();
@@ -83,7 +83,7 @@ namespace Lumina
 		size_t leftValue = applyFactor();
 
 		while (currentToken().type == TokenType::Operator &&
-			(currentToken().content == "+" || currentToken().content == "-"))
+			(currentToken() == "+" || currentToken() == "-"))
 		{
 			std::string op = currentToken().content;
 			advance();
