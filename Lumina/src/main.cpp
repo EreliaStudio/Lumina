@@ -61,17 +61,47 @@ namespace Lumina
 			}
 		};
 
+		struct Variable
+		{
+			const Type* type;
+			std::string name;
+			std::vector<size_t> arraySizes;
+		};
+
 		Product _result;
 
 		size_t nbVertexLayout = 0;
 		size_t nbFragmentLayout = 0;
 		size_t nbOutputLayout = 0;
 
+		std::vector<std::string> _namespaceNames;
+
+		std::string namespacePrefix(const std::string& p_namespaceSeparator = "_")
+		{
+			std::string result;
+
+			for (const std::string& name : _namespaceNames)
+			{
+				result += name + p_namespaceSeparator;
+			}
+
+			return (result);
+		}
+
 		std::set<Type> _types;
 		std::set<Type> _standardTypes;
+		std::set<Type> _luminaTypes;
 		std::set<Type> _structureTypes;
+		static inline const std::string ATTRIBUTE_PREFIX = "Attribute_";
 		std::set<Type> _attributeTypes;
+		static inline const std::string CONSTANT_PREFIX = "Constant_";
 		std::set<Type> _constantTypes;
+
+		std::map<std::string, Variable> _variables;
+
+		static inline const std::string TEXTURE_PREFIX = "Texture_";
+		std::vector<const Variable*> _textures;
+
 
 		void compilePipelineFlow(std::shared_ptr<PipelineFlowMetaToken> p_metaToken)
 		{
@@ -167,6 +197,10 @@ namespace Lumina
 
 				newElement.name = element.name.content;
 				newElement.type = type(element.type.value.content);
+				if (newElement.type == type("Texture"))
+				{
+					throw TokenBasedError("Texture can't be placed inside block.", element.name);
+				}
 				newElement.arraySize = element.arraySizes;
 
 				size_t totalSize = 1;
@@ -209,9 +243,34 @@ namespace Lumina
 			return (result);
 		}
 
+		std::string composeBlockString(const std::string& p_prefix, std::shared_ptr<BlockMetaToken> p_metaToken)
+		{
+			std::string result = "";
+
+			result += namespacePrefix() + p_prefix + p_metaToken->name.content + " {\n";
+			for (const auto& element : p_metaToken->elements)
+			{
+				result += "    " + element.type.value.content + " " + element.name.content;
+				for (const auto& size : element.arraySizes)
+				{
+					result += "[" + std::to_string(size) + "]";
+				}
+				result += ";\n";
+			}
+			result += "}\n";
+
+			return (result);
+		}
+
 		void compileStructure(std::shared_ptr<StructureMetaToken> p_metaToken)
 		{
-			
+			Type structType = composeType(p_metaToken);
+			std::string structCode = "struct " + composeBlockString("", p_metaToken);
+
+			_result.value.vertexShaderCode += structCode;
+			_result.value.fragmentShaderCode += structCode;
+
+			addAttributeType(structType);
 		}
 
 		void insertElement(std::string& p_stringToFill, const Type::Element& p_elementToInsert, size_t p_nbSpace)
@@ -240,6 +299,13 @@ namespace Lumina
 					padding = 4;
 				else if (p_elementToInsert.type->gpuSize >= 16)
 					padding = (16 - (p_elementToInsert.type->gpuSize % 16)) % 16;
+				p_stringToFill += " ";
+				for (size_t i = 0; i < p_elementToInsert.arraySize.size(); i++)
+				{
+					if (i != 0)
+						p_stringToFill += "x";
+					p_stringToFill += std::to_string(p_elementToInsert.arraySize[i]);
+				}
 				p_stringToFill += " " + std::to_string(bufferSize) + " " + std::to_string(padding);
 			}
 			p_stringToFill += "\n";
@@ -249,29 +315,65 @@ namespace Lumina
 		{
 			Type attributeType = composeType(p_metaToken);
 
-			_result.value.attributes += attributeType.name + "Type " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
+			_result.value.attributes += namespacePrefix() + ATTRIBUTE_PREFIX + attributeType.name + " " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
 			for (const auto& element : attributeType.innerElements)
 			{
 				insertElement(_result.value.attributes, element, 4);
 			}
 			_result.value.attributes += "}\n";
+
+			std::string attributeCode = "layout(attribute) uniform " + composeBlockString(ATTRIBUTE_PREFIX, p_metaToken);
+
+			_result.value.vertexShaderCode += attributeCode;
+			_result.value.fragmentShaderCode += attributeCode;
+
+			addAttributeType(attributeType);
+
+			_variables[namespacePrefix("::") + attributeType.name] = {
+				type(attributeType.name),
+				p_metaToken->name.content,
+				{}
+			};
 		}
 
 		void compileConstant(std::shared_ptr<ConstantMetaToken> p_metaToken)
 		{
-			Type attributeType = composeType(p_metaToken);
+			Type constantType = composeType(p_metaToken);
 
-			_result.value.constants += attributeType.name + "Type " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
-			for (const auto& element : attributeType.innerElements)
+			_result.value.constants += namespacePrefix() + CONSTANT_PREFIX + constantType.name + " " + constantType.name + " " + std::to_string(constantType.cpuSize) + " " + std::to_string(constantType.gpuSize) + " {\n";
+			for (const auto& element : constantType.innerElements)
 			{
 				insertElement(_result.value.constants, element, 4);
 			}
 			_result.value.constants += "}\n";
+
+			std::string constantCode = "layout(constant) uniform " + composeBlockString(CONSTANT_PREFIX, p_metaToken);
+
+			_result.value.vertexShaderCode += constantCode;
+			_result.value.fragmentShaderCode += constantCode;
+
+			addConstantType(constantType);
+
+			_variables[namespacePrefix("::") + constantType.name] = {
+				type(constantType.name),
+				p_metaToken->name.content,
+				{}
+			};
 		}
 
 		void compileTexture(std::shared_ptr<TextureMetaToken> p_metaToken)
 		{
+			_result.value.fragmentShaderCode += "uniform sampler2D " + TEXTURE_PREFIX + namespacePrefix() + p_metaToken->name.content + ";\n";
 
+			_result.value.textures += namespacePrefix("::") + p_metaToken->name.content + " " + TEXTURE_PREFIX + namespacePrefix() + p_metaToken->name.content + " " + std::to_string(_textures.size()) + "\n";
+
+			_variables[namespacePrefix("::") + p_metaToken->name.content] = {
+				type("Texture"),
+				p_metaToken->name.content,
+				{}
+			};
+
+			_textures.push_back(&(_variables[namespacePrefix("::") + p_metaToken->name.content]));
 		}
 
 		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken)
@@ -286,7 +388,58 @@ namespace Lumina
 
 		void compileNamespace(std::shared_ptr<NamespaceMetaToken> p_metaToken)
 		{
+			_namespaceNames.push_back(p_metaToken->name.content);
 
+			for (const auto& innerMetaToken : p_metaToken->innerMetaTokens)
+			{
+				try
+				{
+					switch (innerMetaToken->type)
+					{
+					case MetaToken::Type::Constant:
+					{
+						compileConstant(static_pointer_cast<ConstantMetaToken>(innerMetaToken));
+						break;
+					}
+					case MetaToken::Type::Attribute:
+					{
+						compileAttribute(static_pointer_cast<AttributeMetaToken>(innerMetaToken));
+						break;
+					}
+					case MetaToken::Type::Structure:
+					{
+						compileStructure(static_pointer_cast<StructureMetaToken>(innerMetaToken));
+						break;
+					}
+					case MetaToken::Type::Texture:
+					{
+						compileTexture(static_pointer_cast<TextureMetaToken>(innerMetaToken));
+						break;
+					}
+					case MetaToken::Type::Function:
+					{
+						compileFunction(static_pointer_cast<FunctionMetaToken>(innerMetaToken));
+						break;
+					}
+					case MetaToken::Type::Namespace:
+					{
+						compileNamespace(static_pointer_cast<NamespaceMetaToken>(innerMetaToken));
+						break;
+					}
+					default:
+					{
+						throw TokenBasedError("Unknow meta token type", Token());
+						break;
+					}
+					}
+				}
+				catch (TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			_namespaceNames.pop_back();
 		}
 
 		Product _compile(const std::vector<std::shared_ptr<MetaToken>>& p_metaTokens)
@@ -724,6 +877,17 @@ namespace Lumina
 				});
 		}
 
+		void createLuminaTypes()
+		{
+			addLuminaType({
+				.name = "Texture",
+				.cpuSize = 0,
+				.gpuSize = 0,
+				.padding = 0,
+				.innerElements = {}
+				});
+		}
+
 		Compiler()
 		{
 			createScalarTypes();
@@ -733,6 +897,8 @@ namespace Lumina
 			createUIntVectorTypes();
 
 			createMatrixTypes();
+
+			createLuminaTypes();
 		}
 
 		void addStandardType(const Type& p_type)
@@ -743,6 +909,16 @@ namespace Lumina
 			}
 			_types.insert(p_type);
 			_standardTypes.insert(p_type);
+		}
+
+		void addLuminaType(const Type& p_type)
+		{
+			if (_types.contains(p_type) == true)
+			{
+				throw std::runtime_error("Type [" + p_type.name + "] already defined");
+			}
+			_types.insert(p_type);
+			_luminaTypes.insert(p_type);
 		}
 
 		void addConstantType(const Type& p_type)

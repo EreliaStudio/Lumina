@@ -4,26 +4,55 @@
 0 Vector4
 
 ## CONSTANTS DEFINITION ##
-
-## ATTRIBUTES DEFINITION ##
-MaterialType Material 48 64 {
+test_Constant_Material2 Material2 292 388 {
     diffuseColor 0 12 0 12 {
         x 0 4 0 4 {}
         y 4 4 4 4 {}
         z 8 4 8 4 {}
-    } 2 4
-    shininess 24 4 32 4 {} 3 0
-    diffuseColor2 36 12 48 12 {
+    } 2x4x1x3 24 4
+    shininess 288 4 384 4 {}
+}
+
+## ATTRIBUTES DEFINITION ##
+test_Attribute_Material Material 292 388 {
+    diffuseColor 0 12 0 12 {
         x 0 4 0 4 {}
         y 4 4 4 4 {}
         z 8 4 8 4 {}
-    }
+    } 2x4x1x3 24 4
+    shininess 288 4 384 4 {}
 }
 
 ## TEXTURES DEFINITION ##
+test::texture Texture_test_texture 0
 
 ## VERTEX SHADER CODE ##
+layout(attribute) uniform test_Attribute_Material {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
+layout(constant) uniform test_Constant_Material2 {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
+struct test_Material3 {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
 
 ## FRAGMENT SHADER CODE ##
 layout(location = 0) out vec4 pixelColor;
+layout(attribute) uniform test_Attribute_Material {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
+layout(constant) uniform test_Constant_Material2 {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
+struct test_Material3 {
+    Vector3 diffuseColor[2][4][1][3];
+    float shininess;
+}
+uniform sampler2D Texture_test_texture;
 

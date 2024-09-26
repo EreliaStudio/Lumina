@@ -1,6 +1,22 @@
-AttributeBlock Material
+namespace test
 {
-    Vector3 diffuseColor[2];
-    float shininess[3];
-    Vector3 diffuseColor2;
-};
+    AttributeBlock Material
+    {
+        Vector3 diffuseColor[2][4][1][3];
+        float shininess;
+    };
+
+    ConstantBlock Material2
+    {
+        Vector3 diffuseColor[2][4][1][3];
+        float shininess;
+    };
+
+    struct Material3
+    {
+        Vector3 diffuseColor[2][4][1][3];
+        float shininess;
+    };
+
+    Texture texture;
+}

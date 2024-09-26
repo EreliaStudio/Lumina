@@ -23,7 +23,7 @@ namespace Lumina
 
 		void expendInclude();
 		TypeDescriptor parseTypeDescriptor();
-		size_t parseArraySize();
+		int parseArraySize();
 		VariableDescriptor parseVariableDescriptor();
 		Condition parseCondition();
 

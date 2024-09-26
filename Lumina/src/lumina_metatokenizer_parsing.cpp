@@ -20,21 +20,21 @@ namespace Lumina
 		return result;
 	}
 
-	size_t MetaTokenizer::parseArraySize()
+	int MetaTokenizer::parseArraySize()
 	{
-		auto applyPrimary = [this]() -> size_t {
+		auto applyPrimary = [this]() -> int {
 			switch (currentToken().type)
 			{
 			case TokenType::OpenParenthesis:
 			{
 				advance();
-				size_t value = parseArraySize();
+				int value = parseArraySize();
 				expect(TokenType::CloseParenthesis, "Expected a ')' token.");
 				return value;
 			}
 			case TokenType::Number:
 			{
-				size_t value = std::stoul(currentToken().content);
+				int value = std::stol(currentToken().content);
 				advance();
 				return value;
 			}
@@ -45,15 +45,15 @@ namespace Lumina
 			}
 			};
 
-		auto applyFactor = [&applyPrimary, this]() -> size_t {
-			size_t leftValue = applyPrimary();
+		auto applyFactor = [&applyPrimary, this]() -> int {
+			int leftValue = applyPrimary();
 
 			while (currentToken().type == TokenType::Operator &&
 				(currentToken() == "*" || currentToken() == "/" || currentToken() == "%"))
 			{
 				std::string op = currentToken().content;
 				advance();
-				size_t rightValue = applyPrimary();
+				int rightValue = applyPrimary();
 
 				if (op == "*")
 				{
@@ -80,14 +80,14 @@ namespace Lumina
 			return leftValue;
 			};
 
-		size_t leftValue = applyFactor();
+		int leftValue = applyFactor();
 
 		while (currentToken().type == TokenType::Operator &&
 			(currentToken() == "+" || currentToken() == "-"))
 		{
 			std::string op = currentToken().content;
 			advance();
-			size_t rightValue = applyFactor();
+			int rightValue = applyFactor();
 
 			if (op == "+")
 			{
@@ -112,11 +112,15 @@ namespace Lumina
 		{
 			expect(TokenType::OpenBracket, "Expected a '[' token.");
 			size_t startingIndex = _index;
-			size_t newArraySize = parseArraySize();
+			int newArraySize = parseArraySize();
 
 			if (newArraySize == 0)
 			{
 				throw Lumina::TokenBasedError("Array size evaluated to 0", composeToken(startingIndex, _index, TokenType::Number));
+			}
+			if (newArraySize < 0)
+			{
+				throw Lumina::TokenBasedError("Array size been evaluated to [" + std::to_string(newArraySize) + "].", composeToken(startingIndex, _index, TokenType::Number));
 			}
 
 			result.arraySizes.push_back(newArraySize);

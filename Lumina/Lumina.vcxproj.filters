@@ -77,5 +77,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\test.lum" />
+    <None Include="shader\shader.lum" />
+    <None Include="predefined_import\importB" />
+    <None Include="predefined_import\attribute\attributeA.lum" />
+    <None Include="predefined_import\attribute\attributeB.lum" />
+    <None Include="predefined_import\constant\constantA.lum" />
+    <None Include="predefined_import\function\functionA.lum" />
+    <None Include="predefined_import\function\functionB.lum" />
+    <None Include="predefined_import\structure\structureA.lum" />
+    <None Include="predefined_import\importA" />
   </ItemGroup>
 </Project>
