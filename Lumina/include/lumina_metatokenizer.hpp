@@ -23,7 +23,9 @@ namespace Lumina
 
 		void expendInclude();
 		TypeDescriptor parseTypeDescriptor();
-		int parseArraySize();
+		int parseArraySizeValue();
+		std::vector<size_t> parseArraySizes();
+
 		VariableDescriptor parseVariableDescriptor();
 		Condition parseCondition();
 

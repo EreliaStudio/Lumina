@@ -30,6 +30,7 @@ namespace Lumina
 		struct Type
 		{
 			std::string name = "";
+			std::string glslName = "";
 			size_t cpuSize;
 			size_t gpuSize;
 			size_t padding = 0;
@@ -66,6 +67,56 @@ namespace Lumina
 			const Type* type;
 			std::string name;
 			std::vector<size_t> arraySizes;
+
+			bool isSame(const Variable& p_other) const
+			{
+				if (type != p_other.type)
+					return (false);
+				if (arraySizes.size() != p_other.arraySizes.size())
+					return(false);
+
+				for (size_t i = 0; i < arraySizes.size(); i++)
+				{
+					if (arraySizes[i] != p_other.arraySizes[i])
+						return (false);
+				}
+
+				return (true);
+			}
+		};
+
+		struct Function
+		{
+			struct Return
+			{
+				const Type* type;
+				std::vector<size_t> arraySizes;
+
+				bool operator == (const Return& p_other)
+				{
+					if (type != p_other.type)
+						return (false);
+					if (arraySizes.size() != p_other.arraySizes.size())
+						return(false);
+
+					for (size_t i = 0; i < arraySizes.size(); i++)
+					{
+						if (arraySizes[i] != p_other.arraySizes[i])
+							return (false);
+					}
+
+					return (true);
+				}
+
+				bool operator != (const Return& p_other)
+				{
+					return (!(operator==(p_other)));
+				}
+			};
+
+			Return returnType;
+			std::string name;
+			std::vector<Variable> parameters;
 		};
 
 		Product _result;
@@ -76,7 +127,7 @@ namespace Lumina
 
 		std::vector<std::string> _namespaceNames;
 
-		std::string namespacePrefix(const std::string& p_namespaceSeparator = "_")
+		std::string namespacePrefix(const std::string& p_namespaceSeparator)
 		{
 			std::string result;
 
@@ -97,6 +148,8 @@ namespace Lumina
 		static inline const std::string CONSTANT_PREFIX = "Constant_";
 		std::set<Type> _constantTypes;
 
+		std::map<std::string, std::vector<Function>> _functions;
+
 		std::map<std::string, Variable> _variables;
 
 		static inline const std::string TEXTURE_PREFIX = "Texture_";
@@ -109,7 +162,7 @@ namespace Lumina
 			{
 				if (p_metaToken->outputFlow == "VertexPass")
 				{
-					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value);
 
 					if (flowType == nullptr)
 					{
@@ -118,7 +171,7 @@ namespace Lumina
 
 					_result.value.inputLayouts += std::to_string(nbVertexLayout) + " " + p_metaToken->variableDescriptor.type.value.content + "\n";
 
-					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbVertexLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbVertexLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n\n";
 					nbVertexLayout++;
 				}
 				else
@@ -130,15 +183,15 @@ namespace Lumina
 			{
 				if (p_metaToken->outputFlow == "FragmentPass")
 				{
-					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value);
 
 					if (flowType == nullptr)
 					{
 						throw TokenBasedError("Type : " + p_metaToken->variableDescriptor.type.value.content + " not found", p_metaToken->variableDescriptor.type.value);
 					}
 
-					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
-					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+					_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n\n";
+					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") in " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n\n";
 
 					nbFragmentLayout++;
 				}
@@ -151,15 +204,15 @@ namespace Lumina
 			{
 				if (p_metaToken->outputFlow == "Output")
 				{
-					const Type* flowType = type(p_metaToken->variableDescriptor.type.value.content);
+					const Type* flowType = type(p_metaToken->variableDescriptor.type.value);
 
 					if (flowType == nullptr)
 					{
 						throw TokenBasedError("Type : " + p_metaToken->variableDescriptor.type.value.content + " not found", p_metaToken->variableDescriptor.type.value);
 					}
 
-					_result.value.outputLayouts += std::to_string(nbOutputLayout) + " " + p_metaToken->variableDescriptor.type.value.content + "\n";
-					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbOutputLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n";
+					_result.value.outputLayouts += std::to_string(nbOutputLayout) + " " + p_metaToken->variableDescriptor.type.value.content + "\n\n";
+					_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbOutputLayout) + ") out " + p_metaToken->variableDescriptor.type.value.content + " " + p_metaToken->variableDescriptor.name.content + ";\n\n";
 
 					nbOutputLayout++;
 				}
@@ -176,16 +229,18 @@ namespace Lumina
 
 		Type composeType(std::shared_ptr<BlockMetaToken> p_metaToken)
 		{
-			if (type(p_metaToken->name.content) != nullptr)
+			Type result = Type();
+			result.name = namespacePrefix("::") + p_metaToken->name.content;
+			result.glslName = namespacePrefix("_") + p_metaToken->name.content;
+
+			if (_type(result.name) != nullptr)
 			{
-				throw TokenBasedError("Type [" + p_metaToken->name.content + "] already defined.", p_metaToken->name);
+				throw TokenBasedError("Type [" + result.name + "] already defined.", p_metaToken->name);
 			}
 
-			Type result = Type();
 
 			size_t cpuOffset = 0;
 			size_t gpuOffset = 0;
-			result.name = p_metaToken->name.content;
 			for (const auto& element : p_metaToken->elements)
 			{
 				if (result.contains(element.name.content) == true)
@@ -196,8 +251,8 @@ namespace Lumina
 				Type::Element newElement;
 
 				newElement.name = element.name.content;
-				newElement.type = type(element.type.value.content);
-				if (newElement.type == type("Texture"))
+				newElement.type = type(element.type.value);
+				if (newElement.type == _type("Texture"))
 				{
 					throw TokenBasedError("Texture can't be placed inside block.", element.name);
 				}
@@ -247,7 +302,7 @@ namespace Lumina
 		{
 			std::string result = "";
 
-			result += namespacePrefix() + p_prefix + p_metaToken->name.content + " {\n";
+			result += namespacePrefix("_") + p_prefix + p_metaToken->name.content + " {\n";
 			for (const auto& element : p_metaToken->elements)
 			{
 				result += "    " + element.type.value.content + " " + element.name.content;
@@ -257,7 +312,7 @@ namespace Lumina
 				}
 				result += ";\n";
 			}
-			result += "}\n";
+			result += "}";
 
 			return (result);
 		}
@@ -265,7 +320,7 @@ namespace Lumina
 		void compileStructure(std::shared_ptr<StructureMetaToken> p_metaToken)
 		{
 			Type structType = composeType(p_metaToken);
-			std::string structCode = "struct " + composeBlockString("", p_metaToken);
+			std::string structCode = "struct " + composeBlockString("", p_metaToken) + ";\n\n";
 
 			_result.value.vertexShaderCode += structCode;
 			_result.value.fragmentShaderCode += structCode;
@@ -315,22 +370,22 @@ namespace Lumina
 		{
 			Type attributeType = composeType(p_metaToken);
 
-			_result.value.attributes += namespacePrefix() + ATTRIBUTE_PREFIX + attributeType.name + " " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
+			_result.value.attributes += ATTRIBUTE_PREFIX + attributeType.glslName + " " + attributeType.name + " " + std::to_string(attributeType.cpuSize) + " " + std::to_string(attributeType.gpuSize) + " {\n";
 			for (const auto& element : attributeType.innerElements)
 			{
 				insertElement(_result.value.attributes, element, 4);
 			}
 			_result.value.attributes += "}\n";
 
-			std::string attributeCode = "layout(attribute) uniform " + composeBlockString(ATTRIBUTE_PREFIX, p_metaToken);
+			std::string attributeCode = "layout(attribute) uniform " + composeBlockString(ATTRIBUTE_PREFIX, p_metaToken) + " " + attributeType.glslName + ";\n\n";
 
 			_result.value.vertexShaderCode += attributeCode;
 			_result.value.fragmentShaderCode += attributeCode;
 
 			addAttributeType(attributeType);
 
-			_variables[namespacePrefix("::") + attributeType.name] = {
-				type(attributeType.name),
+			_variables[attributeType.name] = {
+				_type(attributeType.name),
 				p_metaToken->name.content,
 				{}
 			};
@@ -340,22 +395,22 @@ namespace Lumina
 		{
 			Type constantType = composeType(p_metaToken);
 
-			_result.value.constants += namespacePrefix() + CONSTANT_PREFIX + constantType.name + " " + constantType.name + " " + std::to_string(constantType.cpuSize) + " " + std::to_string(constantType.gpuSize) + " {\n";
+			_result.value.constants += CONSTANT_PREFIX + constantType.glslName + " " + constantType.name + " " + std::to_string(constantType.cpuSize) + " " + std::to_string(constantType.gpuSize) + " {\n";
 			for (const auto& element : constantType.innerElements)
 			{
 				insertElement(_result.value.constants, element, 4);
 			}
 			_result.value.constants += "}\n";
 
-			std::string constantCode = "layout(constant) uniform " + composeBlockString(CONSTANT_PREFIX, p_metaToken);
+			std::string constantCode = "layout(constant) uniform " + composeBlockString(CONSTANT_PREFIX, p_metaToken) + " " + constantType.glslName + ";\n\n";
 
 			_result.value.vertexShaderCode += constantCode;
 			_result.value.fragmentShaderCode += constantCode;
 
 			addConstantType(constantType);
 
-			_variables[namespacePrefix("::") + constantType.name] = {
-				type(constantType.name),
+			_variables[constantType.name] = {
+				_type(constantType.name),
 				p_metaToken->name.content,
 				{}
 			};
@@ -363,12 +418,13 @@ namespace Lumina
 
 		void compileTexture(std::shared_ptr<TextureMetaToken> p_metaToken)
 		{
-			_result.value.fragmentShaderCode += "uniform sampler2D " + TEXTURE_PREFIX + namespacePrefix() + p_metaToken->name.content + ";\n";
+			std::string glslName = TEXTURE_PREFIX + namespacePrefix("_") + p_metaToken->name.content;
+			_result.value.fragmentShaderCode += "uniform sampler2D " + glslName + ";\n";
 
-			_result.value.textures += namespacePrefix("::") + p_metaToken->name.content + " " + TEXTURE_PREFIX + namespacePrefix() + p_metaToken->name.content + " " + std::to_string(_textures.size()) + "\n";
+			_result.value.textures += namespacePrefix("::") + p_metaToken->name.content + " " + glslName + " " + std::to_string(_textures.size()) + "\n";
 
 			_variables[namespacePrefix("::") + p_metaToken->name.content] = {
-				type("Texture"),
+				_type("Texture"),
 				p_metaToken->name.content,
 				{}
 			};
@@ -376,9 +432,63 @@ namespace Lumina
 			_textures.push_back(&(_variables[namespacePrefix("::") + p_metaToken->name.content]));
 		}
 
-		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken)
+		void compileSymbolBody(std::shared_ptr<SymbolBody> p_metaToken)
 		{
 
+		}
+
+		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken)
+		{
+			Function newFunction;
+
+			newFunction.returnType = { type(p_metaToken->returnType.type.value), p_metaToken->returnType.arraySizes };
+			newFunction.name = namespacePrefix("::") + p_metaToken->name.content;
+	
+			for (const auto& parameter : p_metaToken->parameters)
+			{
+				Variable newParameter;
+
+				newParameter.type = type(parameter.type.value);
+				newParameter.name = parameter.name.content;
+				newParameter.arraySizes = parameter.arraySizes;
+
+				newFunction.parameters.push_back(newParameter);
+			}
+
+			if (_functions.contains(newFunction.name) == true)
+			{
+				const Function& tmpFunction = _functions[newFunction.name].front();
+
+				if (tmpFunction.returnType != newFunction.returnType)
+				{
+					throw TokenBasedError("Function [" + p_metaToken->name.content + "] already defined with a different return type.", p_metaToken->name);
+				}
+
+				for (const auto& function : _functions[newFunction.name])
+				{
+					if (function.parameters.size() == newFunction.parameters.size())
+					{
+						bool different = false;
+
+						for (size_t i = 0; different == false && i < function.parameters.size(); i++)
+						{
+							if (function.parameters[i].isSame(newFunction.parameters[i]) == false)
+							{
+								different = true;
+							}
+						}
+
+						if (different == false)
+						{
+							throw TokenBasedError("Function [" + p_metaToken->name.content + "] already defined with a the same parameters types.", p_metaToken->name);
+						}
+					}
+				}
+			}
+
+			_functions[newFunction.name].push_back(newFunction);
+
+			//_result.value.vertexShaderCode += newFunction.returnType.type->name
 		}
 
 		void compilePipelineBody(std::shared_ptr<PipelineBodyMetaToken> p_metaToken)
@@ -446,8 +556,8 @@ namespace Lumina
 		{
 			_result = Product();
 
-			_result.value.outputLayouts += "0 Vector4\n";
-			_result.value.fragmentShaderCode += "layout(location = 0) out vec4 pixelColor;\n";
+			_result.value.outputLayouts += "0 Vector4\n\n";
+			_result.value.fragmentShaderCode += "layout(location = 0) out vec4 pixelColor;\n\n";
 			nbOutputLayout++;
 
 			for (const auto& metaToken : p_metaTokens)
@@ -549,7 +659,7 @@ namespace Lumina
 
 		void createFloatVectorTypes()
 		{
-			const Type* floatTypePtr = type("float");
+			const Type* floatTypePtr = _type("float");
 			if (!floatTypePtr)
 			{
 				throw std::runtime_error("Type 'float' not found");
@@ -648,7 +758,7 @@ namespace Lumina
 
 		void createIntVectorTypes()
 		{
-			const Type* intTypePtr = type("int");
+			const Type* intTypePtr = _type("int");
 			if (!intTypePtr)
 			{
 				throw std::runtime_error("Type 'int' not found");
@@ -747,7 +857,7 @@ namespace Lumina
 
 		void createUIntVectorTypes()
 		{
-			const Type* uintTypePtr = type("uint");
+			const Type* uintTypePtr = _type("uint");
 			if (!uintTypePtr)
 			{
 				throw std::runtime_error("Type 'uint' not found");
@@ -846,7 +956,7 @@ namespace Lumina
 
 		void createMatrixTypes()
 		{
-			const Type* floatTypePtr = type("float");
+			const Type* floatTypePtr = _type("float");
 			if (!floatTypePtr)
 			{
 				throw std::runtime_error("Type 'float' not found");
@@ -881,6 +991,14 @@ namespace Lumina
 		{
 			addLuminaType({
 				.name = "Texture",
+				.cpuSize = 0,
+				.gpuSize = 0,
+				.padding = 0,
+				.innerElements = {}
+				});
+
+			addLuminaType({
+				.name = "void",
 				.cpuSize = 0,
 				.gpuSize = 0,
 				.padding = 0,
@@ -951,7 +1069,7 @@ namespace Lumina
 			_structureTypes.insert(p_type);
 		}
 
-		const Type* type(const std::string& p_typeName) const
+		const Type* _type(const std::string& p_typeName) const
 		{
 			auto it = _types.find(Type{ p_typeName, {}, {} });
 			if (it != _types.end())
@@ -959,6 +1077,17 @@ namespace Lumina
 				return &(*it);
 			}
 			return nullptr;
+		}
+		const Type* type(const Lumina::Token& p_typeToken) const
+		{
+			const Type* result = _type(p_typeToken.content);
+
+			if (result == nullptr)
+			{
+				throw TokenBasedError("Type [" + p_typeToken.content + "] not found", p_typeToken);
+			}
+
+			return (result);
 		}
 
 	public:

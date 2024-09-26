@@ -1,22 +1,4 @@
-namespace test
+void test()
 {
-    AttributeBlock Material
-    {
-        Vector3 diffuseColor[2][4][1][3];
-        float shininess;
-    };
 
-    ConstantBlock Material2
-    {
-        Vector3 diffuseColor[2][4][1][3];
-        float shininess;
-    };
-
-    struct Material3
-    {
-        Vector3 diffuseColor[2][4][1][3];
-        float shininess;
-    };
-
-    Texture texture;
 }

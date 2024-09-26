@@ -20,7 +20,7 @@ namespace Lumina
 		return result;
 	}
 
-	int MetaTokenizer::parseArraySize()
+	int MetaTokenizer::parseArraySizeValue()
 	{
 		auto applyPrimary = [this]() -> int {
 			switch (currentToken().type)
@@ -28,7 +28,7 @@ namespace Lumina
 			case TokenType::OpenParenthesis:
 			{
 				advance();
-				int value = parseArraySize();
+				int value = parseArraySizeValue();
 				expect(TokenType::CloseParenthesis, "Expected a ')' token.");
 				return value;
 			}
@@ -102,17 +102,15 @@ namespace Lumina
 		return leftValue;
 	}
 
-	VariableDescriptor MetaTokenizer::parseVariableDescriptor()
+	std::vector<size_t> MetaTokenizer::parseArraySizes()
 	{
-		VariableDescriptor result;
+		std::vector<size_t> result;
 
-		result.type = parseTypeDescriptor();
-		result.name = expect(TokenType::Identifier, "Expected an identifier name.");
 		while (currentToken().type == TokenType::OpenBracket)
 		{
 			expect(TokenType::OpenBracket, "Expected a '[' token.");
 			size_t startingIndex = _index;
-			int newArraySize = parseArraySize();
+			int newArraySize = parseArraySizeValue();
 
 			if (newArraySize == 0)
 			{
@@ -123,10 +121,21 @@ namespace Lumina
 				throw Lumina::TokenBasedError("Array size been evaluated to [" + std::to_string(newArraySize) + "].", composeToken(startingIndex, _index, TokenType::Number));
 			}
 
-			result.arraySizes.push_back(newArraySize);
+			result.push_back(newArraySize);
 
 			expect(TokenType::CloseBracket, "Expected a ']' token.");
 		}
+
+		return (result);
+	}
+
+	VariableDescriptor MetaTokenizer::parseVariableDescriptor()
+	{
+		VariableDescriptor result;
+
+		result.type = parseTypeDescriptor();
+		result.name = expect(TokenType::Identifier, "Expected an identifier name.");
+		result.arraySizes = parseArraySizes();
 
 		return result;
 	}
@@ -212,21 +221,7 @@ namespace Lumina
 		ReturnTypeDescriptor result;
 
 		result.type = parseTypeDescriptor();
-		if (currentToken().type == TokenType::OpenBracket)
-		{
-			expect(TokenType::OpenBracket, "Expected a '[' token.");
-			result.arraySize = parseArraySize();
-
-			if (result.arraySize == 0)
-			{
-				throw Lumina::TokenBasedError("Array size evaluated to 0", result.type.value);
-			}
-			expect(TokenType::CloseBracket, "Expected a ']' token.");
-		}
-		else
-		{
-			result.arraySize = 0;
-		}
+		result.arraySizes = parseArraySizes();
 
 		return result;
 	}

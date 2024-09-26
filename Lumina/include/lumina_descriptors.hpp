@@ -21,6 +21,6 @@ namespace Lumina
 	struct ReturnTypeDescriptor
 	{
 		TypeDescriptor type;
-		size_t arraySize;
+		std::vector<size_t> arraySizes;
 	};
 }
