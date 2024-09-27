@@ -3,7 +3,7 @@
 namespace Lumina
 {
 
-	std::string Compiler::compileSymbolBody(SymbolBody p_metaToken)
+	std::string Compiler::compileSymbolBody(SymbolBody p_metaToken, std::vector<Variable> p_availableVariables)
 	{
 		std::string result;
 
@@ -15,43 +15,43 @@ namespace Lumina
 				{
 				case Instruction::Type::VariableDeclaration:
 				{
-					result += parseVariableDeclaration(instruction);
+					result += parseVariableDeclaration(dynamic_pointer_cast<VariableDeclaration>(instruction), p_availableVariables);
 					break;
 				}
 
 				case Instruction::Type::VariableAssignation:
 				{
-					result += parseVariableAssignation(instruction);
+					result += parseVariableAssignation(dynamic_pointer_cast<VariableAssignation>(instruction));
 					break;
 				}
 				case Instruction::Type::SymbolCall:
 				{
-					result += parseSymbolCall(instruction);
+					result += parseSymbolCall(dynamic_pointer_cast<SymbolCall>(instruction));
 					break;
 				}
 				case Instruction::Type::IfStatement:
 				{
-					result += parseIfStatement(instruction);
+					result += parseIfStatement(dynamic_pointer_cast<IfStatement>(instruction));
 					break;
 				}
 				case Instruction::Type::WhileStatement:
 				{
-					result += parseWhileStatement(instruction);
+					result += parseWhileStatement(dynamic_pointer_cast<WhileStatement>(instruction));
 					break;
 				}
 				case Instruction::Type::ForStatement:
 				{
-					result += parseForStatement(instruction);
+					result += parseForStatement(dynamic_pointer_cast<ForStatement>(instruction));
 					break;
 				}
 				case Instruction::Type::ReturnStatement:
 				{
-					result += parseReturnStatement(instruction);
+					result += parseReturnStatement(dynamic_pointer_cast<ReturnStatement>(instruction));
 					break;
 				}
 				case Instruction::Type::DiscardStatement:
 				{
-					result += parseDiscardStatement(instruction);
+					result += parseDiscardStatement(dynamic_pointer_cast<DiscardStatement>(instruction));
 					break;
 				}
 				default:
@@ -120,6 +120,8 @@ namespace Lumina
 
 		std::string functionCode = "";
 
+		std::vector<Variable> availableVariables;
+
 		functionCode += newFunction.returnType.type->name + " " + newFunction.name + "(";
 		for (size_t i = 0; i < newFunction.parameters.size(); i++)
 		{
@@ -130,9 +132,10 @@ namespace Lumina
 			{
 				functionCode += "[" + std::to_string(size) + "]";
 			}
+			availableVariables.push_back(newFunction.parameters[i]);
 		}
 		functionCode += "){\n";
-		functionCode += compileSymbolBody(p_metaToken->body);
+		functionCode += compileSymbolBody(p_metaToken->body, availableVariables);
 		functionCode += "};\n";
 
 		_result.value.vertexShaderCode += functionCode;
@@ -145,7 +148,7 @@ namespace Lumina
 		std::string functionCode = "";
 
 		functionCode += "void main(){\n";
-		functionCode += compileSymbolBody(p_metaToken->body);
+		functionCode += compileSymbolBody(p_metaToken->body, (p_metaToken->target == "VertexPass" ? _vertexVariables : _fragmentVariables));
 		functionCode += "};\n";
 
 		if (p_metaToken->target == "VertexPass")

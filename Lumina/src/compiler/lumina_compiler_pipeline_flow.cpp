@@ -14,7 +14,7 @@ namespace Lumina
 
 				_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbVertexLayout) + ") in " + newVariable.type->name + " " + newVariable.name + ";\n\n";
 
-				_vertexVariables.insert(newVariable);
+				_vertexVariables.push_back(newVariable);
 
 				nbVertexLayout++;
 			}
@@ -30,8 +30,8 @@ namespace Lumina
 				_result.value.vertexShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") out " + newVariable.type->name + " " + newVariable.name + ";\n\n";
 				_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbFragmentLayout) + ") in " + newVariable.type->name + " " + newVariable.name + ";\n\n";
 
-				_vertexVariables.insert(newVariable);
-				_fragmentVariables.insert(newVariable);
+				_vertexVariables.push_back(newVariable);
+				_fragmentVariables.push_back(newVariable);
 
 				nbFragmentLayout++;
 			}
@@ -47,7 +47,7 @@ namespace Lumina
 				_result.value.outputLayouts += std::to_string(nbOutputLayout) + " " + newVariable.type->name + "\n\n";
 				_result.value.fragmentShaderCode += "layout(location = " + std::to_string(nbOutputLayout) + ") out " + newVariable.type->name + " " + newVariable.name + ";\n\n";
 
-				_fragmentVariables.insert(newVariable);
+				_fragmentVariables.push_back(newVariable);
 
 				nbOutputLayout++;
 			}

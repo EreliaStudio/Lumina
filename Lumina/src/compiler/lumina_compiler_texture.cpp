@@ -10,7 +10,7 @@ namespace Lumina
 
 		_result.value.textures += newTextureVariable.name + " Texture_" + newTextureVariable.name + " " + std::to_string(nbTexture) + "\n";
 
-		_fragmentVariables.insert(newTextureVariable);
+		_fragmentVariables.push_back(newTextureVariable);
 
 		nbTexture++;
 	}

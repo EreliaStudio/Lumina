@@ -26,8 +26,8 @@ namespace Lumina
 		_result.value.vertexShaderCode += attributeCode;
 		_result.value.fragmentShaderCode += attributeCode;
 
-		_vertexVariables.insert(attributeVariable);
-		_fragmentVariables.insert(attributeVariable);
+		_vertexVariables.push_back(attributeVariable);
+		_fragmentVariables.push_back(attributeVariable);
 	}
 
 	void Compiler::compileConstant(std::shared_ptr<ConstantMetaToken> p_metaToken)
@@ -41,7 +41,7 @@ namespace Lumina
 		_result.value.vertexShaderCode += constantCode;
 		_result.value.fragmentShaderCode += constantCode;
 
-		_vertexVariables.insert(constantVariable);
-		_fragmentVariables.insert(constantVariable);
+		_vertexVariables.push_back(constantVariable);
+		_fragmentVariables.push_back(constantVariable);
 	}
 }

@@ -30,52 +30,52 @@
     <ClCompile Include="src\lumina_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_metatokens.cpp">
+    <ClCompile Include="src\metatoken\lumina_metatokens.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\lumina_descriptors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_metatokenizer_utils.cpp">
+    <ClCompile Include="src\metatoken\lumina_metatokenizer_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_metatokenizer_parsing.cpp">
+    <ClCompile Include="src\metatoken\lumina_metatokenizer_parsing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_metatokenizer.cpp">
+    <ClCompile Include="src\metatoken\lumina_metatokenizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_metatokenizer_symbol_body_parsing.cpp">
+    <ClCompile Include="src\metatoken\lumina_metatokenizer_symbol_body_parsing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_type.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_type.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_utils.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_stringification.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_stringification.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_expression.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_expression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_instruction.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_instruction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_function.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_function.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_block.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_block.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_texture.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lumina_compiler_pipeline_flow.cpp">
+    <ClCompile Include="src\compiler\lumina_compiler_pipeline_flow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

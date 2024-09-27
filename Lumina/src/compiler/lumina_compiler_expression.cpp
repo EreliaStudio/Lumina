@@ -40,8 +40,17 @@ namespace Lumina
 		{
 			if (accessor->type == Instruction::Type::SymbolBody)
 			{
-				auto castedAccessor = std::static_pointer_cast<Expression::VariableDesignationElement::AccessorElement>(accessor);
-				result += "." + castedAccessor->name.content;
+				auto variableAccessor = std::static_pointer_cast<Expression::VariableDesignationElement::VariableAccessorElement>(accessor);
+
+				if (variableAccessor != nullptr)
+				{
+					result += "." + variableAccessor->name.content;
+				}
+				else
+				{
+					auto arrayAccessor = std::static_pointer_cast<Expression::VariableDesignationElement::ArrayAccessorElement>(accessor);
+					result += "[" + parseExpression(arrayAccessor->expression) + "]";
+				}
 			}
 		}
 		return result;
@@ -144,5 +153,43 @@ namespace Lumina
 		}
 
 		return result;
+	}
+
+	Expression::Result evaluateExpressionElementResult(const std::shared_ptr<Expression::Element> p_expression)
+	{
+		Expression::Result result;
+
+		return (result);
+	}
+
+	Expression::Result Compiler::evaluateExpressionResult(const std::shared_ptr<Expression> p_expression)
+	{
+		Expression::Result result;
+
+		for (const auto& element : p_expression->elements)
+		{
+			switch (element->elementType)
+			{
+			case Expression::Element::Type::Boolean:
+			case Expression::Element::Type::Number:
+			case Expression::Element::Type::InnerExpression:
+			case Expression::Element::Type::SymbolCall:
+			case Expression::Element::Type::VariableDesignation:
+			{
+
+				break;
+			}
+			case Expression::Element::Type::Operator:
+			case Expression::Element::Type::ComparaisonOperator:
+			case Expression::Element::Type::ConditionOperator:
+			{
+
+				break;
+			}
+
+			}
+		}
+
+		return (result);
 	}
 }

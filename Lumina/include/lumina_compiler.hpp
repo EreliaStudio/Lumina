@@ -21,9 +21,21 @@ namespace Lumina
 
 		struct Variable
 		{
-			const Type* type;
-			std::string name;
-			std::vector<size_t> arraySizes;
+			const Type* type = nullptr;
+			std::string name = "";
+			std::vector<size_t> arraySizes = {};
+
+			std::string typeString() const
+			{
+				std::string result = type->name;
+
+				for (const auto& size : arraySizes)
+				{
+					result += "[" + std::to_string(size) + "]";
+				}
+
+				return (result);
+			}
 
 			bool isSame(const Variable& p_other) const
 			{
@@ -140,8 +152,8 @@ namespace Lumina
 
 		std::map<std::string, std::vector<Function>> _functions;
 
-		std::set<Variable> _vertexVariables;
-		std::set<Variable> _fragmentVariables;
+		std::vector<Variable> _vertexVariables;
+		std::vector<Variable> _fragmentVariables;
 
 		Variable composeVariable(const VariableDescriptor& p_descriptor);
 
@@ -171,16 +183,20 @@ namespace Lumina
 		std::string parseSymbolCallElement(const std::shared_ptr<Expression::SymbolCallElement>& element);
 		std::string parseExpression(const std::shared_ptr<Expression> p_expression);
 
-		std::string parseVariableDeclaration(const std::shared_ptr<Instruction>& instruction);
-		std::string parseVariableAssignation(const std::shared_ptr<Instruction>& instruction);
-		std::string parseSymbolCall(const std::shared_ptr<Instruction>& instruction);
-		std::string parseIfStatement(const std::shared_ptr<Instruction>& instruction);
-		std::string parseWhileStatement(const std::shared_ptr<Instruction>& instruction);
-		std::string parseForStatement(const std::shared_ptr<Instruction>& instruction);
-		std::string parseReturnStatement(const std::shared_ptr<Instruction>& instruction);
-		std::string parseDiscardStatement(const std::shared_ptr<Instruction>& instruction);
+		bool checkVariableCollision(const std::vector<Variable>& p_availableVariables, const Variable& variableToCheck);
+		Expression::Result evaluateExpressionElementResult(const std::shared_ptr<Expression::Element> p_expression);
+		Expression::Result evaluateExpressionResult(const std::shared_ptr<Expression> p_expression);
 
-		std::string compileSymbolBody(SymbolBody p_metaToken);
+		std::string parseVariableDeclaration(const std::shared_ptr<VariableDeclaration>& instruction, std::vector<Variable>& p_availableVariables);
+		std::string parseVariableAssignation(const std::shared_ptr<VariableAssignation>& instruction);
+		std::string parseSymbolCall(const std::shared_ptr<SymbolCall>& instruction);
+		std::string parseIfStatement(const std::shared_ptr<IfStatement>& instruction);
+		std::string parseWhileStatement(const std::shared_ptr<WhileStatement>& instruction);
+		std::string parseForStatement(const std::shared_ptr<ForStatement>& instruction);
+		std::string parseReturnStatement(const std::shared_ptr<ReturnStatement>& instruction);
+		std::string parseDiscardStatement(const std::shared_ptr<DiscardStatement>& instruction);
+
+		std::string compileSymbolBody(SymbolBody p_metaToken, std::vector<Variable> p_availableVariables);
 
 		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken);
 

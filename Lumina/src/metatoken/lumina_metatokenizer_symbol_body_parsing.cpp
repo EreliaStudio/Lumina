@@ -244,7 +244,7 @@ namespace Lumina
 			if (currentToken().type == TokenType::Accessor)
 			{
 				expect(TokenType::Accessor, "Expected a '.' token.");
-				auto newAccessor = std::make_shared<Expression::VariableDesignationElement::AccessorElement>();
+				auto newAccessor = std::make_shared<Expression::VariableDesignationElement::VariableAccessorElement>();
 
 				newAccessor->name = expect(TokenType::Identifier, "Expected an identifier token.");
 
@@ -253,7 +253,12 @@ namespace Lumina
 			if (currentToken().type == TokenType::OpenBracket)
 			{
 				expect(TokenType::OpenBracket, "Expected '[' before array index.");
-				designation->accessors.push_back(parseExpression());
+				auto newAccessor = std::make_shared<Expression::VariableDesignationElement::ArrayAccessorElement>();
+
+				newAccessor->expression = parseExpression();
+
+				designation->accessors.push_back(newAccessor);
+
 				expect(TokenType::CloseBracket, "Expected ']' after array index.");
 			}
 		}
@@ -537,7 +542,7 @@ namespace Lumina
 		expect(TokenType::OpenParenthesis, "Expected '(' after 'while'.");
 		whileStatement->condition = parseExpression();
 		expect(TokenType::CloseParenthesis, "Expected ')' after condition.");
-		whileStatement->body = parseSymbolBody().instructions;
+		whileStatement->body = parseSymbolBody();
 
 		return whileStatement;
 	}
@@ -563,7 +568,7 @@ namespace Lumina
 		forStatement->increment = parseExpression();
 
 		expect(TokenType::CloseParenthesis, "Expected ')' after for-loop header.");
-		forStatement->body = parseSymbolBody().instructions;
+		forStatement->body = parseSymbolBody();
 
 		return forStatement;
 	}
