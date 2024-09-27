@@ -262,7 +262,7 @@ namespace Lumina
 	{
 		std::shared_ptr<PipelineBodyMetaToken> result = std::make_shared<PipelineBodyMetaToken>();
 
-		result->type = expect(TokenType::PipelineFlow, "Expected a pipeline token.");
+		result->target = expect(TokenType::PipelineFlow, "Expected a pipeline token.");
 		expect(TokenType::OpenParenthesis, "Expected a '(' token.");
 		expect(TokenType::CloseParenthesis, "Expected a ')' token.");
 		result->body = parseSymbolBody();

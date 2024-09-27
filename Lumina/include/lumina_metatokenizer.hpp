@@ -48,8 +48,9 @@ namespace Lumina
 		std::shared_ptr<Expression::VariableDesignationElement> parseVariableDesignation();
 		std::shared_ptr<VariableAssignation> parseVariableAssignation();
 
-		std::shared_ptr<Instruction> parseExpressionOperator();
-		std::shared_ptr<Instruction> parseExpressionElement();
+		std::shared_ptr<Expression::Element> parseExpressionOperator();
+		std::shared_ptr<Expression::Element> parseExpressionElement();
+		std::shared_ptr<Expression::InnerExpression> parseInnerExpression();
 		std::shared_ptr<Expression> parseExpression();
 		std::shared_ptr<SymbolCall> parseSymbolCall();
 		std::shared_ptr<ConditionalOperator> parseConditionalOperator();

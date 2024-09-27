@@ -11,8 +11,12 @@
 ## TEXTURES DEFINITION ##
 
 ## VERTEX SHADER CODE ##
+Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+};
 
 ## FRAGMENT SHADER CODE ##
 layout(location = 0) out vec4 pixelColor;
 
+Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+};
 

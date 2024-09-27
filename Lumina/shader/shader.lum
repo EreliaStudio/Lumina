@@ -1,4 +1,6 @@
-void test()
-{
-
-}
+Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor)
+    {
+        Vector3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+        return spec * lightColor;
+    }

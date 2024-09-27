@@ -77,7 +77,7 @@ namespace Lumina
 
 	struct PipelineBodyMetaToken : public MetaToken
 	{
-		Lumina::Token type;
+		Lumina::Token target;
 		SymbolBody body;
 
 		PipelineBodyMetaToken();

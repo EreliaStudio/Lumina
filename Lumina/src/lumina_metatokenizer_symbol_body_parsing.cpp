@@ -346,7 +346,7 @@ namespace Lumina
 		return (result);
 	}
 
-	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionOperator()
+	std::shared_ptr<Expression::Element> MetaTokenizer::parseExpressionOperator()
 	{
 		while (hasTokenLeft() == true)
 		{
@@ -378,7 +378,7 @@ namespace Lumina
 
 	}
 
-	std::shared_ptr<Instruction> MetaTokenizer::parseExpressionElement()
+	std::shared_ptr<Expression::Element> MetaTokenizer::parseExpressionElement()
 	{
 		while (hasTokenLeft() == true)
 		{
@@ -412,7 +412,7 @@ namespace Lumina
 		case TokenType::OpenParenthesis:
 		{
 			expect(TokenType::OpenParenthesis, "Expected a '(' parenthesis.");
-			std::shared_ptr<Expression> innerExpression = parseExpression();
+			std::shared_ptr<Expression::InnerExpression> innerExpression = parseInnerExpression();
 			expect(TokenType::CloseParenthesis, "Expected a ')' parenthesis.");
 			return (innerExpression);
 		}
@@ -422,6 +422,15 @@ namespace Lumina
 		}
 		}
 		return (nullptr);
+	}
+
+	std::shared_ptr<Expression::InnerExpression> MetaTokenizer::parseInnerExpression()
+	{
+		std::shared_ptr<Expression::InnerExpression> result;
+
+		result->expression = parseExpression();
+
+		return(result);
 	}
 
 	std::shared_ptr<Expression> MetaTokenizer::parseExpression()

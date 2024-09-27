@@ -42,6 +42,7 @@ namespace Lumina
 			enum class Type {
 				Unknown,
 				Number,
+				InnerExpression,
 				Boolean,
 				VariableDesignation,
 				Operator,
@@ -51,10 +52,17 @@ namespace Lumina
 				SymbolCall
 			};
 
-			Type type;
+			Element::Type elementType;
 
-			Element(Type p_type) : type(p_type), Instruction(Instruction::Type::SymbolBody) {}
+			Element(Element::Type p_type) : elementType(p_type), Instruction(Instruction::Type::SymbolBody) {}
 			virtual ~Element() = default;
+		};
+
+		struct InnerExpression : public Element
+		{
+			std::shared_ptr<Expression> expression;
+
+			InnerExpression() : Element(Type::InnerExpression) {}
 		};
 
 		struct NumberElement : public Element {
@@ -116,7 +124,7 @@ namespace Lumina
 			SymbolCallElement() : Element(Type::SymbolCall) {}
 		};
 
-		std::vector<std::shared_ptr<Instruction>> elements;
+		std::vector<std::shared_ptr<Expression::Element>> elements;
 
 		Expression() : Instruction(Type::SymbolBody) {}
 	};

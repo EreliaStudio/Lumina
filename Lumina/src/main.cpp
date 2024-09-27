@@ -27,40 +27,12 @@ namespace Lumina
 	public:
 		using Product = Expected<Shader>;
 	private:
-		struct Type
-		{
-			std::string name = "";
-			std::string glslName = "";
-			size_t cpuSize;
-			size_t gpuSize;
-			size_t padding = 0;
 
-			struct Element
-			{
-				const Type* type;
-				std::string name;
-				size_t cpuOffset;
-				size_t gpuOffset;
-				std::vector<size_t> arraySize;
-			};
+		static inline const std::string ATTRIBUTE_PREFIX = "Attribute_";
+		static inline const std::string CONSTANT_PREFIX = "Constant_";
+		static inline const std::string TEXTURE_PREFIX = "Texture_";
 
-			std::vector<Element> innerElements;
-
-			bool contains(const std::string& p_name)
-			{
-				for (const auto& element : innerElements)
-				{
-					if (element.name == p_name)
-						return (true);
-				}
-				return (false);
-			}
-		
-			bool operator<(const Type& other) const
-			{
-				return name < other.name;
-			}
-		};
+		struct Type;
 
 		struct Variable
 		{
@@ -84,6 +56,39 @@ namespace Lumina
 				return (true);
 			}
 		};
+		struct Type
+		{
+			std::string name = "";
+			std::string glslName = "";
+			size_t cpuSize;
+			size_t gpuSize;
+			size_t padding = 0;
+
+			struct Element
+			{
+				Variable variable;
+				size_t cpuOffset;
+				size_t gpuOffset;
+			};
+
+			std::vector<Element> innerElements;
+
+			bool contains(const std::string& p_name)
+			{
+				for (const auto& element : innerElements)
+				{
+					if (element.variable.name == p_name)
+						return (true);
+				}
+				return (false);
+			}
+		
+			bool operator<(const Type& other) const
+			{
+				return name < other.name;
+			}
+		};
+
 
 		struct Function
 		{
@@ -143,16 +148,12 @@ namespace Lumina
 		std::set<Type> _standardTypes;
 		std::set<Type> _luminaTypes;
 		std::set<Type> _structureTypes;
-		static inline const std::string ATTRIBUTE_PREFIX = "Attribute_";
 		std::set<Type> _attributeTypes;
-		static inline const std::string CONSTANT_PREFIX = "Constant_";
 		std::set<Type> _constantTypes;
 
 		std::map<std::string, std::vector<Function>> _functions;
 
 		std::map<std::string, Variable> _variables;
-
-		static inline const std::string TEXTURE_PREFIX = "Texture_";
 		std::vector<const Variable*> _textures;
 
 
@@ -250,41 +251,41 @@ namespace Lumina
 
 				Type::Element newElement;
 
-				newElement.name = element.name.content;
-				newElement.type = type(element.type.value);
-				if (newElement.type == _type("Texture"))
+				newElement.variable.name = element.name.content;
+				newElement.variable.type = type(element.type.value);
+				if (newElement.variable.type == _type("Texture"))
 				{
 					throw TokenBasedError("Texture can't be placed inside block.", element.name);
 				}
-				newElement.arraySize = element.arraySizes;
+				newElement.variable.arraySizes = element.arraySizes;
 
 				size_t totalSize = 1;
-				for (const auto& size : newElement.arraySize)
+				for (const auto& size : newElement.variable.arraySizes)
 					totalSize *= size;
 
 				size_t padding = 0;
-				if (newElement.type->gpuSize == 12)
+				if (newElement.variable.type->gpuSize == 12)
 					padding = 4;
-				else if (newElement.type->gpuSize >= 16)
-					padding = (16 - (newElement.type->gpuSize % 16)) % 16;
+				else if (newElement.variable.type->gpuSize >= 16)
+					padding = (16 - (newElement.variable.type->gpuSize % 16)) % 16;
 
 				if ((gpuOffset % 16) != 0)
 				{
 					size_t bytesLeft = 16 - (gpuOffset % 16);
-					if (bytesLeft < newElement.type->gpuSize)
+					if (bytesLeft < newElement.variable.type->gpuSize)
 					{
 						gpuOffset += bytesLeft;
 					}
 				}
 
 				newElement.gpuOffset = gpuOffset;
-				gpuOffset += (newElement.type->gpuSize + padding) * totalSize;
+				gpuOffset += (newElement.variable.type->gpuSize + padding) * totalSize;
 
 				newElement.cpuOffset = cpuOffset;
-				cpuOffset += newElement.type->cpuSize * totalSize;
+				cpuOffset += newElement.variable.type->cpuSize * totalSize;
 
 
-				if (newElement.type == nullptr)
+				if (newElement.variable.type == nullptr)
 				{
 					throw TokenBasedError("Type [" + element.type.value.content + "] not found.", p_metaToken->name);
 				}
@@ -330,36 +331,36 @@ namespace Lumina
 
 		void insertElement(std::string& p_stringToFill, const Type::Element& p_elementToInsert, size_t p_nbSpace)
 		{
-			p_stringToFill += std::string(p_nbSpace, ' ') + p_elementToInsert.name + " " + std::to_string(p_elementToInsert.cpuOffset) + " " + std::to_string(p_elementToInsert.type->cpuSize) + " " + std::to_string(p_elementToInsert.gpuOffset) + " " + std::to_string(p_elementToInsert.type->gpuSize);
-			if (p_elementToInsert.type->innerElements.size() == 0)
+			p_stringToFill += std::string(p_nbSpace, ' ') + p_elementToInsert.variable.name + " " + std::to_string(p_elementToInsert.cpuOffset) + " " + std::to_string(p_elementToInsert.variable.type->cpuSize) + " " + std::to_string(p_elementToInsert.gpuOffset) + " " + std::to_string(p_elementToInsert.variable.type->gpuSize);
+			if (p_elementToInsert.variable.type->innerElements.size() == 0)
 			{
 				p_stringToFill += " {}";
 			}
 			else
 			{
 				p_stringToFill += " {\n";
-				for (const auto& innerElement : p_elementToInsert.type->innerElements)
+				for (const auto& innerElement : p_elementToInsert.variable.type->innerElements)
 				{
 					insertElement(p_stringToFill, innerElement, p_nbSpace + 4);
 				}
 				p_stringToFill += std::string(p_nbSpace, ' ') + "}";
 			}
-			if (p_elementToInsert.arraySize.size() != 0)
+			if (p_elementToInsert.variable.arraySizes.size() != 0)
 			{
 				size_t bufferSize = 1;
-				for (const auto& size : p_elementToInsert.arraySize)
+				for (const auto& size : p_elementToInsert.variable.arraySizes)
 					bufferSize *= size;
 				size_t padding = 0;
-				if (p_elementToInsert.type->gpuSize == 12)
+				if (p_elementToInsert.variable.type->gpuSize == 12)
 					padding = 4;
-				else if (p_elementToInsert.type->gpuSize >= 16)
-					padding = (16 - (p_elementToInsert.type->gpuSize % 16)) % 16;
+				else if (p_elementToInsert.variable.type->gpuSize >= 16)
+					padding = (16 - (p_elementToInsert.variable.type->gpuSize % 16)) % 16;
 				p_stringToFill += " ";
-				for (size_t i = 0; i < p_elementToInsert.arraySize.size(); i++)
+				for (size_t i = 0; i < p_elementToInsert.variable.arraySizes.size(); i++)
 				{
 					if (i != 0)
 						p_stringToFill += "x";
-					p_stringToFill += std::to_string(p_elementToInsert.arraySize[i]);
+					p_stringToFill += std::to_string(p_elementToInsert.variable.arraySizes[i]);
 				}
 				p_stringToFill += " " + std::to_string(bufferSize) + " " + std::to_string(padding);
 			}
@@ -432,10 +433,271 @@ namespace Lumina
 			_textures.push_back(&(_variables[namespacePrefix("::") + p_metaToken->name.content]));
 		}
 
-		void compileSymbolBody(std::shared_ptr<SymbolBody> p_metaToken)
+		std::string parseNumberElement(const std::shared_ptr<Expression::NumberElement>& element)
 		{
+			std::string result = "";
 
+			result += element->value.content;
+
+			return result;
 		}
+
+		std::string parseBooleanElement(const std::shared_ptr<Expression::BooleanElement>& element)
+		{
+			std::string result = "";
+
+			result += element->value.content;
+
+			return result;
+		}
+
+		std::string parseVariableDesignationElement(const std::shared_ptr<Expression::VariableDesignationElement>& element)
+		{
+			std::string result = "";
+
+			if (element->signOperator.type != Lumina::Token::Type::Unknow)
+			{
+				result += element->signOperator.content;
+			}
+
+			for (const auto& ns : element->namespaceChain)
+			{
+				result += ns.content + "::";
+			}
+
+			result += element->name.content;
+
+			for (const auto& accessor : element->accessors)
+			{
+				if (accessor->type == Instruction::Type::SymbolBody)
+				{
+					auto castedAccessor = std::static_pointer_cast<Expression::VariableDesignationElement::AccessorElement>(accessor);
+					result += "." + castedAccessor->name.content;
+				}
+			}
+			return result;
+		}
+
+		std::string parseOperatorElement(const std::shared_ptr<Expression::OperatorElement>& element)
+		{
+			std::string result = "";
+			result += element->operatorToken.content;
+			return result;
+		}
+
+		std::string parseComparatorOperatorElement(const std::shared_ptr<Expression::ComparatorOperatorElement>& element)
+		{
+			std::string result = "";
+			result += element->operatorToken.content;
+			return result;
+		}
+
+		std::string parseConditionOperatorElement(const std::shared_ptr<Expression::ConditionOperatorElement>& element)
+		{
+			std::string result = "";
+			result += element->operatorToken.content;
+			return result;
+		}
+
+		std::string parseIncrementorElement(const std::shared_ptr<Expression::IncrementorElement>& element)
+		{
+			std::string result = "";
+			result += element->operatorToken.content;
+			return result;
+		}
+
+		std::string parseSymbolCallElement(const std::shared_ptr<Expression::SymbolCallElement>& element)
+		{
+			std::string result = "";
+
+			for (const auto& ns : element->namespaceChain)
+			{
+				result += ns.content + "::";
+			}
+
+			result += element->functionName.content + "(";
+
+			for (size_t i = 0; i < element->parameters.size(); ++i)
+			{
+				result += parseExpression(element->parameters[i]);
+				if (i != element->parameters.size() - 1)
+				{
+					result += ", ";
+				}
+			}
+
+			result += ")";
+			return result;
+		}
+
+		std::string parseExpression(const std::shared_ptr<Expression> p_expression)
+		{
+			std::string result = "";
+
+			for (const auto& element : p_expression->elements)
+			{
+				try
+				{
+					switch (element->elementType)
+					{
+					case Expression::Element::Type::Number:
+						result += parseNumberElement(std::static_pointer_cast<Expression::NumberElement>(element));
+						break;
+					case Expression::Element::Type::Boolean:
+						result += parseBooleanElement(std::static_pointer_cast<Expression::BooleanElement>(element));
+						break;
+					case Expression::Element::Type::VariableDesignation:
+						result += parseVariableDesignationElement(std::static_pointer_cast<Expression::VariableDesignationElement>(element));
+						break;
+					case Expression::Element::Type::Operator:
+						result += parseOperatorElement(std::static_pointer_cast<Expression::OperatorElement>(element));
+						break;
+					case Expression::Element::Type::ComparaisonOperator:
+						result += parseComparatorOperatorElement(std::static_pointer_cast<Expression::ComparatorOperatorElement>(element));
+						break;
+					case Expression::Element::Type::ConditionOperator:
+						result += parseConditionOperatorElement(std::static_pointer_cast<Expression::ConditionOperatorElement>(element));
+						break;
+					case Expression::Element::Type::Incrementor:
+						result += parseIncrementorElement(std::static_pointer_cast<Expression::IncrementorElement>(element));
+						break;
+					case Expression::Element::Type::SymbolCall:
+						result += parseSymbolCallElement(std::static_pointer_cast<Expression::SymbolCallElement>(element));
+						break;
+					default:
+						throw TokenBasedError("Unknown element type", Token());
+					}
+				}
+				catch (TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			return result;
+		}
+
+
+		std::string parseVariableDeclaration(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseVariableAssignation(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseSymbolCall(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseIfStatement(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseWhileStatement(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseForStatement(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseReturnStatement(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string parseDiscardStatement(const std::shared_ptr<Instruction>& instruction)
+		{
+			std::string result = "";
+
+			return (result);
+		}
+
+		std::string compileSymbolBody(SymbolBody p_metaToken)
+		{
+			std::string result;
+
+			for (const auto& instruction : p_metaToken.instructions)
+			{
+				try
+				{
+					switch (instruction->type)
+					{
+					case Instruction::Type::VariableDeclaration:
+					{
+						result += parseVariableDeclaration(instruction);
+						break;
+					}
+
+					case Instruction::Type::VariableAssignation:
+					{
+						result += parseVariableAssignation(instruction);
+						break;
+					}
+					case Instruction::Type::SymbolCall:
+					{
+						result += parseSymbolCall(instruction);
+						break;
+					}
+					case Instruction::Type::IfStatement:
+					{
+						result += parseIfStatement(instruction);
+						break;
+					}
+					case Instruction::Type::WhileStatement:
+					{
+						result += parseWhileStatement(instruction);
+						break;
+					}
+					case Instruction::Type::ForStatement:
+					{
+						result += parseForStatement(instruction);
+						break;
+					}
+					case Instruction::Type::ReturnStatement:
+					{
+						result += parseReturnStatement(instruction);
+						break;
+					}
+					case Instruction::Type::DiscardStatement:
+					{
+						result += parseDiscardStatement(instruction);
+						break;
+					}
+					default:
+						throw TokenBasedError("Unknown instruction type", Token());
+					}
+				}
+				catch (TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			return (result);
+		}
+
 
 		void compileFunction(std::shared_ptr<FunctionMetaToken> p_metaToken)
 		{
@@ -488,12 +750,48 @@ namespace Lumina
 
 			_functions[newFunction.name].push_back(newFunction);
 
-			//_result.value.vertexShaderCode += newFunction.returnType.type->name
+			std::string functionCode = "";
+
+			functionCode += newFunction.returnType.type->name + " " + newFunction.name + "(";
+			for (size_t i = 0; i < newFunction.parameters.size(); i++)
+			{
+				if (i != 0)
+					functionCode += ", ";
+				functionCode += newFunction.parameters[i].type->name + " " + newFunction.parameters[i].name;
+				for (const auto& size : newFunction.parameters[i].arraySizes)
+				{
+					functionCode += "[" + std::to_string(size) + "]";
+				}
+			}
+			functionCode += "){\n";
+			functionCode += compileSymbolBody(p_metaToken->body);
+			functionCode += "};\n";
+
+			_result.value.vertexShaderCode += functionCode;
+			_result.value.fragmentShaderCode += functionCode;
+
 		}
 
 		void compilePipelineBody(std::shared_ptr<PipelineBodyMetaToken> p_metaToken)
 		{
+			std::string functionCode = "";
 
+			functionCode += "void main(){\n";
+			functionCode += compileSymbolBody(p_metaToken->body);
+			functionCode += "};\n";
+
+			if (p_metaToken->target == "VertexPass")
+			{
+				_result.value.vertexShaderCode += functionCode;
+			}
+			else if (p_metaToken->target == "FragmentPass")
+			{
+				_result.value.fragmentShaderCode += functionCode;
+			}
+			else
+			{
+				throw TokenBasedError("Invalid pipeline pass definition.", p_metaToken->target);
+			}
 		}
 
 		void compileNamespace(std::shared_ptr<NamespaceMetaToken> p_metaToken)
@@ -672,18 +970,22 @@ namespace Lumina
 				.padding = 8,
 				.innerElements = {
 					{
-						.type = floatTypePtr,
-						.name = "x",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
 						.gpuOffset = 0,
-						.arraySize = {}
 					},
 					{
-						.type = floatTypePtr,
-						.name = "y",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					}
 				}
 				});
@@ -695,25 +997,31 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = floatTypePtr,
-						.name = "x",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = floatTypePtr,
-						.name = "y",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = floatTypePtr,
-						.name = "z",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					}
 				}
 				});
@@ -725,32 +1033,40 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = floatTypePtr,
-						.name = "x",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = floatTypePtr,
-						.name = "y",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = floatTypePtr,
-						.name = "z",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					},
 					{
-						.type = floatTypePtr,
-						.name = "w",
+						.variable = {
+							.type = floatTypePtr,
+							.name = "w",
+							.arraySizes = {}
+						},
 						.cpuOffset = 12,
-						.gpuOffset = 12,
-						.arraySize = {}
+						.gpuOffset = 12
 					}
 				}
 				});
@@ -771,18 +1087,22 @@ namespace Lumina
 				.padding = 8,
 				.innerElements = {
 					{
-						.type = intTypePtr,
-						.name = "x",
+						.variable = {
+							.type = intTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = intTypePtr,
-						.name = "y",
+						.variable = {
+							.type = intTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					}
 				}
 				});
@@ -794,25 +1114,31 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = intTypePtr,
-						.name = "x",
+						.variable = {
+							.type = intTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = intTypePtr,
-						.name = "y",
+						.variable = {
+							.type = intTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = intTypePtr,
-						.name = "z",
+						.variable = {
+							.type = intTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					}
 				}
 				});
@@ -824,32 +1150,40 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = intTypePtr,
-						.name = "x",
+						.variable = {
+							.type = intTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = intTypePtr,
-						.name = "y",
+						.variable = {
+							.type = intTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = intTypePtr,
-						.name = "z",
+						.variable = {
+							.type = intTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					},
 					{
-						.type = intTypePtr,
-						.name = "w",
+						.variable = {
+							.type = intTypePtr,
+							.name = "w",
+							.arraySizes = {}
+						},
 						.cpuOffset = 12,
-						.gpuOffset = 12,
-						.arraySize = {}
+						.gpuOffset = 12
 					}
 				}
 				});
@@ -870,18 +1204,22 @@ namespace Lumina
 				.padding = 8,
 				.innerElements = {
 					{
-						.type = uintTypePtr,
-						.name = "x",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = uintTypePtr,
-						.name = "y",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					}
 				}
 				});
@@ -893,25 +1231,31 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = uintTypePtr,
-						.name = "x",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = uintTypePtr,
-						.name = "y",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = uintTypePtr,
-						.name = "z",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					}
 				}
 				});
@@ -923,32 +1267,40 @@ namespace Lumina
 				.padding = 16,
 				.innerElements = {
 					{
-						.type = uintTypePtr,
-						.name = "x",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "x",
+							.arraySizes = {}
+						},
 						.cpuOffset = 0,
-						.gpuOffset = 0,
-						.arraySize = {}
+						.gpuOffset = 0
 					},
 					{
-						.type = uintTypePtr,
-						.name = "y",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "y",
+							.arraySizes = {}
+						},
 						.cpuOffset = 4,
-						.gpuOffset = 4,
-						.arraySize = {}
+						.gpuOffset = 4
 					},
 					{
-						.type = uintTypePtr,
-						.name = "z",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "z",
+							.arraySizes = {}
+						},
 						.cpuOffset = 8,
-						.gpuOffset = 8,
-						.arraySize = {}
+						.gpuOffset = 8
 					},
 					{
-						.type = uintTypePtr,
-						.name = "w",
+						.variable = {
+							.type = uintTypePtr,
+							.name = "w",
+							.arraySizes = {}
+						},
 						.cpuOffset = 12,
-						.gpuOffset = 12,
-						.arraySize = {}
+						.gpuOffset = 12
 					}
 				}
 				});
