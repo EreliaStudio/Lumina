@@ -1,22 +1,104 @@
 ## INPUT LAYOUTS DEFINITION ##
+0 Vector3
+1 Vector3
+2 Vector2
 
 ## OUTPUT LAYOUTS DEFINITION ##
 0 Vector4
 
 
 ## CONSTANTS DEFINITION ##
+lightingConstantsType lightingConstants 28 36 {
+    lightPosition 0 12 0 12 {
+        x 0 4 0 4 {}
+        y 4 4 4 4 {}
+        z 8 4 8 4 {}
+    }
+    lightColor 12 12 16 12 {
+        x 0 4 0 4 {}
+        y 4 4 4 4 {}
+        z 8 4 8 4 {}
+    }
+    ambientIntensity 24 4 32 4 {}
+}
 
 ## ATTRIBUTES DEFINITION ##
+modelAttributesType modelAttributes 128 128 {
+    modelMatrix 0 64 0 64 {}
+    normalMatrix 64 64 64 64 {}
+}
 
 ## TEXTURES DEFINITION ##
+diffuseTexture Texture_diffuseTexture 0
 
 ## VERTEX SHADER CODE ##
-Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+layout(location = 0) in Vector3 vertexPosition;
+
+layout(location = 1) in Vector3 vertexNormal;
+
+layout(location = 2) in Vector2 vertexUV;
+
+layout(location = 0) out Vector3 fragPosition;
+
+layout(location = 1) out Vector3 fragNormal;
+
+layout(location = 2) out Vector2 fragUV;
+
+struct Material {
+    Vector3 diffuseColor;
+    Vector3 specularColor;
+    float shininess;
+};
+
+layout (attribute) uniform modelAttributesType {
+    Matrix4x4 modelMatrix;
+    Matrix4x4 normalMatrix;
+} modelAttributes;
+
+layout (attribute) uniform lightingConstantsType {
+    Vector3 lightPosition;
+    Vector3 lightColor;
+    float ambientIntensity;
+} lightingConstants;
+
+Vector3 Lighting::calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor){
+};
+Vector3 Lighting::calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+};
+void main(){
 };
 
 ## FRAGMENT SHADER CODE ##
 layout(location = 0) out vec4 pixelColor;
 
-Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+layout(location = 0) in Vector3 fragPosition;
+
+layout(location = 1) in Vector3 fragNormal;
+
+layout(location = 2) in Vector2 fragUV;
+
+struct Material {
+    Vector3 diffuseColor;
+    Vector3 specularColor;
+    float shininess;
+};
+
+uniform sampler2D Texture_diffuseTexture;
+layout (attribute) uniform modelAttributesType {
+    Matrix4x4 modelMatrix;
+    Matrix4x4 normalMatrix;
+} modelAttributes;
+
+layout (attribute) uniform lightingConstantsType {
+    Vector3 lightPosition;
+    Vector3 lightColor;
+    float ambientIntensity;
+} lightingConstants;
+
+Vector3 Lighting::calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor){
+};
+Vector3 Lighting::calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
+};
+void main(){
 };
 
