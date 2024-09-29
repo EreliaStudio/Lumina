@@ -147,39 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\compiler\lumina_compiler_block.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_expression.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_function.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_instruction.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_pipeline_flow.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_stringification.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_texture.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_type.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler.cpp" />
-    <ClCompile Include="src\compiler\lumina_compiler_utils.cpp" />
-    <ClCompile Include="src\lumina_descriptors.cpp" />
-    <ClCompile Include="src\metatoken\lumina_metatokenizer.cpp" />
-    <ClCompile Include="src\metatoken\lumina_metatokenizer_parsing.cpp" />
-    <ClCompile Include="src\metatoken\lumina_metatokenizer_symbol_body_parsing.cpp" />
-    <ClCompile Include="src\metatoken\lumina_metatokenizer_utils.cpp" />
-    <ClCompile Include="src\metatoken\lumina_metatokens.cpp" />
-    <ClCompile Include="src\lumina_token.cpp" />
-    <ClCompile Include="src\lumina_tokenizer.cpp" />
-    <ClCompile Include="src\lumina_token_based_exception.cpp" />
-    <ClCompile Include="src\lumina_utils.cpp" />
     <ClCompile Include="src\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="include\lumina_compiler.hpp" />
-    <ClInclude Include="include\lumina_descriptors.hpp" />
-    <ClInclude Include="include\lumina_exception.hpp" />
-    <ClInclude Include="include\lumina_instruction.hpp" />
-    <ClInclude Include="include\lumina_metatokenizer.hpp" />
-    <ClInclude Include="include\lumina_metatokens.hpp" />
-    <ClInclude Include="include\lumina_shader.hpp" />
-    <ClInclude Include="include\lumina_token.hpp" />
-    <ClInclude Include="include\lumina_tokenizer.hpp" />
-    <ClInclude Include="include\lumina_utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="predefined_import\attribute\attributeA.lum" />
