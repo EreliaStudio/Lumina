@@ -1,3 +1,5 @@
+#include "test.lum"
+
 Input -> VertexPass: Vector3 vertexPosition;
 Input -> VertexPass: Vector3 vertexNormal;
 Input -> VertexPass: Vector2 vertexUV;
@@ -81,12 +83,6 @@ VertexPass()
 // Define the fragment shader stage
 FragmentPass()
 {
-    // Error handling example
-    if (lightingConstants.ambientIntensity < 0.0 || lightingConstants.ambientIntensity > 1.0)
-    {
-        raiseException(lightingConstants.ambientIntensity);
-    }
-
     Vector3 normal = normalize(fragNormal);
     Vector3 lightDir = normalize(lightingConstants.lightPosition - fragPosition);
     Vector3 viewDir = normalize(-fragPosition);

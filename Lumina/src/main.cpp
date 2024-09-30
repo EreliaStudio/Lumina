@@ -148,7 +148,6 @@ namespace Lumina
 			ConditionOperator, // Operator || and &&
 			IfStatement, // "if"
 			WhileStatement, // "while"
-			ForStatement, // "for"
 			ElseStatement, // "else"
 			EndOfSentence, // ';'
 			Assignator, // '=', "+=", "-=" etc
@@ -244,7 +243,6 @@ namespace Lumina
 			case Token::Type::ConditionOperator: return "ConditionOperator";
 			case Token::Type::IfStatement: return "IfStatement";
 			case Token::Type::WhileStatement: return "WhileStatement";
-			case Token::Type::ForStatement: return "ForStatement";
 			case Token::Type::ElseStatement: return "ElseStatement";
 			case Token::Type::EndOfSentence: return "EndOfSentence";
 			case Token::Type::Assignator: return "Assignator";
@@ -623,10 +621,6 @@ namespace Lumina
 				{
 					tokenType = Token::Type::WhileStatement;
 				}
-				else if (tokenStr == "for")
-				{
-					tokenType = Token::Type::ForStatement;
-				}
 				else if (tokenStr == "else")
 				{
 					tokenType = Token::Type::ElseStatement;
@@ -831,8 +825,8 @@ namespace Lumina
 {
 	struct TypeInfo
 	{
-		Lumina::Token type;
-		Lumina::Token expression;
+		Lumina::Token value;
+		std::vector<Lumina::Token> arraySizes;
 	};
 
 	struct VariableInfo
@@ -863,7 +857,6 @@ namespace Lumina
 			VariableAssignation,
 			IfStatement,
 			WhileStatement,
-			ForStatement,
 			ReturnStatement,
 			DiscardStatement
 		};
@@ -910,7 +903,8 @@ namespace Lumina
 				Expression,
 				Boolean,
 				SymbolCall,
-				Operator
+				Operator,
+				Increment
 			};
 
 			Type type;
@@ -979,6 +973,17 @@ namespace Lumina
 			}
 		};
 
+		struct IncrementElement : public Expression::Element
+		{
+			Lumina::Token value;
+
+			IncrementElement() :
+				Expression::Element(Type::Increment)
+			{
+
+			}
+		};
+
 		struct OperatorElement : public Expression::Element
 		{
 			Lumina::Token value;
@@ -1020,14 +1025,9 @@ namespace Lumina
 		SymbolBody body;
 	};
 
-	struct ForStatement : public Instruction
-	{
-
-	};
-
 	struct ReturnStatement : public Instruction
 	{
-
+		Expression value;
 	};
 
 	struct DiscardStatement : public Instruction
@@ -1045,6 +1045,8 @@ namespace Lumina
 
 	struct NamespaceInfo
 	{
+		Lumina::Token name;
+
 		std::vector<BlockInfo> structureBlock;
 		std::vector<BlockInfo> attributeBlock;
 		std::vector<BlockInfo> constantBlock;
@@ -1056,6 +1058,7 @@ namespace Lumina
 
 	struct PipelineBody
 	{
+		bool exist = false;
 		SymbolBody body;
 	};
 
@@ -1073,11 +1076,293 @@ namespace Lumina
 	{
 		using Result = Lumina::Expected<ShaderInfo>;
 
-		Result _parse(const std::vector<Token>& p_tokens)
+		Result _result;
+		std::vector<Token> _tokens;
+		size_t _index;
+		Token _errorToken;
+		std::vector<NamespaceInfo*> _currentNamespace;
+
+		VariableInfo parseVariableInfo()
 		{
-			Result result;
+			VariableInfo result;
+
+			if (currentToken().type == Token::Type::NamespaceSeparator)
+			{
+				result.type.value += currentToken();
+			}
+
+			while (tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
+			{
+				result.type.value += expect(Token::Type::Identifier, "Expected a namespace name.");
+				result.type.value += expect(Token::Type::NamespaceSeparator, "Expected a namespace separator.");
+			}
+			result.type.value += expect(Token::Type::Identifier, "Expected a type name.");
+
+			result.name = expect(Token::Type::Identifier, "Expected a variable name.");
+			
+			while (currentToken().type == Token::Type::OpenBracket)
+			{
+				expect(Token::Type::OpenBracket, "Expected a '[' token.");
+				result.type.arraySizes.push_back(expect(Token::Type::Number, "Expected a array size token."));
+				expect(Token::Type::CloseBracket, "Expected a ']' token.");
+			}
 
 			return (result);
+		}
+
+		BlockInfo parseBlockInfo()
+		{
+			BlockInfo result;
+
+			advance();
+			result.name = expect(Lumina::Token::Type::Identifier, "Expected a block name.");
+			expect(Lumina::Token::Type::OpenCurlyBracket, "Expected a '{' token.");
+			while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
+			{
+				result.elements.push_back(parseVariableInfo());
+				expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+			}
+			expect(Lumina::Token::Type::CloseCurlyBracket, "Expected a '}' token.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+
+			return (result);
+		}
+
+		void parseStructureBlock()
+		{
+			_currentNamespace.back()->structureBlock.push_back(parseBlockInfo());
+		}
+
+		void parseAttributeBlock()
+		{
+			_currentNamespace.back()->attributeBlock.push_back(parseBlockInfo());
+		}
+
+		void parseConstantBlock()
+		{
+			_currentNamespace.back()->constantBlock.push_back(parseBlockInfo());
+		}
+
+		Result _parse(const std::vector<Token>& p_tokens)
+		{
+			_result = Result();
+			_tokens = p_tokens;
+			_index = 0;
+			_result.value.anonymNamespace.name = Lumina::Token("", Lumina::Token::Type::Identifier, 0, 0, _tokens[0].context.originFile, _tokens[0].context.inputLine);
+			_currentNamespace.push_back(&(_result.value.anonymNamespace));
+
+			while (hasTokenLeft() == true)
+			{
+				try
+				{
+					switch (currentToken().type)
+					{
+					case Token::Type::Comment:
+					{
+						skipToken();
+						break;
+					}
+					case Token::Type::Include:
+					{
+						parseInclude();
+						break;
+					}
+					case Token::Type::StructureBlock:
+					{
+						parseStructureBlock();
+						break;
+					}
+					case Token::Type::AttributeBlock:
+					{
+						parseAttributeBlock();
+						break;
+					}
+					case Token::Type::ConstantBlock:
+					{
+						parseConstantBlock();
+						break;
+					}
+
+					case Token::Type::Namespace:
+					{
+						parseNamespace();
+						break;
+					}
+					default:
+						throw TokenBasedError("Unexpected token type [" + Lumina::Token::to_string(currentToken().type) + "]", currentToken());
+					}
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+					skipLine();
+				}
+			}
+
+			return (_result);
+		}
+
+		void parseNamespace()
+		{
+			advance();
+
+			NamespaceInfo newNamespace;
+
+			newNamespace.name = expect(Lumina::Token::Type::Identifier, "Expected a namespace name.");
+
+			_result.value.anonymNamespace.innerNamespaces.push_back(newNamespace);
+
+			_currentNamespace.push_back(&(_result.value.anonymNamespace.innerNamespaces.back()));
+		
+			while (hasTokenLeft() == true)
+			{
+				try
+				{
+					switch (currentToken().type)
+					{
+					case Token::Type::Comment:
+					{
+						skipToken();
+						break;
+					}
+					case Token::Type::StructureBlock:
+					{
+						parseStructureBlock();
+						break;
+					}
+					case Token::Type::AttributeBlock:
+					{
+						parseAttributeBlock();
+						break;
+					}
+					case Token::Type::ConstantBlock:
+					{
+						parseConstantBlock();
+						break;
+					}
+					case Token::Type::Namespace:
+					{
+						parseNamespace();
+						break;
+					}
+					default:
+						throw TokenBasedError("Unexpected token type [" + Lumina::Token::to_string(currentToken().type) + "] inside namespace [" + newNamespace.name.content + "]", currentToken());
+					}
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+					skipLine();
+				}
+			}
+
+			_currentNamespace.pop_back();
+		}
+
+		void parseInclude()
+		{
+			const Token& includeToken = currentToken();
+			advance();
+
+			const Token& pathToken = expect(
+				{ Token::Type::IncludeLitteral, Token::Type::StringLitteral },
+				"Expected a file path after #include");
+
+			if (pathToken.content.length() < 2)
+			{
+				throw TokenBasedError("Invalid include path.", pathToken);
+			}
+			std::string rawPath = pathToken.content.substr(1, pathToken.content.size() - 2);
+
+			std::filesystem::path includePath = composeFilePath(rawPath, { includeToken.context.originFile.parent_path() });
+
+			if (!std::filesystem::exists(includePath))
+			{
+				throw TokenBasedError("Included file [" + includePath.string() + "] not found.", pathToken);
+			}
+
+			std::vector<Token> includedTokens = Tokenizer::tokenize(includePath);
+
+			Parser includedParser;
+			Result includedResult = includedParser._parse(includedTokens);
+
+			_result.errors.insert(_result.errors.end(), includedResult.errors.begin(), includedResult.errors.end());
+
+			if ((includedResult.value.vertexPipelineBody.exist == true) ||
+				(includedResult.value.fragmentPipelineBody.exist == true))
+			{
+				throw TokenBasedError("Included file [" + includePath.string() + "] can't contain pipeline body.", pathToken);
+			}
+		}
+
+		bool hasTokenLeft(const size_t& p_offset = 0) const
+		{
+			return ((_index + p_offset) < _tokens.size());
+		}
+
+		void advance()
+		{
+			_index++;
+		}
+
+		const Lumina::Token& currentToken() const
+		{
+			if (hasTokenLeft() == false)
+				return (_errorToken);
+			return (_tokens[_index]);
+		}
+
+		const Lumina::Token& tokenAtOffset(size_t p_offset) const
+		{
+			if (hasTokenLeft(p_offset) == false)
+				return (_errorToken);
+			return (_tokens[_index + p_offset]);
+		}
+
+		const Lumina::Token& expect(const Lumina::Token::Type& p_expectedType, const std::string& p_errorMessage = "Invalid token type")
+		{
+			if (hasTokenLeft() == false)
+				throw TokenBasedError("Unexpected end of file.", _errorToken);
+			if (currentToken().type != p_expectedType)
+				throw TokenBasedError(p_errorMessage, currentToken());
+			const Lumina::Token& result = currentToken();
+			advance();
+			return (result);
+		}
+
+		const Lumina::Token& expect(const std::vector<Lumina::Token::Type>& p_expectedTypes, const std::string& p_errorMessage = "Invalid token type")
+		{
+			if (hasTokenLeft() == false)
+				throw TokenBasedError("Unexpected end of file.", _errorToken);
+
+			bool found = false;
+
+			for (const auto& type : p_expectedTypes)
+			{
+				if (currentToken().type == type)
+					found = true;
+			}
+
+			if (found == false)
+				throw TokenBasedError(p_errorMessage, currentToken());
+			const Lumina::Token& result = currentToken();
+			advance();
+			return (result);
+		}
+
+		void skipToken()
+		{
+			advance();
+		}
+
+		void skipLine()
+		{
+			size_t currentLine = currentToken().context.line;
+
+			while (currentToken().context.line == currentLine)
+			{
+				advance();
+			}
 		}
 
 		static Result parse(const std::vector<Token>& p_tokens)
