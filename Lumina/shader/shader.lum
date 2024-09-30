@@ -36,6 +36,8 @@ ConstantBlock lightingConstants
 // Create namespaces
 namespace Lighting
 {
+    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor);
+    
     Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor)
     {
         float diff = max(dot(normal, lightDir), 0.0);

@@ -825,14 +825,19 @@ namespace Lumina
 {
 	struct TypeInfo
 	{
-		Lumina::Token value;
-		std::vector<Lumina::Token> arraySizes;
+		std::vector<Lumina::Token> tokens;
+	};
+
+	struct ArrayInfo
+	{
+		std::vector<Lumina::Token> tokens;
 	};
 
 	struct VariableInfo
 	{
 		TypeInfo type;
 		Lumina::Token name;
+		ArrayInfo arraySizes;
 	};
 
 	struct PipelineFlowInfo
@@ -855,6 +860,7 @@ namespace Lumina
 		{
 			VariableDeclaration,
 			VariableAssignation,
+			SymbolCall,
 			IfStatement,
 			WhileStatement,
 			ReturnStatement,
@@ -872,6 +878,7 @@ namespace Lumina
 
 	struct SymbolBody
 	{
+		bool prototype = true;
 		std::vector<std::shared_ptr<Instruction>> instructions;
 	};
 
@@ -880,9 +887,11 @@ namespace Lumina
 		std::vector<Lumina::Token> tokens;
 	};
 
+	struct Expression;
+
 	struct Accessor
 	{
-		std::vector<Lumina::Token> tokens;
+		std::vector<std::shared_ptr<Expression>> expressions;
 	};
 
 	struct VariableDesignation
@@ -904,7 +913,8 @@ namespace Lumina
 				Boolean,
 				SymbolCall,
 				Operator,
-				Increment
+				Increment,
+				ArrayDereferencement
 			};
 
 			Type type;
@@ -942,7 +952,7 @@ namespace Lumina
 
 		struct ExpressionElement : public Expression::Element
 		{
-			std::vector<Expression::Element*> value;
+			std::shared_ptr<Expression> value;
 
 			ExpressionElement() :
 				Expression::Element(Type::Expression)
@@ -964,7 +974,9 @@ namespace Lumina
 
 		struct SymbolCallElement : public Expression::Element
 		{
-			Lumina::Token value;
+			NamespaceDesignation nspace;
+			Lumina::Token name;
+			std::vector<std::shared_ptr<Expression>> parameters;
 
 			SymbolCallElement() :
 				Expression::Element(Type::SymbolCall)
@@ -994,53 +1006,122 @@ namespace Lumina
 
 			}
 		};
+
+		struct ArrayDereferencementElement : public Expression::Element
+		{
+			std::vector<Expression::Element*> value;
+
+			ArrayDereferencementElement() :
+				Expression::Element(Type::ArrayDereferencement)
+			{
+
+			}
+		};
 	};
 
 	struct VariableDeclaration : public Instruction
 	{
 		VariableInfo value;
-		std::optional<Expression> initializer;
+		std::shared_ptr<Expression> initializer;
+
+		VariableDeclaration() :
+			Instruction(Instruction::Type::VariableDeclaration)
+		{
+
+		}
 	};
 
 	struct VariableAssignation : public Instruction
 	{
 		VariableDesignation variable;
-		Expression value;
+		std::shared_ptr<Expression> value;
+
+		VariableAssignation() :
+			Instruction(Instruction::Type::VariableAssignation)
+		{
+
+		}
 	};
 
-	struct ConditionnalBranch : public Instruction
+	struct SymbolCall : public Instruction
 	{
-		Expression expression;
+		NamespaceDesignation nspace;
+		Lumina::Token name;
+		std::vector<std::shared_ptr<Expression>> parameters;
+
+		SymbolCall() :
+			Instruction(Instruction::Type::SymbolCall)
+		{
+
+		}
+	};
+
+	struct ConditionnalBranch
+	{
+		std::shared_ptr<Expression> expression;
 		SymbolBody body;
 	};
 
 	struct IfStatement : public Instruction
 	{
-		std::vector<ConditionnalBranch> conditonnalBranch;
+		std::vector<ConditionnalBranch> conditonnalBranchs;
+
+		IfStatement() :
+			Instruction(Instruction::Type::IfStatement)
+		{
+
+		}
 	};
 
 	struct WhileStatement : public Instruction
 	{
-		Expression expression;
+		std::shared_ptr<Expression> expression;
 		SymbolBody body;
+
+		WhileStatement() :
+			Instruction(Instruction::Type::WhileStatement)
+		{
+
+		}
 	};
 
 	struct ReturnStatement : public Instruction
 	{
-		Expression value;
+		std::shared_ptr<Expression> value;
+
+		ReturnStatement() :
+			Instruction(Instruction::Type::ReturnStatement)
+		{
+
+		}
 	};
 
 	struct DiscardStatement : public Instruction
 	{
+		DiscardStatement() :
+			Instruction(Instruction::Type::DiscardStatement)
+		{
 
+		}
 	};
 
 	struct FunctionInfo
 	{
-		TypeInfo returnType;
+		struct ReturnType
+		{
+			TypeInfo type;
+			ArrayInfo arraySizes;
+		};
+
+		ReturnType returnType;
 		Lumina::Token name;
 		std::vector<VariableInfo> parameters;
 		SymbolBody body;
+	};
+
+	struct TextureInfo
+	{
+		Lumina::Token name;
 	};
 
 	struct NamespaceInfo
@@ -1051,14 +1132,15 @@ namespace Lumina
 		std::vector<BlockInfo> attributeBlock;
 		std::vector<BlockInfo> constantBlock;
 
+		std::vector<TextureInfo> textures;
+
 		std::vector<FunctionInfo> functions;
 
 		std::vector<NamespaceInfo> innerNamespaces;
 	};
 
-	struct PipelineBody
+	struct PipelineBodyInfo
 	{
-		bool exist = false;
 		SymbolBody body;
 	};
 
@@ -1068,8 +1150,8 @@ namespace Lumina
 
 		NamespaceInfo anonymNamespace;
 
-		PipelineBody vertexPipelineBody;
-		PipelineBody fragmentPipelineBody;
+		PipelineBodyInfo vertexPipelineBody;
+		PipelineBodyInfo fragmentPipelineBody;
 	};
 
 	struct Parser
@@ -1082,30 +1164,48 @@ namespace Lumina
 		Token _errorToken;
 		std::vector<NamespaceInfo*> _currentNamespace;
 
-		VariableInfo parseVariableInfo()
+		TypeInfo parseTypeInfo()
 		{
-			VariableInfo result;
+			TypeInfo result;
 
 			if (currentToken().type == Token::Type::NamespaceSeparator)
 			{
-				result.type.value += currentToken();
+				result.tokens.push_back(currentToken());
 			}
 
 			while (tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
 			{
-				result.type.value += expect(Token::Type::Identifier, "Expected a namespace name.");
-				result.type.value += expect(Token::Type::NamespaceSeparator, "Expected a namespace separator.");
+				result.tokens.push_back(expect(Token::Type::Identifier, "Expected a namespace name."));
+				result.tokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator."));
 			}
-			result.type.value += expect(Token::Type::Identifier, "Expected a type name.");
+			result.tokens.push_back(expect(Token::Type::Identifier, "Expected a type name."));
 
-			result.name = expect(Token::Type::Identifier, "Expected a variable name.");
-			
+			return (result);
+		}
+
+		ArrayInfo parseArrayInfo()
+		{
+			ArrayInfo result;
+
 			while (currentToken().type == Token::Type::OpenBracket)
 			{
 				expect(Token::Type::OpenBracket, "Expected a '[' token.");
-				result.type.arraySizes.push_back(expect(Token::Type::Number, "Expected a array size token."));
+				result.tokens.push_back(expect(Token::Type::Number, "Expected a array size token."));
 				expect(Token::Type::CloseBracket, "Expected a ']' token.");
 			}
+
+			return (result);
+		}
+
+		VariableInfo parseVariableInfo()
+		{
+			VariableInfo result;
+
+			result.type = parseTypeInfo();
+
+			result.name = expect(Token::Type::Identifier, "Expected a variable name.");
+			
+			result.arraySizes = parseArrayInfo();
 
 			return (result);
 		}
@@ -1128,19 +1228,293 @@ namespace Lumina
 			return (result);
 		}
 
-		void parseStructureBlock()
+		bool describeVariableDeclaration()
 		{
-			_currentNamespace.back()->structureBlock.push_back(parseBlockInfo());
+			size_t offset = 0;
+
+			//handle '::' before anything
+			if (tokenAtOffset(offset).type == Lumina::Token::Type::NamespaceSeparator)
+				offset++;
+
+			//Handle namespace prefix
+			while (tokenAtOffset(offset).type == Token::Type::Identifier && tokenAtOffset(offset + 1).type == Token::Type::NamespaceSeparator)
+			{
+				offset += 2;
+			}
+
+			return (tokenAtOffset(offset).type == Token::Type::Identifier && tokenAtOffset(offset + 1).type == Token::Type::Identifier);
 		}
 
-		void parseAttributeBlock()
+		bool describeVariableAssignation()
 		{
-			_currentNamespace.back()->attributeBlock.push_back(parseBlockInfo());
+			size_t offset = 0;
+
+			//handle '::' before anything
+			if (tokenAtOffset(offset).type == Lumina::Token::Type::NamespaceSeparator)
+				offset++;
+
+			//Handle namespace prefix
+			while (tokenAtOffset(offset).type == Token::Type::Identifier && tokenAtOffset(offset + 1).type == Token::Type::NamespaceSeparator)
+			{
+				offset += 2;
+			}
+
+			//If thats not the variable name -> error
+			if (tokenAtOffset(offset).type != Token::Type::Identifier)
+				return (false);
+
+			//Skip the name
+			offset++;
+
+			//Skip the possible accessor
+			while (tokenAtOffset(offset).type == Token::Type::Accessor && tokenAtOffset(offset + 1).type == Token::Type::NamespaceSeparator)
+			{
+				offset += 2;
+			}
+
+			//Check what is after the variable designation
+			return (tokenAtOffset(offset).type == Token::Type::Assignator);
 		}
 
-		void parseConstantBlock()
+		std::shared_ptr<Expression> parseExpression()
 		{
-			_currentNamespace.back()->constantBlock.push_back(parseBlockInfo());
+			std::shared_ptr<Expression> result = std::make_shared<Expression>();
+
+			return (result);
+		}
+
+		std::shared_ptr<VariableDeclaration> parseVariableDeclaration()
+		{
+			std::shared_ptr<VariableDeclaration> result = std::make_shared<VariableDeclaration>();
+
+			result->value = parseVariableInfo();
+			if (currentToken().type != Lumina::Token::Type::EndOfSentence)
+			{
+				expect(Lumina::Token::Type::Assignator, "Expect a '=' token.");
+				result->initializer = parseExpression();
+			}
+			expect(Lumina::Token::Type::EndOfSentence, "Expect a ';' token.");
+
+			return (result);
+		}
+
+		NamespaceDesignation parseNamespaceDesignation()
+		{
+			NamespaceDesignation result;
+
+			if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
+				result.tokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator."));
+
+			while (currentToken().type == Token::Type::Identifier && tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
+			{
+				result.tokens.push_back(expect(Lumina::Token::Type::Identifier, "Expected a namespace name."));
+				result.tokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator."));
+			}
+
+			return (result);
+		}
+
+		Accessor parseAccessor()
+		{
+			Accessor result;
+
+			while (currentToken().type == Token::Type::OpenBracket)
+			{
+				expect(Token::Type::OpenBracket, "Expected a '[' token.");
+				result.expressions.push_back(parseExpression());
+				expect(Token::Type::CloseBracket, "Expected a ']' token.");
+			}
+
+			return (result);
+		}
+
+		bool describeSymbolCall()
+		{
+
+			size_t offset = 0;
+
+			//handle '::' before anything
+			if (tokenAtOffset(offset).type == Lumina::Token::Type::NamespaceSeparator)
+				offset++;
+
+			//Handle namespace prefix
+			while (tokenAtOffset(offset).type == Token::Type::Identifier && tokenAtOffset(offset + 1).type == Token::Type::NamespaceSeparator)
+			{
+				offset += 2;
+			}
+
+			//If thats not the variable name -> error
+			if (tokenAtOffset(offset).type != Token::Type::Identifier)
+				return (false);
+
+			//Skip the name
+			offset++;
+
+			return (tokenAtOffset(offset).type == Token::Type::OpenParenthesis);
+		}
+
+		std::shared_ptr<SymbolCall> parseSymbolCall()
+		{
+			std::shared_ptr<SymbolCall> result = std::make_shared<SymbolCall>();
+
+			result->nspace = parseNamespaceDesignation();
+			result->name = expect(Token::Type::Identifier, "Expected a symbol name.");
+			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+			while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
+			{
+				if (result->parameters.size() != 0)
+					expect(Lumina::Token::Type::Comma, "Expected a ',' token.");
+				result->parameters.push_back(parseExpression());
+			}
+			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+
+			return (result);
+		}
+
+		std::shared_ptr<ReturnStatement> parseReturn()
+		{
+			std::shared_ptr<ReturnStatement> result = std::make_shared<ReturnStatement>();
+
+			expect(Lumina::Token::Type::Return, "Expected a 'return' token.");
+			result->value = parseExpression();
+			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+
+			return (result);
+		}
+
+		std::shared_ptr<DiscardStatement> parseDiscard()
+		{
+			std::shared_ptr<DiscardStatement> result = std::make_shared<DiscardStatement>();
+
+			expect(Lumina::Token::Type::Discard, "Expected a 'discard' token.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+
+			return (result);
+		}
+
+		std::shared_ptr<IfStatement> parseIfStatement()
+		{
+			std::shared_ptr<IfStatement> result = std::make_shared<IfStatement>();
+
+			ConditionnalBranch ifBranch;
+
+			expect(Lumina::Token::Type::IfStatement, "Expected a 'if' token.");
+			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+			ifBranch.expression = parseExpression();
+			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+			ifBranch.body = parseSymbolBody();
+
+			result->conditonnalBranchs.push_back(ifBranch);
+
+			while (currentToken().type == Lumina::Token::Type::ElseStatement && nextToken().type == Lumina::Token::Type::IfStatement)
+			{
+				ConditionnalBranch newBranch;
+
+				expect(Lumina::Token::Type::ElseStatement, "Expected a 'else' token.");
+				expect(Lumina::Token::Type::IfStatement, "Expected a 'if' token.");
+				expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+				newBranch.expression = parseExpression();
+				expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+				newBranch.body = parseSymbolBody();
+
+				result->conditonnalBranchs.push_back(newBranch);
+			}
+
+			if (currentToken().type == Lumina::Token::Type::ElseStatement)
+			{
+				ConditionnalBranch newBranch;
+
+				expect(Lumina::Token::Type::ElseStatement, "Expected a 'else' token.");
+				newBranch.body = parseSymbolBody();
+
+				result->conditonnalBranchs.push_back(newBranch);
+			}
+				
+			return (result);
+		}
+
+		std::shared_ptr<WhileStatement> parseWhileStatement()
+		{
+			std::shared_ptr<WhileStatement> result = std::make_shared<WhileStatement>();
+
+			expect(Lumina::Token::Type::WhileStatement, "Expected a 'while' token.");
+			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+			result->expression = parseExpression();
+			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+			result->body = parseSymbolBody();
+
+			return (result);
+		}
+
+		SymbolBody parseSymbolBody()
+		{
+			SymbolBody result;
+
+			result.prototype = false;
+
+			expect(Lumina::Token::Type::OpenCurlyBracket, "Expected a '{' token.");
+
+			while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
+			{
+				try
+				{
+					switch (currentToken().type)
+					{
+					case Lumina::Token::Type::Identifier:
+					{
+						if (describeVariableDeclaration() == true)
+						{
+							result.instructions.push_back(parseVariableDeclaration());
+							break;
+						}
+						else if (describeVariableAssignation() == true)
+						{
+							result.instructions.push_back(parseVariableAssignation());
+							break;
+						}
+						else if (describeSymbolCall() == true)
+						{
+							result.instructions.push_back(parseSymbolCall());
+							break;
+						}
+						else
+						{
+							throw TokenBasedError("Impossible to define the instruction type.", currentToken());
+						}
+					}
+					case Lumina::Token::Type::Return:
+					{
+						result.instructions.push_back(parseReturn());
+						break;
+					}
+					case Lumina::Token::Type::Discard:
+					{
+						result.instructions.push_back(parseDiscard());
+						break;
+					}
+					case Lumina::Token::Type::IfStatement:
+					{
+						result.instructions.push_back(parseIfStatement());
+						break;
+					}
+					case Lumina::Token::Type::WhileStatement:
+					{
+						result.instructions.push_back(parseWhileStatement());
+						break;
+					}
+					default:
+						throw TokenBasedError("Unexpected token type [" + Lumina::Token::to_string(currentToken().type) + "]", currentToken());
+					}
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+					skipLine();
+				}
+			}
+
+			expect(Lumina::Token::Type::CloseCurlyBracket, "Expected a '}' token.");
+			return (result);
 		}
 
 		Result _parse(const std::vector<Token>& p_tokens)
@@ -1167,6 +1541,24 @@ namespace Lumina
 						parseInclude();
 						break;
 					}
+					case Token::Type::PipelineFlow:
+					{
+						if (tokenAtOffset(1).type == Token::Type::PipelineFlowSeparator)
+						{
+							parsePipelineFlow();
+							break;
+						}
+						else
+						{
+							parsePipelineBody();
+							break;
+						}
+					}
+					case Token::Type::Identifier:
+					{
+						parseFunction();
+						break;
+					}
 					case Token::Type::StructureBlock:
 					{
 						parseStructureBlock();
@@ -1182,7 +1574,11 @@ namespace Lumina
 						parseConstantBlock();
 						break;
 					}
-
+					case Token::Type::Texture:
+					{
+						parseTexture();
+						break;
+					}
 					case Token::Type::Namespace:
 					{
 						parseNamespace();
@@ -1202,6 +1598,114 @@ namespace Lumina
 			return (_result);
 		}
 
+		VariableDesignation parseVariableDesignation()
+		{
+			VariableDesignation result;
+
+			result.nspace = parseNamespaceDesignation();
+			result.name = expect(Token::Type::Identifier, "Expected a variable name.");
+			result.accessor = parseAccessor();
+
+			return (result);
+		}
+
+		std::shared_ptr<VariableAssignation> parseVariableAssignation()
+		{
+			std::shared_ptr<VariableAssignation> result = std::make_shared<VariableAssignation>();
+
+			result->variable = parseVariableDesignation();
+			expect(Lumina::Token::Type::Assignator, "Expect a '=' token.");
+			result->value = parseExpression();
+			expect(Lumina::Token::Type::EndOfSentence, "Expect a ';' token.");
+
+			return (result);
+		}
+
+		void parsePipelineBody()
+		{
+			PipelineBodyInfo result;
+
+			expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token.");
+			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+
+			result.body = parseSymbolBody();
+		}
+
+		void parseFunction()
+		{
+			FunctionInfo newFunction;
+
+			FunctionInfo::ReturnType returnType;
+
+			returnType.type = parseTypeInfo();
+			returnType.arraySizes = parseArrayInfo();
+
+			newFunction.returnType = returnType;
+			newFunction.name = expect(Lumina::Token::Type::Identifier, "Expected a function name.");
+			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token.");
+			while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
+			{
+				if (newFunction.parameters.size() != 0)
+					expect(Lumina::Token::Type::Comma, "Expected a ',' token.");
+				newFunction.parameters.push_back(parseVariableInfo());
+			}
+			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token.");
+
+			if (currentToken().type == Lumina::Token::Type::EndOfSentence)
+			{
+				expect(Lumina::Token::Type::EndOfSentence, "Expect a ';' token.");
+			}
+			else
+			{
+				newFunction.body = parseSymbolBody();
+			}
+
+			_currentNamespace.back()->functions.push_back(newFunction);
+		}
+
+		void parseTexture()
+		{
+			TextureInfo newTexture;
+
+			expect(Lumina::Token::Type::Texture, "Expected a texture keyword.");
+			newTexture.name = expect(Lumina::Token::Type::Identifier, "Expected a texture name.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+
+			_currentNamespace.back()->textures.push_back(newTexture);
+		}
+
+		void parsePipelineFlow()
+		{
+			PipelineFlowInfo newPipelineFlow;
+
+			newPipelineFlow.input = expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token.");
+			expect(Lumina::Token::Type::PipelineFlowSeparator, "Expected a '->' token.");
+			newPipelineFlow.output = expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token.");
+			expect(Lumina::Token::Type::Separator, "Expected a ':' token.");
+			newPipelineFlow.variable = parseVariableInfo();
+			if (newPipelineFlow.variable.arraySizes.tokens.size() != 0)
+			{
+				throw TokenBasedError("Pipeline flow variable cannot be array variable.", newPipelineFlow.variable.name);
+			}
+			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token.");
+		}
+
+		void parseStructureBlock()
+		{
+			_currentNamespace.back()->structureBlock.push_back(parseBlockInfo());
+		}
+
+		void parseAttributeBlock()
+		{
+			_currentNamespace.back()->attributeBlock.push_back(parseBlockInfo());
+		}
+
+		void parseConstantBlock()
+		{
+			_currentNamespace.back()->constantBlock.push_back(parseBlockInfo());
+		}
+
 		void parseNamespace()
 		{
 			advance();
@@ -1213,8 +1717,10 @@ namespace Lumina
 			_result.value.anonymNamespace.innerNamespaces.push_back(newNamespace);
 
 			_currentNamespace.push_back(&(_result.value.anonymNamespace.innerNamespaces.back()));
+
+			expect(Lumina::Token::Type::OpenCurlyBracket, "Expected a '{' token.");
 		
-			while (hasTokenLeft() == true)
+			while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
 			{
 				try
 				{
@@ -1223,6 +1729,11 @@ namespace Lumina
 					case Token::Type::Comment:
 					{
 						skipToken();
+						break;
+					}
+					case Token::Type::Identifier:
+					{
+						parseFunction();
 						break;
 					}
 					case Token::Type::StructureBlock:
@@ -1240,6 +1751,11 @@ namespace Lumina
 						parseConstantBlock();
 						break;
 					}
+					case Token::Type::Texture:
+					{
+						parseTexture();
+						break;
+					}
 					case Token::Type::Namespace:
 					{
 						parseNamespace();
@@ -1255,6 +1771,7 @@ namespace Lumina
 					skipLine();
 				}
 			}
+			expect(Lumina::Token::Type::CloseCurlyBracket, "Expected a '}' token.");
 
 			_currentNamespace.pop_back();
 		}
@@ -1288,8 +1805,8 @@ namespace Lumina
 
 			_result.errors.insert(_result.errors.end(), includedResult.errors.begin(), includedResult.errors.end());
 
-			if ((includedResult.value.vertexPipelineBody.exist == true) ||
-				(includedResult.value.fragmentPipelineBody.exist == true))
+			if ((includedResult.value.vertexPipelineBody.body.prototype == false) ||
+				(includedResult.value.fragmentPipelineBody.body.prototype == false))
 			{
 				throw TokenBasedError("Included file [" + includePath.string() + "] can't contain pipeline body.", pathToken);
 			}
@@ -1310,6 +1827,11 @@ namespace Lumina
 			if (hasTokenLeft() == false)
 				return (_errorToken);
 			return (_tokens[_index]);
+		}
+
+		const Lumina::Token& nextToken() const
+		{
+			return (tokenAtOffset(1));
 		}
 
 		const Lumina::Token& tokenAtOffset(size_t p_offset) const
