@@ -1666,6 +1666,7 @@ namespace Lumina
 				{
 					switch (currentToken().type)
 					{
+					case Token::Type::EndOfSentence:
 					case Token::Type::Comment:
 					{
 						skipToken();
@@ -1865,6 +1866,7 @@ namespace Lumina
 				{
 					switch (currentToken().type)
 					{
+					case Token::Type::EndOfSentence:
 					case Token::Type::Comment:
 					{
 						skipToken();
