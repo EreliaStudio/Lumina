@@ -365,6 +365,12 @@ namespace Lumina
 		TValueType value;
 		std::vector<TokenBasedError> errors;
 	};
+
+	template <>
+	struct Expected<void>
+	{
+		std::vector<TokenBasedError> errors;
+	};
 }
 
 namespace Lumina
@@ -1824,10 +1830,6 @@ namespace Lumina
 			newPipelineFlow.output = expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token." + DEBUG_INFORMATION);
 			expect(Lumina::Token::Type::Separator, "Expected a ':' token." + DEBUG_INFORMATION);
 			newPipelineFlow.variable = parseVariableInfo();
-			if (newPipelineFlow.variable.arraySizes.tokens.size() != 0)
-			{
-				throw TokenBasedError("Pipeline flow variable cannot be array variable." + DEBUG_INFORMATION, newPipelineFlow.variable.name.value);
-			}
 			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token." + DEBUG_INFORMATION);
 		}
 
@@ -2035,6 +2037,632 @@ namespace Lumina
 	};
 }
 
+#include <set>
+#include <map>
+
+namespace Lumina
+{
+	struct Type;
+
+	struct Variable
+	{
+		const Type* type;
+		std::string name;
+		std::vector<size_t> arraySizes;
+
+		bool operator<(const Variable& p_other) const
+		{
+			return name < p_other.name;
+		}
+	};
+
+	struct Type
+	{
+		std::string name;
+		std::set<Variable> attributes;
+
+		bool operator<(const Type& p_other) const
+		{
+			return name < p_other.name;
+		}
+	};
+}
+
+namespace Lumina
+{
+	struct SemanticChecker
+	{
+	public:
+		using Result = Expected<void>;
+
+	private:
+		Result _result;
+		std::vector<std::string> _currentNamespaces;
+
+		std::set<Type> _standardTypes;
+		std::set<Type> _types;
+		std::set<Type> _attributeTypes;
+		std::set<Type> _constantTypes;
+
+		std::set<Variable> _vertexVariables;
+		std::set<Variable> _fragmentVariables;
+
+		const Type* lookupTypeInNamespace(const std::string& typeName)
+		{
+			auto it = _types.find(Type{ typeName });
+			if (it != _types.end())
+			{
+				return &(*it);
+			}
+			return nullptr;
+		}
+
+		const Type* getType(const Lumina::Token& p_nameToken)
+		{
+			const Type* type = lookupTypeInNamespace(p_nameToken.content);
+			if (type != nullptr)
+			{
+				return type;
+			}
+
+			for (size_t i = 0; i < _currentNamespaces.size(); ++i)
+			{
+				std::string qualifiedName;
+				for (size_t j = 0; j <= i; ++j)
+				{
+					if (!qualifiedName.empty())
+					{
+						qualifiedName += "::";
+					}
+					qualifiedName += _currentNamespaces[j];
+				}
+				qualifiedName += "::" + p_nameToken.content;
+
+				type = lookupTypeInNamespace(qualifiedName);
+				if (type != nullptr)
+				{
+					return type;
+				}
+			}
+
+			throw TokenBasedError("Type '" + p_nameToken.content + "' not found in the current scope.", p_nameToken);
+		}
+
+		const Type* getType(const std::vector<Lumina::Token>& p_nameTokens)
+		{
+			Lumina::Token mergedToken = Lumina::Token::merge(p_nameTokens, Lumina::Token::Type::Identifier);
+
+			return getType(mergedToken);
+		}
+
+		void parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow)
+		{
+			if (p_pipelineFlow.variable.arraySizes.tokens.size() != 0)
+			{
+				throw TokenBasedError("Pipeline flow variable cannot be array variable." + DEBUG_INFORMATION, p_pipelineFlow.variable.name.value);
+			}
+		}
+
+		Variable parseVariable(const VariableInfo& p_variableInfo)
+		{
+			Variable result;
+
+			result.name = p_variableInfo.name.value.content;
+			result.type = getType(p_variableInfo.type.tokens);
+			for (const auto& token : p_variableInfo.arraySizes.tokens)
+			{
+				int arraySize = std::stoi(token.content);
+
+				if (arraySize <= 0)
+				{
+					throw TokenBasedError("Array size must be greater than 0. Invalid size found.", token);
+				}
+
+				result.arraySizes.push_back(static_cast<size_t>(arraySize));
+			}
+
+			return (result);
+		}
+
+		Type parseBlockInfo(const BlockInfo& p_block)
+		{
+			Type result;
+
+			result.name = p_block.name.value.content;
+
+			for (const auto& element : p_block.elements)
+			{
+				Variable newAttribute = parseVariable(element);
+
+				if (result.attributes.contains(newAttribute) == true)
+				{
+					throw TokenBasedError("Attribute [" + newAttribute.name + "] already defined in structure [" + result.name + "].", element.name.value);
+				}
+			}
+
+			if (_types.contains(result) == true)
+			{
+				throw TokenBasedError("Type [" + p_block.name.value.content + "] already defined.", p_block.name.value);
+			}
+
+			return (result);
+		}
+
+		void addStandardType(const Type& p_type)
+		{
+			_standardTypes.insert(p_type);
+			_types.insert(p_type);
+		}
+
+		void addStructure(const Type& p_type)
+		{
+			_types.insert(p_type);
+		}
+
+		void addAttribute(const Type& p_type)
+		{
+			_types.insert(p_type);
+			_attributeTypes.insert(p_type);
+
+			_vertexVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+			_fragmentVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+		}
+
+		void addConstant(const Type& p_type)
+		{
+			_types.insert(p_type);
+			_constantTypes.insert(p_type);
+
+			_vertexVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+			_fragmentVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+		}
+
+		void parseTexture(const TextureInfo& p_texture)
+		{
+
+		}
+
+		void parseFunction(const FunctionInfo& p_function)
+		{
+
+		}
+
+		void parseNamespace(const NamespaceInfo& p_namespace)
+		{
+			_currentNamespaces.push_back(p_namespace.name.value.content);
+
+			/*
+			struct NamespaceInfo
+			{
+				NameInfo name;
+
+				std::vector<BlockInfo> structureBlock;
+				std::vector<BlockInfo> attributeBlock;
+				std::vector<BlockInfo> constantBlock;
+
+				std::vector<TextureInfo> textures;
+
+				std::vector<FunctionInfo> functions;
+
+				std::vector<NamespaceInfo> innerNamespaces;
+			}
+			*/
+			for (const auto& blockInfo : p_namespace.structureBlock)
+			{
+
+				try
+				{
+					addStructure(parseBlockInfo(blockInfo));
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+
+			}
+			for (const auto& blockInfo : p_namespace.attributeBlock)
+			{
+				try
+				{
+					addAttribute(parseBlockInfo(blockInfo));
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+			for (const auto& blockInfo : p_namespace.constantBlock)
+			{
+				try
+				{
+					addConstant(parseBlockInfo(blockInfo));
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			for (const auto& textureInfo : p_namespace.textures)
+			{
+				try
+				{
+					parseTexture(textureInfo);
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			for (const auto& functionInfo : p_namespace.functions)
+			{
+				try
+				{
+					parseFunction(functionInfo);
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			for (const auto& innerNamespace : p_namespace.innerNamespaces)
+			{
+				try
+				{
+					parseNamespace(innerNamespace);
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			_currentNamespaces.pop_back();
+		}
+
+		void parsePipelineBody(const PipelineBodyInfo& p_pipelineBody)
+		{
+
+		}
+
+		Result _parse(const ShaderInfo& p_shaderInfo)
+		{
+			_result = Result();
+
+			/*
+			struct ShaderInfo
+			{
+				std::vector<PipelineFlowInfo> pipelineFlows;
+
+				NamespaceInfo anonymNamespace;
+
+				PipelineBodyInfo vertexPipelineBody;
+				PipelineBodyInfo fragmentPipelineBody;
+			};
+			*/
+
+			
+
+			for (const auto& pipelineFlow : p_shaderInfo.pipelineFlows)
+			{
+				try
+				{
+					parsePipelineFlow(pipelineFlow);
+				}
+				catch (const TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
+			}
+
+			try
+			{
+				parseNamespace(p_shaderInfo.anonymNamespace);
+			}
+			catch (const TokenBasedError& e)
+			{
+				_result.errors.push_back(e);
+			}
+
+
+			try
+			{
+				parsePipelineBody(p_shaderInfo.vertexPipelineBody);
+			}
+			catch (const TokenBasedError& e)
+			{
+				_result.errors.push_back(e);
+			}
+
+
+			try
+			{
+				parsePipelineBody(p_shaderInfo.fragmentPipelineBody);
+			}
+			catch (const TokenBasedError& e)
+			{
+				_result.errors.push_back(e);
+			}
+
+
+			return (_result);
+		}
+
+		void addScalarTypes()
+		{
+			addStandardType(
+				{
+					.name = "bool",
+					.attributes = {}
+				});
+
+			addStandardType(
+				{
+					.name = "int",
+					.attributes = {}
+				});
+
+			addStandardType(
+				{
+					.name = "float",
+					.attributes = {}
+				});
+
+			addStandardType(
+				{
+					.name = "uint",
+					.attributes = {}
+				});
+		}
+
+		void addVector2Types()
+		{
+			addStandardType(
+				{
+					.name = "Vector2",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "y",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector2Int",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "y",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector2UInt",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "y",
+							.arraySizes = {}
+						}
+					}
+				});
+		}
+
+		void addVector3Types()
+		{
+			addStandardType(
+				{
+					.name = "Vector3",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "z",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector3Int",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "z",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector3UInt",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "z",
+							.arraySizes = {}
+						}
+					}
+				});
+		}
+
+		void addVector4Types()
+		{
+			addStandardType(
+				{
+					.name = "Vector4",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "z",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("float"),
+							.name = "w",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector4Int",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "z",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("int"),
+							.name = "w",
+							.arraySizes = {}
+						}
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "Vector4UInt",
+					.attributes = {
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "x",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "y",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "z",
+							.arraySizes = {}
+						},
+						{
+							.type = lookupTypeInNamespace("uint"),
+							.name = "w",
+							.arraySizes = {}
+						}
+					}
+				});
+		}
+
+		void addMatrixTypes()
+		{
+			addStandardType(
+				{
+					.name = "Matrix2x2",
+					.attributes = {}  // No attributes
+				});
+
+			addStandardType(
+				{
+					.name = "Matrix3x3",
+					.attributes = {}  // No attributes
+				});
+
+			addStandardType(
+				{
+					.name = "Matrix4x4",
+					.attributes = {}  // No attributes
+				});
+		}
+
+		SemanticChecker()
+		{
+			addScalarTypes();
+			addVector2Types();
+			addVector3Types();
+			addVector4Types();
+			addMatrixTypes();
+		}
+
+
+	public:
+		static Result parse(const ShaderInfo& p_shaderInfo)
+		{
+			return (SemanticChecker()._parse(p_shaderInfo));
+		}
+	};
+}
+
 int main(int argc, char** argv)
 {
 	if (argc != 3)
@@ -2050,6 +2678,18 @@ int main(int argc, char** argv)
 	if (instruction.errors.size() != 0)
 	{
 		for (const auto& error : instruction.errors)
+		{
+			std::cout << error.what() << std::endl;
+		}
+
+		return (-1);
+	}
+
+	Lumina::SemanticChecker::Result semanticErrors = Lumina::SemanticChecker::parse(instruction.value);
+
+	if (semanticErrors.errors.size() != 0)
+	{
+		for (const auto& error : semanticErrors.errors)
 		{
 			std::cout << error.what() << std::endl;
 		}
