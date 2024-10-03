@@ -889,7 +889,7 @@ namespace Lumina
 		}
 	};
 
-	struct SymbolBody
+	struct SymbolBodyInfo
 	{
 		bool prototype = true;
 		std::vector<std::shared_ptr<Instruction>> instructions;
@@ -1106,7 +1106,7 @@ namespace Lumina
 	struct ConditionnalBranch
 	{
 		std::shared_ptr<Expression> expression;
-		SymbolBody body;
+		SymbolBodyInfo body;
 	};
 
 	struct IfStatement : public Instruction
@@ -1123,7 +1123,7 @@ namespace Lumina
 	struct WhileStatement : public Instruction
 	{
 		std::shared_ptr<Expression> expression;
-		SymbolBody body;
+		SymbolBodyInfo body;
 
 		WhileStatement() :
 			Instruction(Instruction::Type::WhileStatement)
@@ -1163,7 +1163,7 @@ namespace Lumina
 		ReturnType returnType;
 		NameInfo name;
 		std::vector<VariableInfo> parameters;
-		SymbolBody body;
+		SymbolBodyInfo body;
 	};
 
 	struct TextureInfo
@@ -1188,7 +1188,7 @@ namespace Lumina
 
 	struct PipelineBodyInfo
 	{
-		SymbolBody body;
+		SymbolBodyInfo body;
 	};
 
 	struct ShaderInfo
@@ -1217,7 +1217,7 @@ namespace Lumina
 
 			if (currentToken().type == Token::Type::NamespaceSeparator)
 			{
-				result.tokens.push_back(currentToken());
+				result.tokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
 			}
 
 			while (tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
@@ -1543,7 +1543,7 @@ namespace Lumina
 			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token." + DEBUG_INFORMATION);
 			ifBranch.expression = parseExpression();
 			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token." + DEBUG_INFORMATION);
-			ifBranch.body = parseSymbolBody();
+			ifBranch.body = parseSymbolBodyInfo();
 
 			result->conditonnalBranchs.push_back(ifBranch);
 
@@ -1556,7 +1556,7 @@ namespace Lumina
 				expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token." + DEBUG_INFORMATION);
 				newBranch.expression = parseExpression();
 				expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token." + DEBUG_INFORMATION);
-				newBranch.body = parseSymbolBody();
+				newBranch.body = parseSymbolBodyInfo();
 
 				result->conditonnalBranchs.push_back(newBranch);
 			}
@@ -1566,7 +1566,7 @@ namespace Lumina
 				ConditionnalBranch newBranch;
 
 				expect(Lumina::Token::Type::ElseStatement, "Expected a 'else' token." + DEBUG_INFORMATION);
-				newBranch.body = parseSymbolBody();
+				newBranch.body = parseSymbolBodyInfo();
 
 				result->conditonnalBranchs.push_back(newBranch);
 			}
@@ -1582,14 +1582,14 @@ namespace Lumina
 			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token." + DEBUG_INFORMATION);
 			result->expression = parseExpression();
 			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token." + DEBUG_INFORMATION);
-			result->body = parseSymbolBody();
+			result->body = parseSymbolBodyInfo();
 
 			return (result);
 		}
 
-		SymbolBody parseSymbolBody()
+		SymbolBodyInfo parseSymbolBodyInfo()
 		{
-			SymbolBody result;
+			SymbolBodyInfo result;
 
 			result.prototype = false;
 
@@ -1775,7 +1775,7 @@ namespace Lumina
 			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token." + DEBUG_INFORMATION);
 			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token." + DEBUG_INFORMATION);
 
-			result.body = parseSymbolBody();
+			result.body = parseSymbolBodyInfo();
 		}
 
 		void parseFunction()
@@ -1804,7 +1804,7 @@ namespace Lumina
 			}
 			else
 			{
-				newFunction.body = parseSymbolBody();
+				newFunction.body = parseSymbolBodyInfo();
 			}
 
 			_currentNamespace.back()->functions.push_back(newFunction);
@@ -1831,6 +1831,8 @@ namespace Lumina
 			expect(Lumina::Token::Type::Separator, "Expected a ':' token." + DEBUG_INFORMATION);
 			newPipelineFlow.variable = parseVariableInfo();
 			expect(Lumina::Token::Type::EndOfSentence, "Expected a ';' token." + DEBUG_INFORMATION);
+
+			_result.value.pipelineFlows.push_back(newPipelineFlow);
 		}
 
 		void parseStructureBlock()
@@ -2050,9 +2052,39 @@ namespace Lumina
 		std::string name;
 		std::vector<size_t> arraySizes;
 
+		Variable() = default;
+		Variable(const std::string& p_name) :
+			type(nullptr),
+			name(p_name),
+			arraySizes({})
+		{
+
+		}
+		Variable(const Type* p_type, const std::string& p_name, const std::vector<size_t>& p_arraySizes) :
+			type(p_type),
+			name(p_name),
+			arraySizes(p_arraySizes)
+		{
+
+		}
+
 		bool operator<(const Variable& p_other) const
 		{
 			return name < p_other.name;
+		}
+
+		bool isSame (const Variable& p_other) const
+		{
+			if (type != p_other.type)
+				return (false);
+			if (arraySizes.size() != p_other.arraySizes.size())
+				return (false);
+			for (size_t i = 0; i < arraySizes.size(); i++)
+			{
+				if (arraySizes[i] != p_other.arraySizes[i])
+					return (false);
+			}
+			return (true);
 		}
 	};
 
@@ -2066,6 +2098,62 @@ namespace Lumina
 			return name < p_other.name;
 		}
 	};
+
+	struct Function
+	{
+		struct ReturnType
+		{
+			const Type* type;
+			std::vector<size_t> arraySizes;
+
+			bool operator ==(const ReturnType& p_other) const
+			{
+				if (type != p_other.type)
+					return (false);
+				if (arraySizes.size() != p_other.arraySizes.size())
+					return (false);
+				for (size_t i = 0; i < arraySizes.size(); i++)
+				{
+					if (arraySizes[i] != p_other.arraySizes[i])
+						return (false);
+				}
+				return (true);
+			}
+
+			bool operator != (const ReturnType& p_other) const
+			{
+				return (!(this->operator==(p_other)));
+			}
+		};
+
+		bool isPrototype = false;
+		ReturnType returnType;
+		std::string name;
+		std::set<Variable> parameters;
+
+		bool operator == (const Function& p_other) const
+		{
+			if (returnType != p_other.returnType)
+				return (false);
+			if (name != p_other.name)
+				return (false);
+			if (parameters.size() != p_other.parameters.size())
+				return (false);
+
+			auto it1 = parameters.begin();
+			auto it2 = p_other.parameters.begin();
+
+			while (it1 != parameters.end() && it2 != p_other.parameters.end())
+			{
+				if (!it1->isSame(*it2))
+					return (false);
+				++it1;
+				++it2;
+			}
+
+			return (true);
+		}
+	};
 }
 
 namespace Lumina
@@ -2077,19 +2165,35 @@ namespace Lumina
 
 	private:
 		Result _result;
-		std::vector<std::string> _currentNamespaces;
+		std::vector<std::string> _currentNamespaces = {""};
+
+		std::string currentNamespace() const
+		{
+			std::string result = "";
+
+			for (const auto& nspace : _currentNamespaces)
+			{
+				result += nspace;
+				result += "::";
+			}
+
+			return (result);
+		}
 
 		std::set<Type> _standardTypes;
 		std::set<Type> _types;
-		std::set<Type> _attributeTypes;
-		std::set<Type> _constantTypes;
 
+		std::map<std::string, std::vector<Function>> _functions;
+
+		std::set<std::string> _reservedNames;
+
+		std::set<Variable> _globalVariables;
 		std::set<Variable> _vertexVariables;
 		std::set<Variable> _fragmentVariables;
 
-		const Type* lookupTypeInNamespace(const std::string& typeName)
+		const Type* lookupTypeInNamespace(const std::string& p_typeName) const
 		{
-			auto it = _types.find(Type{ typeName });
+			auto it = _types.find(Type{ p_typeName });
 			if (it != _types.end())
 			{
 				return &(*it);
@@ -2105,18 +2209,15 @@ namespace Lumina
 				return type;
 			}
 
-			for (size_t i = 0; i < _currentNamespaces.size(); ++i)
+			for (size_t i = 0; i < _currentNamespaces.size(); i++)
 			{
-				std::string qualifiedName;
+				std::string qualifiedName = "";
 				for (size_t j = 0; j <= i; ++j)
 				{
-					if (!qualifiedName.empty())
-					{
-						qualifiedName += "::";
-					}
+					qualifiedName += "::";
 					qualifiedName += _currentNamespaces[j];
 				}
-				qualifiedName += "::" + p_nameToken.content;
+				qualifiedName += p_nameToken.content;
 
 				type = lookupTypeInNamespace(qualifiedName);
 				if (type != nullptr)
@@ -2135,12 +2236,24 @@ namespace Lumina
 			return getType(mergedToken);
 		}
 
-		void parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow)
+		Function::ReturnType parseReturnType(const FunctionInfo::ReturnType& p_returnTypeInfo)
 		{
-			if (p_pipelineFlow.variable.arraySizes.tokens.size() != 0)
+			Function::ReturnType result;
+
+			result.type = getType(p_returnTypeInfo.type.tokens);
+			for (const auto& token : p_returnTypeInfo.arraySizes.tokens)
 			{
-				throw TokenBasedError("Pipeline flow variable cannot be array variable." + DEBUG_INFORMATION, p_pipelineFlow.variable.name.value);
+				int arraySize = std::stoi(token.content);
+
+				if (arraySize <= 0)
+				{
+					throw TokenBasedError("Array size must be greater than 0. Invalid size found.", token);
+				}
+
+				result.arraySizes.push_back(static_cast<size_t>(arraySize));
 			}
+
+			return (result);
 		}
 
 		Variable parseVariable(const VariableInfo& p_variableInfo)
@@ -2161,6 +2274,11 @@ namespace Lumina
 				result.arraySizes.push_back(static_cast<size_t>(arraySize));
 			}
 
+			if (_reservedNames.contains(result.name) == true)
+			{
+				throw TokenBasedError("Can't use identifier [" + result.name + "] : identifier already used.", p_variableInfo.name.value);
+			}
+
 			return (result);
 		}
 
@@ -2168,7 +2286,9 @@ namespace Lumina
 		{
 			Type result;
 
-			result.name = p_block.name.value.content;
+			std::string namespaceName = currentNamespace();
+
+			result.name = namespaceName + p_block.name.value.content;
 
 			for (const auto& element : p_block.elements)
 			{
@@ -2182,77 +2302,249 @@ namespace Lumina
 
 			if (_types.contains(result) == true)
 			{
-				throw TokenBasedError("Type [" + p_block.name.value.content + "] already defined.", p_block.name.value);
+				if (namespaceName == "")
+				{
+					throw TokenBasedError("Type [" + p_block.name.value.content + "] already defined.", p_block.name.value);
+				}
+				else
+				{
+					throw TokenBasedError("Type [" + p_block.name.value.content + "] already defined in namespace [" + namespaceName.substr(2) + "].", p_block.name.value);
+				}
+			}
+
+			if (_reservedNames.contains(result.name) == true)
+			{
+				throw TokenBasedError("Can't use identifier [" + p_block.name.value.content + "] : identifier already used in namespace [" + namespaceName.substr(2) + "].", p_block.name.value);
 			}
 
 			return (result);
+		}
+
+		Function parseFunctionInfo(const FunctionInfo& p_functionInfo)
+		{
+			Function result;
+
+			std::string namespaceName = currentNamespace();
+
+			result.isPrototype = p_functionInfo.body.prototype;
+			result.returnType = parseReturnType(p_functionInfo.returnType);
+			result.name = namespaceName + p_functionInfo.name.value.content;
+
+			for (const auto& parameterInfo : p_functionInfo.parameters)
+			{
+				Variable newParameter = parseVariable(parameterInfo);
+
+				if (result.parameters.contains(newParameter) == true)
+				{
+					throw TokenBasedError("Parameter variable [" + newParameter.name + "] already declared.", parameterInfo.name.value);
+				}
+
+				result.parameters.insert(newParameter);
+			}
+
+			return (result);
+		}
+
+		void parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow)
+		{
+			enum class PipelineFlowType
+			{
+				ToVertex,
+				ToFragment,
+				ToOutput
+			};
+
+			PipelineFlowType type;
+
+			if (p_pipelineFlow.input == "Input" && p_pipelineFlow.output == "VertexPass")
+			{
+				type = PipelineFlowType::ToVertex;
+			}
+			else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
+			{
+				type = PipelineFlowType::ToFragment;
+			}
+			else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Ouput")
+			{
+				type = PipelineFlowType::ToOutput;
+			}
+			else
+			{
+				throw TokenBasedError("Invalid pipeline flow definition.", p_pipelineFlow.input + p_pipelineFlow.output);
+			}
+
+			if (p_pipelineFlow.variable.arraySizes.tokens.size() != 0)
+			{
+				throw TokenBasedError("Pipeline flow variable cannot be array variable." + DEBUG_INFORMATION, p_pipelineFlow.variable.name.value);
+			}
+
+			Variable newPipelineVariable = parseVariable(p_pipelineFlow.variable);
+
+			if (_standardTypes.contains(*(newPipelineVariable.type)) == false)
+			{
+				throw TokenBasedError("Pipeline flow variable can only be of a standard types." + DEBUG_INFORMATION, Lumina::Token::merge(p_pipelineFlow.variable.type.tokens, Lumina::Token::Type::Identifier));
+			}
+
+			_reservedNames.insert(newPipelineVariable.name);
+
+			switch (type)
+			{
+			case PipelineFlowType::ToVertex:
+			{
+				_vertexVariables.insert(newPipelineVariable);
+				break;
+			}
+			case PipelineFlowType::ToFragment:
+			{
+				_vertexVariables.insert(newPipelineVariable);
+				_fragmentVariables.insert(newPipelineVariable);
+				break;
+			}
+			case PipelineFlowType::ToOutput:
+			{
+				_fragmentVariables.insert(newPipelineVariable);
+				break;
+			}
+			}
 		}
 
 		void addStandardType(const Type& p_type)
 		{
 			_standardTypes.insert(p_type);
 			_types.insert(p_type);
+
+			_reservedNames.insert(p_type.name);
 		}
 
-		void addStructure(const Type& p_type)
+		void addStructure(const BlockInfo& p_blockInfo)
 		{
-			_types.insert(p_type);
+			Type newStructure = parseBlockInfo(p_blockInfo);
+
+			_types.insert(newStructure);
+			_reservedNames.insert(newStructure.name);
 		}
 
-		void addAttribute(const Type& p_type)
+		void addAttribute(const BlockInfo& p_blockInfo)
 		{
-			_types.insert(p_type);
-			_attributeTypes.insert(p_type);
+			Type newAttributeType = parseBlockInfo(p_blockInfo);
 
-			_vertexVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
-			_fragmentVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+			_types.insert(newAttributeType);
+
+			Variable newAttribute = Variable(
+				lookupTypeInNamespace(newAttributeType.name),
+				p_blockInfo.name.value.content,
+				{}
+			);
+
+			_globalVariables.insert(newAttribute);
+			_reservedNames.insert(newAttribute.name);
 		}
 
-		void addConstant(const Type& p_type)
+		void addConstant(const BlockInfo& p_blockInfo)
 		{
-			_types.insert(p_type);
-			_constantTypes.insert(p_type);
+			Type newConstantType = parseBlockInfo(p_blockInfo);
 
-			_vertexVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
-			_fragmentVariables.insert({ lookupTypeInNamespace(p_type.name), p_type.name + "_Value", {} });
+			_types.insert(newConstantType);
+
+			Variable newConstant = Variable(
+				lookupTypeInNamespace(newConstantType.name),
+				p_blockInfo.name.value.content,
+				{}
+			);
+
+			_globalVariables.insert(newConstant);
+			_reservedNames.insert(newConstant.name);
 		}
 
 		void parseTexture(const TextureInfo& p_texture)
 		{
+			Variable newTexture = Variable(
+				lookupTypeInNamespace("Texture"),
+				p_texture.name.value.content,
+				{}
+			);
+
+			if (_vertexVariables.contains(newTexture) == true ||
+				_fragmentVariables.contains(newTexture) == true)
+			{
+				throw TokenBasedError("Variable [" + newTexture.name + "] already defined.", p_texture.name.value);
+			}
+
+			_vertexVariables.insert(newTexture);
+			_fragmentVariables.insert(newTexture);
+			_reservedNames.insert(newTexture.name);
+		}
+
+		void parseSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo, std::set<Variable> p_availableVariables)
+		{
 
 		}
 
-		void parseFunction(const FunctionInfo& p_function)
+		void parseFunction(const FunctionInfo& p_functionInfo)
 		{
+			Function newFunction = parseFunctionInfo(p_functionInfo);
 
+			if (_functions.contains(newFunction.name) == true)
+			{
+				std::vector<Function>& currentFunctions = _functions[newFunction.name];
+
+				if (currentFunctions.front().returnType != newFunction.returnType)
+				{
+					throw TokenBasedError("Symbol already defined with a different return type.", p_functionInfo.name.value);
+				}
+				
+				bool needInsertion = true;
+				
+				for (size_t i = 0; i < currentFunctions.size(); i++)
+				{
+					if (currentFunctions[i] == newFunction)
+					{
+						if (currentFunctions[i].isPrototype == true)
+						{
+							currentFunctions[i] = newFunction;
+							needInsertion = false;
+							break;
+						}
+						else
+						{
+							throw TokenBasedError("Symbol already defined.", p_functionInfo.name.value);
+						}
+					}
+				}
+
+				if (needInsertion == true)
+				{
+					currentFunctions.push_back(newFunction);
+				}
+			}
+			else
+			{
+				if (_reservedNames.contains(newFunction.name) == true)
+				{
+					throw TokenBasedError("Can't use identifier [" + newFunction.name + "] : identifier already used.", p_functionInfo.name.value);
+				}
+
+				_functions[newFunction.name].push_back(newFunction);
+				_reservedNames.insert(newFunction.name);
+			}
+
+			std::set<Variable> allAvailableVariables = _globalVariables;
+			allAvailableVariables.insert(newFunction.parameters.begin(), newFunction.parameters.end());
+
+			parseSymbolBody(p_functionInfo.body, allAvailableVariables);
 		}
 
 		void parseNamespace(const NamespaceInfo& p_namespace)
 		{
-			_currentNamespaces.push_back(p_namespace.name.value.content);
+			if (p_namespace.name.value.content != "")
+				_currentNamespaces.push_back(p_namespace.name.value.content);
 
-			/*
-			struct NamespaceInfo
-			{
-				NameInfo name;
-
-				std::vector<BlockInfo> structureBlock;
-				std::vector<BlockInfo> attributeBlock;
-				std::vector<BlockInfo> constantBlock;
-
-				std::vector<TextureInfo> textures;
-
-				std::vector<FunctionInfo> functions;
-
-				std::vector<NamespaceInfo> innerNamespaces;
-			}
-			*/
 			for (const auto& blockInfo : p_namespace.structureBlock)
 			{
 
 				try
 				{
-					addStructure(parseBlockInfo(blockInfo));
+					addStructure(blockInfo);
 				}
 				catch (const TokenBasedError& e)
 				{
@@ -2264,7 +2556,7 @@ namespace Lumina
 			{
 				try
 				{
-					addAttribute(parseBlockInfo(blockInfo));
+					addAttribute(blockInfo);
 				}
 				catch (const TokenBasedError& e)
 				{
@@ -2275,7 +2567,7 @@ namespace Lumina
 			{
 				try
 				{
-					addConstant(parseBlockInfo(blockInfo));
+					addConstant(blockInfo);
 				}
 				catch (const TokenBasedError& e)
 				{
@@ -2319,7 +2611,8 @@ namespace Lumina
 				}
 			}
 
-			_currentNamespaces.pop_back();
+			if (p_namespace.name.value.content != "")
+				_currentNamespaces.pop_back();
 		}
 
 		void parsePipelineBody(const PipelineBodyInfo& p_pipelineBody)
@@ -2330,20 +2623,6 @@ namespace Lumina
 		Result _parse(const ShaderInfo& p_shaderInfo)
 		{
 			_result = Result();
-
-			/*
-			struct ShaderInfo
-			{
-				std::vector<PipelineFlowInfo> pipelineFlows;
-
-				NamespaceInfo anonymNamespace;
-
-				PipelineBodyInfo vertexPipelineBody;
-				PipelineBodyInfo fragmentPipelineBody;
-			};
-			*/
-
-			
 
 			for (const auto& pipelineFlow : p_shaderInfo.pipelineFlows)
 			{
@@ -2392,27 +2671,33 @@ namespace Lumina
 
 		void addScalarTypes()
 		{
-			addStandardType(
+			_types.insert(
 				{
-					.name = "bool",
+					.name = "::void",
 					.attributes = {}
 				});
 
 			addStandardType(
 				{
-					.name = "int",
+					.name = "::bool",
 					.attributes = {}
 				});
 
 			addStandardType(
 				{
-					.name = "float",
+					.name = "::int",
 					.attributes = {}
 				});
 
 			addStandardType(
 				{
-					.name = "uint",
+					.name = "::float",
+					.attributes = {}
+				});
+
+			addStandardType(
+				{
+					.name = "::uint",
 					.attributes = {}
 				});
 		}
@@ -2421,52 +2706,52 @@ namespace Lumina
 		{
 			addStandardType(
 				{
-					.name = "Vector2",
+					.name = "::Vector2",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "y",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("float"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"y",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector2Int",
+					.name = "::Vector2Int",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "y",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("int"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"y",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector2UInt",
+					.name = "::Vector2UInt",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "y",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"y",
+							{}
+						)
 					}
 				});
 		}
@@ -2475,67 +2760,67 @@ namespace Lumina
 		{
 			addStandardType(
 				{
-					.name = "Vector3",
+					.name = "::Vector3",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "z",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("float"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"z",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector3Int",
+					.name = "::Vector3Int",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "z",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("int"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"z",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector3UInt",
+					.name = "::Vector3UInt",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "z",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"z",
+							{}
+						)
 					}
 				});
 		}
@@ -2544,103 +2829,103 @@ namespace Lumina
 		{
 			addStandardType(
 				{
-					.name = "Vector4",
+					.name = "::Vector4",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "z",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("float"),
-							.name = "w",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("float"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"z",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"w",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector4Int",
+					.name = "::Vector4Int",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "z",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("int"),
-							.name = "w",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("int"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"z",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("int"),
+							"w",
+							{}
+						)
 					}
 				});
 
 			addStandardType(
 				{
-					.name = "Vector4UInt",
+					.name = "::Vector4UInt",
 					.attributes = {
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "x",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "y",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "z",
-							.arraySizes = {}
-						},
-						{
-							.type = lookupTypeInNamespace("uint"),
-							.name = "w",
-							.arraySizes = {}
-						}
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"x",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"y",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"z",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("uint"),
+							"w",
+							{}
+						)
 					}
 				});
 		}
 
 		void addMatrixTypes()
 		{
-			addStandardType(
+			_types.insert(
 				{
-					.name = "Matrix2x2",
+					.name = "::Matrix2x2",
 					.attributes = {}  // No attributes
 				});
 
-			addStandardType(
+			_types.insert(
 				{
-					.name = "Matrix3x3",
+					.name = "::Matrix3x3",
 					.attributes = {}  // No attributes
 				});
 
-			addStandardType(
+			_types.insert(
 				{
-					.name = "Matrix4x4",
+					.name = "::Matrix4x4",
 					.attributes = {}  // No attributes
 				});
 		}
