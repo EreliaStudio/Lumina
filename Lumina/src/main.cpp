@@ -1188,11 +1188,13 @@ namespace Lumina
 
 	struct PipelineBodyInfo
 	{
+		Lumina::Token root;
 		SymbolBodyInfo body;
 	};
 
 	struct ShaderInfo
 	{
+		Lumina::Token noToken;
 		std::vector<PipelineFlowInfo> pipelineFlows;
 
 		NamespaceInfo anonymNamespace;
@@ -1661,6 +1663,9 @@ namespace Lumina
 		Result _parse(const std::vector<Token>& p_tokens)
 		{
 			_result = Result();
+
+			_result.value.noToken = Lumina::Token("", Lumina::Token::Type::Unknow, p_tokens[0].context);
+
 			_tokens = p_tokens;
 			_index = 0;
 			_result.value.anonymNamespace.name.value = Lumina::Token("", Lumina::Token::Type::Identifier, 0, 0, _tokens[0].context.originFile, _tokens[0].context.inputLine);
@@ -1769,13 +1774,22 @@ namespace Lumina
 
 		void parsePipelineBody()
 		{
-			PipelineBodyInfo result;
+			PipelineBodyInfo newPipelineBody;
 
-			expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token." + DEBUG_INFORMATION);
+			newPipelineBody.root = expect(Lumina::Token::Type::PipelineFlow, "Expected a pipeline flow token." + DEBUG_INFORMATION);
 			expect(Lumina::Token::Type::OpenParenthesis, "Expected a '(' token." + DEBUG_INFORMATION);
 			expect(Lumina::Token::Type::CloseParenthesis, "Expected a ')' token." + DEBUG_INFORMATION);
 
-			result.body = parseSymbolBodyInfo();
+			newPipelineBody.body = parseSymbolBodyInfo();
+
+			if (newPipelineBody.root == "VertexPass")
+			{
+				_result.value.vertexPipelineBody = newPipelineBody;
+			}
+			else
+			{
+				_result.value.fragmentPipelineBody = newPipelineBody;
+			}
 		}
 
 		void parseFunction()
@@ -2183,6 +2197,9 @@ namespace Lumina
 		std::set<Type> _standardTypes;
 		std::set<Type> _types;
 
+		bool _vertexPassParsed = false;
+		bool _fragmentPassParsed = false;
+
 		std::map<std::string, std::vector<Function>> _functions;
 
 		std::set<std::string> _reservedNames;
@@ -2364,7 +2381,7 @@ namespace Lumina
 			{
 				type = PipelineFlowType::ToFragment;
 			}
-			else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Ouput")
+			else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
 			{
 				type = PipelineFlowType::ToOutput;
 			}
@@ -2426,13 +2443,14 @@ namespace Lumina
 
 		void addAttribute(const BlockInfo& p_blockInfo)
 		{
+			std::string nspace = currentNamespace();
 			Type newAttributeType = parseBlockInfo(p_blockInfo);
 
 			_types.insert(newAttributeType);
 
 			Variable newAttribute = Variable(
 				lookupTypeInNamespace(newAttributeType.name),
-				p_blockInfo.name.value.content,
+				nspace + p_blockInfo.name.value.content,
 				{}
 			);
 
@@ -2442,13 +2460,14 @@ namespace Lumina
 
 		void addConstant(const BlockInfo& p_blockInfo)
 		{
+			std::string nspace = currentNamespace();
 			Type newConstantType = parseBlockInfo(p_blockInfo);
 
 			_types.insert(newConstantType);
 
 			Variable newConstant = Variable(
 				lookupTypeInNamespace(newConstantType.name),
-				p_blockInfo.name.value.content,
+				nspace + p_blockInfo.name.value.content,
 				{}
 			);
 
@@ -2458,26 +2477,42 @@ namespace Lumina
 
 		void parseTexture(const TextureInfo& p_texture)
 		{
+			std::string nspace = currentNamespace();
+
 			Variable newTexture = Variable(
-				lookupTypeInNamespace("Texture"),
-				p_texture.name.value.content,
+				lookupTypeInNamespace("::Texture"),
+				nspace + p_texture.name.value.content,
 				{}
 			);
 
-			if (_vertexVariables.contains(newTexture) == true ||
-				_fragmentVariables.contains(newTexture) == true)
+			if (_globalVariables.contains(newTexture) == true)
 			{
-				throw TokenBasedError("Variable [" + newTexture.name + "] already defined.", p_texture.name.value);
+				if (nspace == "")
+				{
+					throw TokenBasedError("Type [" + p_texture.name.value.content + "] already defined.", p_texture.name.value);
+				}
+				else
+				{
+					throw TokenBasedError("Type [" + p_texture.name.value.content + "] already defined in namespace [" + nspace.substr(2) + "].", p_texture.name.value);
+				}
 			}
 
-			_vertexVariables.insert(newTexture);
-			_fragmentVariables.insert(newTexture);
+			_globalVariables.insert(newTexture);
 			_reservedNames.insert(newTexture.name);
 		}
 
 		void parseSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo, std::set<Variable> p_availableVariables)
 		{
-
+			std::cout << "Availables variables :" << std::endl;
+			for (const auto& variable : p_availableVariables)
+			{
+				std::cout << "    - " << variable.name << " -> " << variable.type->name;
+				for (const auto& size : variable.arraySizes)
+				{
+					std::cout << "[" << size << "]";
+				}
+				std::cout << std::endl;
+			}
 		}
 
 		void parseFunction(const FunctionInfo& p_functionInfo)
@@ -2505,7 +2540,7 @@ namespace Lumina
 							needInsertion = false;
 							break;
 						}
-						else
+						else if (newFunction.isPrototype == false)
 						{
 							throw TokenBasedError("Symbol already defined.", p_functionInfo.name.value);
 						}
@@ -2531,6 +2566,7 @@ namespace Lumina
 			std::set<Variable> allAvailableVariables = _globalVariables;
 			allAvailableVariables.insert(newFunction.parameters.begin(), newFunction.parameters.end());
 
+			std::cout << "Parsing function [" << newFunction.name << "] body" << std::endl;
 			parseSymbolBody(p_functionInfo.body, allAvailableVariables);
 		}
 
@@ -2615,9 +2651,45 @@ namespace Lumina
 				_currentNamespaces.pop_back();
 		}
 
-		void parsePipelineBody(const PipelineBodyInfo& p_pipelineBody)
+		enum class PipelineStep
 		{
+			Vertex,
+			Fragment
+		};
 
+		void parsePipelineBody(PipelineStep p_step, const PipelineBodyInfo& p_pipelineBody)
+		{
+			std::set<Variable> allAvailableVariables = _globalVariables;
+
+			if (p_pipelineBody.body.prototype == true)
+				return;
+
+			switch (p_step)
+			{
+			case PipelineStep::Vertex:
+			{
+				if (_vertexPassParsed == true)
+				{
+					throw TokenBasedError("VertexPass already parsed.", p_pipelineBody.root);
+				}
+				_vertexPassParsed = true;
+				allAvailableVariables.insert(_vertexVariables.begin(), _vertexVariables.end());
+				break;
+			}
+			case PipelineStep::Fragment:
+			{
+				if (_fragmentPassParsed == true)
+				{
+					throw TokenBasedError("FragmentPass already parsed.", p_pipelineBody.root);
+				}
+				_fragmentPassParsed = true;
+				allAvailableVariables.insert(_fragmentVariables.begin(), _fragmentVariables.end());
+				break;
+			}
+			}
+
+			std::cout << "Parsing pipeline body [" << (p_step == PipelineStep::Vertex ? "VertexPass" : "FragmentPass") << "]" << std::endl;
+			parseSymbolBody(p_pipelineBody.body, allAvailableVariables);
 		}
 
 		Result _parse(const ShaderInfo& p_shaderInfo)
@@ -2645,26 +2717,33 @@ namespace Lumina
 				_result.errors.push_back(e);
 			}
 
-
 			try
 			{
-				parsePipelineBody(p_shaderInfo.vertexPipelineBody);
+				parsePipelineBody(PipelineStep::Vertex, p_shaderInfo.vertexPipelineBody);
 			}
 			catch (const TokenBasedError& e)
 			{
 				_result.errors.push_back(e);
 			}
 
-
 			try
 			{
-				parsePipelineBody(p_shaderInfo.fragmentPipelineBody);
+				parsePipelineBody(PipelineStep::Fragment, p_shaderInfo.fragmentPipelineBody);
 			}
 			catch (const TokenBasedError& e)
 			{
 				_result.errors.push_back(e);
 			}
 
+			if (_vertexPassParsed == false)
+			{
+				_result.errors.push_back(TokenBasedError("No vertex pass defined.", p_shaderInfo.noToken));
+			}
+
+			if (_fragmentPassParsed == false)
+			{
+				_result.errors.push_back(TokenBasedError("No fragment pass defined.", p_shaderInfo.noToken));
+			}
 
 			return (_result);
 		}
@@ -2909,6 +2988,43 @@ namespace Lumina
 				});
 		}
 
+		void addLuminaTypes()
+		{
+			addStandardType(
+				{
+					.name = "::Color",
+					.attributes = {
+						Variable(
+							lookupTypeInNamespace("float"),
+							"r",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"g",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"b",
+							{}
+						),
+						Variable(
+							lookupTypeInNamespace("float"),
+							"a",
+							{}
+						)
+					}
+				});
+
+			addStandardType(
+				{
+					.name = "::Texture",
+					.attributes = {
+					}
+				});
+		}
+
 		void addMatrixTypes()
 		{
 			_types.insert(
@@ -2930,13 +3046,28 @@ namespace Lumina
 				});
 		}
 
+		void addPipelineFlowVariables()
+		{
+			Variable pixelPosition = Variable(lookupTypeInNamespace("::Vector4"), "pixelPosition", {});
+			Variable pixelColor = Variable(lookupTypeInNamespace("::Color"), "pixelColor", {});
+
+			_reservedNames.insert(pixelPosition.name);
+			_vertexVariables.insert(pixelPosition);
+
+			_reservedNames.insert(pixelColor.name);
+			_fragmentVariables.insert(pixelColor);
+		}
+
 		SemanticChecker()
 		{
 			addScalarTypes();
 			addVector2Types();
 			addVector3Types();
 			addVector4Types();
+			addLuminaTypes();
 			addMatrixTypes();
+		
+			addPipelineFlowVariables();
 		}
 
 
@@ -2957,6 +3088,12 @@ int main(int argc, char** argv)
 	}
 
 	std::vector<Lumina::Token> tokens = Lumina::Tokenizer::tokenize(argv[1]);
+
+	if (tokens.size() == 0)
+	{
+		std::cout << "Empty source file [" << argv[1] << "]" << std::endl;
+		return (-1);
+	}
 
 	Lumina::Parser::Result instruction = Lumina::Parser::parse(tokens);
 

@@ -36,15 +36,13 @@ ConstantBlock lightingConstants
 // Create namespaces
 namespace Lighting
 {
-    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor);
-    
-    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor)
+    Color calculateDiffuse(Vector3 normal, Vector3 lightDir, Color lightColor)
     {
         float diff = max(dot(normal, lightDir), 0.0);
         return diff * lightColor;
     }
 
-    Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor)
+    Color calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Color lightColor)
     {
         Vector3 reflectDir = reflect(-lightDir, normal);
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
