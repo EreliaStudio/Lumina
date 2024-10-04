@@ -2179,6 +2179,7 @@ namespace Lumina
 
 	private:
 		Result _result;
+		Lumina::Token _noToken;
 		std::vector<std::string> _currentNamespaces = {""};
 
 		std::string currentNamespace() const
@@ -2501,19 +2502,96 @@ namespace Lumina
 			_reservedNames.insert(newTexture.name);
 		}
 
+		void parseVariableDeclaration(std::shared_ptr<VariableDeclaration> p_variableDeclaration, std::set<Variable>& p_availableVariables)
+		{
+			
+		}
+
+		void parseVariableAssignation(std::shared_ptr<VariableAssignation> p_variableAssignation, const std::set<Variable>& p_availableVariables)
+		{
+
+		}
+
+		void parseSymbolCall(std::shared_ptr<SymbolCall> p_symbolCall, const std::set<Variable>& p_availableVariables)
+		{
+
+		}
+
+		void parseIfStatement(std::shared_ptr<IfStatement> p_ifStatement, const std::set<Variable>& p_availableVariables)
+		{
+
+		}
+
+		void parseWhileStatement(std::shared_ptr<WhileStatement> p_whileStatement, const std::set<Variable>& p_availableVariables)
+		{
+
+		}
+
+		void parseReturnStatement(std::shared_ptr<ReturnStatement> p_returnStatement, const std::set<Variable>& p_availableVariables)
+		{
+
+		}
+
+		void parseDiscardStatement(std::shared_ptr<DiscardStatement> p_discardStatement)
+		{
+
+		}
+
+
 		void parseSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo, std::set<Variable> p_availableVariables)
 		{
-			std::cout << "Availables variables :" << std::endl;
-			for (const auto& variable : p_availableVariables)
+			for (const auto& instruction : p_symbolBodyInfo.instructions)
 			{
-				std::cout << "    - " << variable.name << " -> " << variable.type->name;
-				for (const auto& size : variable.arraySizes)
+				try
 				{
-					std::cout << "[" << size << "]";
+					switch (instruction->type)
+					{
+					case Instruction::Type::VariableDeclaration:
+					{
+						parseVariableDeclaration(std::static_pointer_cast<VariableDeclaration>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::VariableAssignation:
+					{
+						parseVariableAssignation(std::static_pointer_cast<VariableAssignation>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::SymbolCall:
+					{
+						parseSymbolCall(std::static_pointer_cast<SymbolCall>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::IfStatement:
+					{
+						parseIfStatement(std::static_pointer_cast<IfStatement>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::WhileStatement:
+					{
+						parseWhileStatement(std::static_pointer_cast<WhileStatement>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::ReturnStatement:
+					{
+						parseReturnStatement(std::static_pointer_cast<ReturnStatement>(instruction), p_availableVariables);
+						break;
+					}
+					case Instruction::Type::DiscardStatement:
+					{
+						parseDiscardStatement(std::static_pointer_cast<DiscardStatement>(instruction));
+						break;
+					}
+					default:
+						throw TokenBasedError("Unknown instruction type.", _noToken);
+					}
 				}
-				std::cout << std::endl;
+				catch (TokenBasedError& e)
+				{
+					_result.errors.push_back(e);
+				}
 			}
 		}
+
 
 		void parseFunction(const FunctionInfo& p_functionInfo)
 		{
@@ -2659,10 +2737,10 @@ namespace Lumina
 
 		void parsePipelineBody(PipelineStep p_step, const PipelineBodyInfo& p_pipelineBody)
 		{
-			std::set<Variable> allAvailableVariables = _globalVariables;
-
 			if (p_pipelineBody.body.prototype == true)
 				return;
+
+			std::set<Variable> allAvailableVariables = _globalVariables;
 
 			switch (p_step)
 			{
@@ -2695,6 +2773,8 @@ namespace Lumina
 		Result _parse(const ShaderInfo& p_shaderInfo)
 		{
 			_result = Result();
+
+			_noToken = p_shaderInfo.noToken;
 
 			for (const auto& pipelineFlow : p_shaderInfo.pipelineFlows)
 			{
