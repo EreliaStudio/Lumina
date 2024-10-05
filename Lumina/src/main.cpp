@@ -156,7 +156,8 @@ namespace Lumina
 			Incrementor, // '++', '--'
 			Comma, // ','
 			OpenBracket, // '['
-			CloseBracket // ']'
+			CloseBracket, // ']'
+			Expression
 		};
 
 		Type type = Type::Unknow;
@@ -834,16 +835,31 @@ namespace Lumina
 	struct NameInfo
 	{
 		Lumina::Token value;
+
+		Lumina::Token tokens() const
+		{
+			return (value);
+		}
 	};
 
 	struct TypeInfo
 	{
-		std::vector<Lumina::Token> tokens;
+		std::vector<Lumina::Token> typeTokens;
+
+		Lumina::Token tokens() const
+		{
+			return (Lumina::Token::merge(typeTokens, Lumina::Token::Type::Identifier));
+		}
 	};
 
 	struct ArrayInfo
 	{
-		std::vector<Lumina::Token> tokens;
+		std::vector<Lumina::Token> arrayTokens;
+
+		Lumina::Token tokens() const
+		{
+			return (Lumina::Token::merge(arrayTokens, Lumina::Token::Type::Identifier));
+		}
 	};
 
 	struct VariableInfo
@@ -851,6 +867,11 @@ namespace Lumina
 		TypeInfo type;
 		NameInfo name;
 		ArrayInfo arraySizes;
+
+		Lumina::Token tokens() const
+		{
+			return (type.tokens() + name.tokens() + arraySizes.tokens());
+		}
 	};
 
 	struct PipelineFlowInfo
@@ -897,7 +918,24 @@ namespace Lumina
 
 	struct NamespaceDesignation
 	{
-		std::vector<Lumina::Token> tokens;
+		std::vector<Lumina::Token> namespaceTokens;
+
+		Lumina::Token tokens() const
+		{
+			return (Lumina::Token::merge(namespaceTokens, Lumina::Token::Type::Identifier));
+		}
+
+		std::string to_string() const
+		{
+			std::string result = "";
+
+			for (const auto& token : namespaceTokens)
+			{
+				result += token.content;
+			}
+
+			return (result);
+		}
 	};
 
 	struct Expression;
@@ -919,6 +957,8 @@ namespace Lumina
 			{
 
 			}
+
+			virtual Lumina::Token tokens() const = 0;
 		};
 
 		struct ArrayAccessor : public Accessor
@@ -930,6 +970,8 @@ namespace Lumina
 			{
 
 			}
+
+			Lumina::Token tokens() const;
 		};
 
 		struct AttributeAccessor : public Accessor
@@ -941,11 +983,28 @@ namespace Lumina
 			{
 
 			}
+			
+			Lumina::Token tokens() const
+			{
+				return (name.tokens());
+			}
 		};
 
 		NamespaceDesignation nspace;
 		NameInfo name;
 		std::vector<std::shared_ptr<Accessor>> accessors;
+
+		Lumina::Token tokens() const
+		{
+			Lumina::Token result = nspace.tokens() + name.tokens();
+
+			for (const auto& accessor : accessors)
+			{
+				result += accessor->tokens();
+			}
+
+			return (result);
+		}
 	};
 
 	struct Expression
@@ -971,9 +1030,25 @@ namespace Lumina
 			{
 
 			}
+
+			virtual Lumina::Token tokens() const = 0;
 		};
 
 		std::vector<std::shared_ptr<Element>> elements;
+
+		Lumina::Token tokens() const
+		{
+			Lumina::Token result;
+
+			result.type = Lumina::Token::Type::Expression;
+			
+			for (const auto& element : elements)
+			{
+				result += element->tokens();
+			}
+
+			return (result);
+		}
 
 		struct NumberElement : public Expression::Element
 		{
@@ -983,6 +1058,11 @@ namespace Lumina
 				Expression::Element(Type::Number)
 			{
 
+			}
+
+			Lumina::Token tokens() const
+			{
+				return (value);
 			}
 		};
 
@@ -995,6 +1075,21 @@ namespace Lumina
 			{
 
 			}
+
+			std::string variableName() const
+			{
+				std::string result;
+				
+				result += value.nspace.to_string();
+				result += value.name.value.content;
+
+				return (result);
+			}
+
+			Lumina::Token tokens() const
+			{
+				return (value.tokens());
+			}
 		};
 
 		struct ExpressionElement : public Expression::Element
@@ -1006,6 +1101,11 @@ namespace Lumina
 			{
 
 			}
+
+			Lumina::Token tokens() const
+			{
+				return (value->tokens());
+			}
 		};
 
 		struct BooleanElement : public Expression::Element
@@ -1016,6 +1116,11 @@ namespace Lumina
 				Expression::Element(Type::Boolean)
 			{
 
+			}
+
+			Lumina::Token tokens() const
+			{
+				return (value);
 			}
 		};
 
@@ -1030,6 +1135,18 @@ namespace Lumina
 			{
 
 			}
+
+			Lumina::Token tokens() const
+			{
+				Lumina::Token result = nspace.tokens() + name.tokens();
+
+				for (const auto& parameter : parameters)
+				{
+					result += parameter->tokens();
+				}
+
+				return (result);
+			}
 		};
 
 		struct IncrementElement : public Expression::Element
@@ -1040,6 +1157,11 @@ namespace Lumina
 				Expression::Element(Type::Increment)
 			{
 
+			}
+
+			Lumina::Token tokens() const
+			{
+				return (value);
 			}
 		};
 
@@ -1052,19 +1174,41 @@ namespace Lumina
 			{
 
 			}
+
+			Lumina::Token tokens() const
+			{
+				return (value);
+			}
 		};
 
 		struct ArrayDereferencementElement : public Expression::Element
 		{
-			std::vector<Expression::Element*> value;
+			std::vector<Expression::Element*> values;
 
 			ArrayDereferencementElement() :
 				Expression::Element(Type::ArrayDereferencement)
 			{
 
 			}
+
+			Lumina::Token tokens() const
+			{
+				Lumina::Token result;
+
+				for (const auto& value : values)
+				{
+					result += value->tokens();
+				}
+
+				return (result);
+			}
 		};
 	};
+
+	Lumina::Token VariableDesignation::ArrayAccessor::tokens() const
+	{
+		return (expression->tokens());
+	}
 
 	struct VariableDeclaration : public Instruction
 	{
@@ -1209,7 +1353,7 @@ namespace Lumina
 
 		Result _result;
 		std::vector<Token> _tokens;
-		size_t _index;
+		size_t _index = 0;
 		Token _errorToken;
 		std::vector<NamespaceInfo*> _currentNamespace;
 
@@ -1219,15 +1363,15 @@ namespace Lumina
 
 			if (currentToken().type == Token::Type::NamespaceSeparator)
 			{
-				result.tokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
+				result.typeTokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
 			}
 
 			while (tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
 			{
-				result.tokens.push_back(expect(Token::Type::Identifier, "Expected a namespace name." + DEBUG_INFORMATION));
-				result.tokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
+				result.typeTokens.push_back(expect(Token::Type::Identifier, "Expected a namespace name." + DEBUG_INFORMATION));
+				result.typeTokens.push_back(expect(Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
 			}
-			result.tokens.push_back(expect(Token::Type::Identifier, "Expected a type name." + DEBUG_INFORMATION));
+			result.typeTokens.push_back(expect(Token::Type::Identifier, "Expected a type name." + DEBUG_INFORMATION));
 
 			return (result);
 		}
@@ -1239,7 +1383,7 @@ namespace Lumina
 			while (currentToken().type == Token::Type::OpenBracket)
 			{
 				expect(Token::Type::OpenBracket, "Expected a '[' token." + DEBUG_INFORMATION);
-				result.tokens.push_back(expect(Token::Type::Number, "Expected a array size token." + DEBUG_INFORMATION));
+				result.arrayTokens.push_back(expect(Token::Type::Number, "Expected a array size token." + DEBUG_INFORMATION));
 				expect(Token::Type::CloseBracket, "Expected a ']' token." + DEBUG_INFORMATION);
 			}
 
@@ -1287,7 +1431,7 @@ namespace Lumina
 			return (result);
 		}
 
-		bool describeVariableDeclaration()
+		bool describeVariableDeclaration() const
 		{
 			size_t offset = 0;
 
@@ -1302,7 +1446,7 @@ namespace Lumina
 			return (tokenAtOffset(offset).type == Token::Type::Identifier && tokenAtOffset(offset + 1).type == Token::Type::Identifier);
 		}
 
-		bool describeVariableAssignation()
+		bool describeVariableAssignation() const
 		{
 			size_t offset = 0;
 
@@ -1440,12 +1584,12 @@ namespace Lumina
 			NamespaceDesignation result;
 
 			if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
-				result.tokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
+				result.namespaceTokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
 
 			while (currentToken().type == Token::Type::Identifier && tokenAtOffset(1).type == Token::Type::NamespaceSeparator)
 			{
-				result.tokens.push_back(expect(Lumina::Token::Type::Identifier, "Expected a namespace name." + DEBUG_INFORMATION));
-				result.tokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
+				result.namespaceTokens.push_back(expect(Lumina::Token::Type::Identifier, "Expected a namespace name." + DEBUG_INFORMATION));
+				result.namespaceTokens.push_back(expect(Lumina::Token::Type::NamespaceSeparator, "Expected a namespace separator." + DEBUG_INFORMATION));
 			}
 
 			return (result);
@@ -1474,7 +1618,7 @@ namespace Lumina
 			}
 		}
 
-		bool describeSymbolCall()
+		bool describeSymbolCall() const
 		{
 			size_t offset = 0;
 
@@ -2062,7 +2206,7 @@ namespace Lumina
 
 	struct Variable
 	{
-		const Type* type;
+		const Type* type = nullptr;
 		std::string name;
 		std::vector<size_t> arraySizes;
 
@@ -2106,39 +2250,74 @@ namespace Lumina
 	{
 		std::string name;
 		std::set<Variable> attributes;
+		std::set<const Type*> compatibleTypes;
 
 		bool operator<(const Type& p_other) const
 		{
 			return name < p_other.name;
 		}
+
+		bool isCompatible(const Type* p_other) const
+		{
+			if (p_other == this)
+				return (true);
+
+			return (compatibleTypes.contains(p_other));
+		}
+	};
+
+	struct ExpressionType
+	{
+		const Type* type = nullptr;
+		std::vector<size_t> arraySizes;
+
+		std::string to_string() const
+		{
+			std::string result;
+
+			result += (type == nullptr ? "Unknow" : type->name.substr(2));
+
+			for (const auto& size : arraySizes)
+			{
+				result += "[" + std::to_string(size) + "]";
+			}
+
+			return (result);
+		}
+
+		static ExpressionType fromVariable(const Variable& p_variable)
+		{
+			ExpressionType result;
+
+			result.type = p_variable.type;
+			result.arraySizes = p_variable.arraySizes;
+
+			return (result);
+		}
+
+		bool operator ==(const ExpressionType& p_other) const
+		{
+			if (type != p_other.type)
+				return (false);
+			if (arraySizes.size() != p_other.arraySizes.size())
+				return (false);
+			for (size_t i = 0; i < arraySizes.size(); i++)
+			{
+				if (arraySizes[i] != p_other.arraySizes[i])
+					return (false);
+			}
+			return (true);
+		}
+
+		bool operator != (const ExpressionType& p_other) const
+		{
+			return (!(this->operator==(p_other)));
+		}
 	};
 
 	struct Function
 	{
-		struct ReturnType
-		{
-			const Type* type;
-			std::vector<size_t> arraySizes;
-
-			bool operator ==(const ReturnType& p_other) const
-			{
-				if (type != p_other.type)
-					return (false);
-				if (arraySizes.size() != p_other.arraySizes.size())
-					return (false);
-				for (size_t i = 0; i < arraySizes.size(); i++)
-				{
-					if (arraySizes[i] != p_other.arraySizes[i])
-						return (false);
-				}
-				return (true);
-			}
-
-			bool operator != (const ReturnType& p_other) const
-			{
-				return (!(this->operator==(p_other)));
-			}
-		};
+		using ReturnType= ExpressionType;
 
 		bool isPrototype = false;
 		ReturnType returnType;
@@ -2219,7 +2398,7 @@ namespace Lumina
 			return nullptr;
 		}
 
-		const Type* getType(const Lumina::Token& p_nameToken)
+		const Type* getType(const Lumina::Token& p_nameToken) const
 		{
 			const Type* type = lookupTypeInNamespace(p_nameToken.content);
 			if (type != nullptr)
@@ -2247,19 +2426,34 @@ namespace Lumina
 			throw TokenBasedError("Type '" + p_nameToken.content + "' not found in the current scope.", p_nameToken);
 		}
 
-		const Type* getType(const std::vector<Lumina::Token>& p_nameTokens)
+		const Type* getType(const std::vector<Lumina::Token>& p_nameTokens) const
 		{
 			Lumina::Token mergedToken = Lumina::Token::merge(p_nameTokens, Lumina::Token::Type::Identifier);
 
 			return getType(mergedToken);
 		}
 
-		Function::ReturnType parseReturnType(const FunctionInfo::ReturnType& p_returnTypeInfo)
-		{
-			Function::ReturnType result;
 
-			result.type = getType(p_returnTypeInfo.type.tokens);
-			for (const auto& token : p_returnTypeInfo.arraySizes.tokens)
+		Type* lookupTypeInNamespace(const std::string& p_typeName)
+		{
+			return const_cast<Type*>(static_cast<const SemanticChecker*>(this)->lookupTypeInNamespace(p_typeName));
+		}
+
+		Type* getType(const Lumina::Token& p_nameTokens)
+		{
+			return const_cast<Type*>(static_cast<const SemanticChecker*>(this)->getType(p_nameTokens));
+		}
+
+		Type* getType(const std::vector<Lumina::Token>& p_nameTokens)
+		{
+			return const_cast<Type*>(static_cast<const SemanticChecker*>(this)->getType(p_nameTokens));
+		}
+
+		std::vector<size_t> parseArrayInfo(const ArrayInfo& p_arraySizeInfo)
+		{
+			std::vector<size_t> result;
+
+			for (const auto& token : p_arraySizeInfo.arrayTokens)
 			{
 				int arraySize = std::stoi(token.content);
 
@@ -2268,8 +2462,18 @@ namespace Lumina
 					throw TokenBasedError("Array size must be greater than 0. Invalid size found.", token);
 				}
 
-				result.arraySizes.push_back(static_cast<size_t>(arraySize));
+				result.push_back(static_cast<size_t>(arraySize));
 			}
+
+			return (result);
+		}
+
+		Function::ReturnType parseReturnType(const FunctionInfo::ReturnType& p_returnTypeInfo)
+		{
+			Function::ReturnType result;
+
+			result.type = getType(p_returnTypeInfo.type.typeTokens);
+			result.arraySizes = parseArrayInfo(p_returnTypeInfo.arraySizes);
 
 			return (result);
 		}
@@ -2279,18 +2483,8 @@ namespace Lumina
 			Variable result;
 
 			result.name = p_variableInfo.name.value.content;
-			result.type = getType(p_variableInfo.type.tokens);
-			for (const auto& token : p_variableInfo.arraySizes.tokens)
-			{
-				int arraySize = std::stoi(token.content);
-
-				if (arraySize <= 0)
-				{
-					throw TokenBasedError("Array size must be greater than 0. Invalid size found.", token);
-				}
-
-				result.arraySizes.push_back(static_cast<size_t>(arraySize));
-			}
+			result.type = getType(p_variableInfo.type.typeTokens);
+			result.arraySizes = parseArrayInfo(p_variableInfo.arraySizes);
 
 			if (_reservedNames.contains(result.name) == true)
 			{
@@ -2391,7 +2585,7 @@ namespace Lumina
 				throw TokenBasedError("Invalid pipeline flow definition.", p_pipelineFlow.input + p_pipelineFlow.output);
 			}
 
-			if (p_pipelineFlow.variable.arraySizes.tokens.size() != 0)
+			if (p_pipelineFlow.variable.arraySizes.arrayTokens.size() != 0)
 			{
 				throw TokenBasedError("Pipeline flow variable cannot be array variable." + DEBUG_INFORMATION, p_pipelineFlow.variable.name.value);
 			}
@@ -2400,7 +2594,7 @@ namespace Lumina
 
 			if (_standardTypes.contains(*(newPipelineVariable.type)) == false)
 			{
-				throw TokenBasedError("Pipeline flow variable can only be of a standard types." + DEBUG_INFORMATION, Lumina::Token::merge(p_pipelineFlow.variable.type.tokens, Lumina::Token::Type::Identifier));
+				throw TokenBasedError("Pipeline flow variable can only be of a standard types." + DEBUG_INFORMATION, Lumina::Token::merge(p_pipelineFlow.variable.type.typeTokens, Lumina::Token::Type::Identifier));
 			}
 
 			_reservedNames.insert(newPipelineVariable.name);
@@ -2502,9 +2696,176 @@ namespace Lumina
 			_reservedNames.insert(newTexture.name);
 		}
 
+		void handleBoolExpressionElement(ExpressionType& currentExpressionType, std::shared_ptr<Expression::BooleanElement> p_element)
+		{
+			ExpressionType elementType = ExpressionType(lookupTypeInNamespace("::bool"));
+
+			if (currentExpressionType.type == nullptr)
+			{
+				currentExpressionType = elementType;
+			}
+			else
+			{
+				if (elementType.type != currentExpressionType.type || currentExpressionType.arraySizes.size() != 0)
+				{
+					throw TokenBasedError("No convertion found between [" + elementType.to_string() + "] and [" + currentExpressionType.to_string() + "].", p_element->tokens());
+				}
+			}
+		}
+
+		void handleNumberExpressionElement(ExpressionType& currentExpressionType, std::shared_ptr<Expression::NumberElement> p_element)
+		{
+			const Type* numberType = lookupTypeInNamespace(p_element->value.content.find(',') != std::string::npos ? "::float" : "::int");
+			ExpressionType elementType = { numberType, {} };
+
+			if (currentExpressionType.type == nullptr)
+			{
+				currentExpressionType = elementType;
+			}
+			else
+			{
+				if (elementType.type->isCompatible(currentExpressionType.type) == false || currentExpressionType.arraySizes.size() != 0)
+				{
+					throw TokenBasedError("No conversion found between [" + elementType.to_string() + "] and expected [" + currentExpressionType.to_string() + "] type.", p_element->tokens());
+				}
+			}
+		}
+
+		const Variable& getVariable(const VariableDesignation& p_variableDesignation, const std::set<Variable>& p_availableVariables)
+		{
+			std::string variableName = p_variableDesignation.nspace.to_string() + p_variableDesignation.name.value.content;
+
+			{
+				auto it = p_availableVariables.find(Variable{nullptr, variableName, {} });
+				if (it != p_availableVariables.end())
+				{
+					return (*it);
+				}
+			}
+
+			for (size_t i = 0; i < _currentNamespaces.size(); i++)
+			{
+				std::string qualifiedName = "";
+				for (size_t j = 0; j <= i; ++j)
+				{
+					qualifiedName += "::";
+					qualifiedName += _currentNamespaces[j];
+				}
+				qualifiedName += variableName;
+
+				{
+					auto it = p_availableVariables.find(Variable{ nullptr, qualifiedName, {} });
+					if (it != p_availableVariables.end())
+					{
+						return (*it);
+					}
+				}
+			}
+
+			throw TokenBasedError("No variable [" + variableName + "] declared in this scope.", p_variableDesignation.nspace.tokens() + p_variableDesignation.name.value);
+		}
+
+		void handleVariableExpressionElement(ExpressionType& currentExpressionType, std::shared_ptr<Expression::VariableElement> p_element, const std::set<Variable>& p_availableVariables)
+		{
+			ExpressionType elementType = ExpressionType::fromVariable(getVariable(p_element->value, p_availableVariables));
+
+			if (currentExpressionType.type == nullptr)
+			{
+				currentExpressionType = elementType;
+			}
+			else
+			{
+				if (elementType.type == nullptr)
+				{
+					throw TokenBasedError("Unknow expression type.", p_element->tokens());
+				}
+
+				if (elementType.type->isCompatible(currentExpressionType.type) == false || elementType.arraySizes.size() != currentExpressionType.arraySizes.size())
+				{
+					throw TokenBasedError("No conversion found between [" + elementType.to_string() + "] and expected [" + currentExpressionType.to_string() + "] type.", p_element->tokens());
+				}
+			}
+		}
+
+		ExpressionType evaluateExpressionType(std::shared_ptr<Expression> p_expression, const std::set<Variable>& p_availableVariables)
+		{
+			ExpressionType result;
+
+			for (const auto& element : p_expression->elements)
+			{
+				switch (element->type)
+				{
+				case Expression::Element::Type::Boolean:
+				{
+					handleBoolExpressionElement(result, static_pointer_cast<Expression::BooleanElement>(element));
+					break;
+				}
+				case Expression::Element::Type::Number:
+				{
+					handleNumberExpressionElement(result, static_pointer_cast<Expression::NumberElement>(element));
+					break;
+				}
+				case Expression::Element::Type::Variable:
+				{
+					handleVariableExpressionElement(result, static_pointer_cast<Expression::VariableElement>(element), p_availableVariables);
+					break;
+				}
+				case Expression::Element::Type::Expression:
+				{
+
+					break;
+				}
+				case Expression::Element::Type::SymbolCall:
+				{
+
+					break;
+				}
+				case Expression::Element::Type::Operator:
+				{
+
+					break;
+				}
+				case Expression::Element::Type::Increment:
+				{
+
+					break;
+				}
+				case Expression::Element::Type::ArrayDereferencement:
+				{
+
+					break;
+				}
+				}				
+			}
+
+			return (result);
+		}
+
 		void parseVariableDeclaration(std::shared_ptr<VariableDeclaration> p_variableDeclaration, std::set<Variable>& p_availableVariables)
 		{
-			
+			Variable newVariable = parseVariable(p_variableDeclaration->value);
+
+			ExpressionType variableType = ExpressionType::fromVariable(newVariable);
+			ExpressionType initializerType = variableType;
+			if (p_variableDeclaration->initializer != nullptr)
+			{
+				initializerType = evaluateExpressionType(p_variableDeclaration->initializer, p_availableVariables);
+			}
+
+			if (p_availableVariables.contains(newVariable) == true)
+			{
+				throw TokenBasedError("Variable [" + newVariable.name + "] already defined in this scope.", p_variableDeclaration->value.name.value);
+			}
+
+			if (initializerType.type == nullptr)
+			{
+				throw TokenBasedError("Impossible to evaluated assignator type.", p_variableDeclaration->initializer->tokens());
+			}
+
+			if (initializerType.type->isCompatible(variableType.type) == false || initializerType.arraySizes.size() != variableType.arraySizes.size())
+			{
+				throw TokenBasedError("Convertion from [" + initializerType.to_string() + "] to [" + variableType.to_string() + "] is not defined", p_variableDeclaration->initializer->tokens());
+			}
 		}
 
 		void parseVariableAssignation(std::shared_ptr<VariableAssignation> p_variableAssignation, const std::set<Variable>& p_availableVariables)
@@ -2644,7 +3005,6 @@ namespace Lumina
 			std::set<Variable> allAvailableVariables = _globalVariables;
 			allAvailableVariables.insert(newFunction.parameters.begin(), newFunction.parameters.end());
 
-			std::cout << "Parsing function [" << newFunction.name << "] body" << std::endl;
 			parseSymbolBody(p_functionInfo.body, allAvailableVariables);
 		}
 
@@ -2766,7 +3126,6 @@ namespace Lumina
 			}
 			}
 
-			std::cout << "Parsing pipeline body [" << (p_step == PipelineStep::Vertex ? "VertexPass" : "FragmentPass") << "]" << std::endl;
 			parseSymbolBody(p_pipelineBody.body, allAvailableVariables);
 		}
 
@@ -2859,6 +3218,25 @@ namespace Lumina
 					.name = "::uint",
 					.attributes = {}
 				});
+
+			lookupTypeInNamespace("::bool")->compatibleTypes.insert(lookupTypeInNamespace("::int"));
+			lookupTypeInNamespace("::bool")->compatibleTypes.insert(lookupTypeInNamespace("::uint"));
+			lookupTypeInNamespace("::bool")->compatibleTypes.insert(lookupTypeInNamespace("::float"));
+
+
+			lookupTypeInNamespace("::int")->compatibleTypes.insert(lookupTypeInNamespace("::bool"));
+			lookupTypeInNamespace("::int")->compatibleTypes.insert(lookupTypeInNamespace("::uint"));
+			lookupTypeInNamespace("::int")->compatibleTypes.insert(lookupTypeInNamespace("::float"));
+
+
+			lookupTypeInNamespace("::uint")->compatibleTypes.insert(lookupTypeInNamespace("::bool"));
+			lookupTypeInNamespace("::uint")->compatibleTypes.insert(lookupTypeInNamespace("::int"));
+			lookupTypeInNamespace("::uint")->compatibleTypes.insert(lookupTypeInNamespace("::float"));
+
+
+			lookupTypeInNamespace("::float")->compatibleTypes.insert(lookupTypeInNamespace("::bool"));
+			lookupTypeInNamespace("::float")->compatibleTypes.insert(lookupTypeInNamespace("::int"));
+			lookupTypeInNamespace("::float")->compatibleTypes.insert(lookupTypeInNamespace("::uint"));
 		}
 
 		void addVector2Types()
