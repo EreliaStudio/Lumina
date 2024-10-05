@@ -2248,9 +2248,11 @@ namespace Lumina
 
 	struct Type
 	{
+		
 		std::string name;
 		std::set<Variable> attributes;
 		std::set<const Type*> compatibleTypes;
+		std::set<FunctionInfo> methods;
 
 		bool operator<(const Type& p_other) const
 		{
@@ -2787,6 +2789,11 @@ namespace Lumina
 			}
 		}
 
+		void handleOperatorExpressionElement(ExpressionType& currentExpressionType, std::shared_ptr<Expression::OperatorElement> p_element)
+		{
+			
+		}
+
 		ExpressionType evaluateExpressionType(std::shared_ptr<Expression> p_expression, const std::set<Variable>& p_availableVariables)
 		{
 			ExpressionType result;
@@ -2812,17 +2819,17 @@ namespace Lumina
 				}
 				case Expression::Element::Type::Expression:
 				{
-
+					
 					break;
 				}
 				case Expression::Element::Type::SymbolCall:
 				{
-
+					
 					break;
 				}
 				case Expression::Element::Type::Operator:
 				{
-
+					handleOperatorExpressionElement(result, static_pointer_cast<Expression::OperatorElement>(element));
 					break;
 				}
 				case Expression::Element::Type::Increment:
@@ -3291,6 +3298,15 @@ namespace Lumina
 						)
 					}
 				});
+
+			lookupTypeInNamespace("::Vector2Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2UInt"));
+			lookupTypeInNamespace("::Vector2Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2"));
+
+			lookupTypeInNamespace("::Vector2UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2Int"));
+			lookupTypeInNamespace("::Vector2UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2"));
+
+			lookupTypeInNamespace("::Vector2")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2Int"));
+			lookupTypeInNamespace("::Vector2")->compatibleTypes.insert(lookupTypeInNamespace("::Vector2UInt"));
 		}
 
 		void addVector3Types()
@@ -3360,6 +3376,15 @@ namespace Lumina
 						)
 					}
 				});
+
+			lookupTypeInNamespace("::Vector3Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3UInt"));
+			lookupTypeInNamespace("::Vector3Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3"));
+
+			lookupTypeInNamespace("::Vector3UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3Int"));
+			lookupTypeInNamespace("::Vector3UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3"));
+
+			lookupTypeInNamespace("::Vector3")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3Int"));
+			lookupTypeInNamespace("::Vector3")->compatibleTypes.insert(lookupTypeInNamespace("::Vector3UInt"));
 		}
 
 		void addVector4Types()
@@ -3444,6 +3469,15 @@ namespace Lumina
 						)
 					}
 				});
+
+			lookupTypeInNamespace("::Vector4Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4UInt"));
+			lookupTypeInNamespace("::Vector4Int")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4"));
+
+			lookupTypeInNamespace("::Vector4UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4Int"));
+			lookupTypeInNamespace("::Vector4UInt")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4"));
+
+			lookupTypeInNamespace("::Vector4")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4Int"));
+			lookupTypeInNamespace("::Vector4")->compatibleTypes.insert(lookupTypeInNamespace("::Vector4UInt"));
 		}
 
 		void addLuminaTypes()
@@ -3472,14 +3506,16 @@ namespace Lumina
 							"a",
 							{}
 						)
-					}
+					},
+					.compatibleTypes = {}
 				});
 
 			addStandardType(
 				{
 					.name = "::Texture",
 					.attributes = {
-					}
+					},
+					.compatibleTypes = {}
 				});
 		}
 
@@ -3488,19 +3524,22 @@ namespace Lumina
 			_types.insert(
 				{
 					.name = "::Matrix2x2",
-					.attributes = {}  // No attributes
+					.attributes = {},  // No attributes
+					.compatibleTypes = {}
 				});
 
 			_types.insert(
 				{
 					.name = "::Matrix3x3",
-					.attributes = {}  // No attributes
+					.attributes = {},  // No attributes
+					.compatibleTypes = {}
 				});
 
 			_types.insert(
 				{
 					.name = "::Matrix4x4",
-					.attributes = {}  // No attributes
+					.attributes = {},  // No attributes
+					.compatibleTypes = {}
 				});
 		}
 
