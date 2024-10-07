@@ -148,6 +148,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\token.cpp" />
+    <ClCompile Include="src\tokenizer.cpp" />
+    <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="predefined_import\attribute\attributeA.lum" />
@@ -160,6 +163,12 @@
     <None Include="predefined_import\structure\structureA.lum" />
     <None Include="shader\shader.lum" />
     <None Include="shader\test.lum" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\expected.hpp" />
+    <ClInclude Include="include\token.hpp" />
+    <ClInclude Include="include\tokenizer.hpp" />
+    <ClInclude Include="include\utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
