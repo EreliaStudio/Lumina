@@ -15,15 +15,9 @@ namespace Lumina
 
 		Parser() = default;
 
-		Result _parse(const Lexer::Output& p_input)
-		{
-			return (_result);
-		}
+		Result _parse(const Lexer::Output& p_input);
 
 	public:
-		static Result parse(const Lexer::Output& p_input)
-		{
-			return (Parser()._parse(p_input));
-		}
+		static Result parse(const Lexer::Output& p_input);
 	};
 }

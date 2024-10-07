@@ -18,15 +18,9 @@ namespace Lumina
 
 		Lexer() = default;
 
-		Result _lex(const std::vector<Lumina::Token>& p_tokens)
-		{
-			return (_result);
-		}
+		Result _lex(const std::vector<Lumina::Token>& p_tokens);
 
 	public:
-		static Result lex(const std::vector<Lumina::Token>& p_tokens)
-		{
-			return (Lexer()._lex(p_tokens));
-		}
+		static Result lex(const std::vector<Lumina::Token>& p_tokens);
 	};
 }
