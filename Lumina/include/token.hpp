@@ -38,6 +38,7 @@ namespace Lumina
 			CloseParenthesis, // ')'
 			Accessor, // '.'
 			Comment, // Comments: "//" until end of line or "/* */"
+			OperatorKeyword, // "operator"
 			Operator, // Operators: +, -, *, /, etc.
 			ComparatorOperator, // Operators: <, >, >=, <=, == and !=.
 			Return, // "return"

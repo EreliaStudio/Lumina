@@ -1,5 +1,6 @@
 #include "tokenizer.hpp"
 
+#include <iostream>
 
 namespace Lumina
 {
@@ -198,7 +199,7 @@ namespace Lumina
 				tokenStr = parseComment(p_inputCode, index);
 				tokenType = Token::Type::Comment;
 			}
-			else if (p_inputCode[index] == '<')
+			else if (p_inputCode[index] == '<' && p_inputCode[index + 1] != '=')
 			{
 				size_t beginIndex = index;
 				tokenStr = parseIncludeLiterals(p_inputCode, index);
@@ -223,6 +224,10 @@ namespace Lumina
 				else if (tokenStr == "struct")
 				{
 					tokenType = Token::Type::StructureBlock;
+				}
+				else if (tokenStr == "operator")
+				{
+					tokenType = Token::Type::OperatorKeyword;
 				}
 				else if (tokenStr == "AttributeBlock")
 				{

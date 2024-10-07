@@ -75,6 +75,7 @@ namespace Lumina
 		case Token::Type::Accessor: return "Accessor";
 		case Token::Type::Comment: return "Comment";
 		case Token::Type::BoolStatement: return "BoolStatement";
+		case Token::Type::OperatorKeyword: return "OperatorKeyword";
 		case Token::Type::Operator: return "Operator";
 		case Token::Type::ComparatorOperator: return "ComparatorOperator";
 		case Token::Type::Return: return "Return";

@@ -147,7 +147,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\compiler.cpp" />
+    <ClCompile Include="src\lexer.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\parser.cpp" />
     <ClCompile Include="src\token.cpp" />
     <ClCompile Include="src\tokenizer.cpp" />
     <ClCompile Include="src\utils.cpp" />
@@ -165,7 +168,11 @@
     <None Include="shader\test.lum" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\compiler.hpp" />
     <ClInclude Include="include\expected.hpp" />
+    <ClInclude Include="include\lexer.hpp" />
+    <ClInclude Include="include\parser.hpp" />
+    <ClInclude Include="include\shader_info.hpp" />
     <ClInclude Include="include\token.hpp" />
     <ClInclude Include="include\tokenizer.hpp" />
     <ClInclude Include="include\utils.hpp" />

@@ -1,6 +1,6 @@
-
 VertexPass()
 {
+	int value = 43;
 }
 
 FragmentPass()
