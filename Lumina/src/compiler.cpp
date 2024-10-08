@@ -10,7 +10,7 @@ namespace Lumina
 
 	ShaderImpl Compiler::_compile(const Parser::Output& p_input)
 	{
-		return (_result);
+		return (_product);
 	}
 
 	ShaderImpl Compiler::compile(const Parser::Output& p_input)

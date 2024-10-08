@@ -51,6 +51,16 @@ struct StructName
     float variableA;
     Vector3 variableB;
     Vector4 variableC;
+
+	Type method(ParamTypeA valueA, ParamTypeB& valueBAsReference)
+    {
+    }
+
+    // Operator definition inside a structure
+    operator + (TypeB other)
+    {
+        
+    }
 };
 ```
 
@@ -62,6 +72,7 @@ AttributeBlock attributeBlockName
     int variableName;
 };
 ```
+- AttributeBlock share the same structure as Struct for defining methods and operator overloads.
 
 ### Constant Blocks
 - Define uniform blocks for information shared across all calls.
@@ -71,6 +82,7 @@ ConstantBlock constantBlockName
     float variableName;
 };
 ```
+- ConstantBlock share the same structure as Struct for defining methods and operator overloads.
 
 ### Texture variable
 - Define 2D texture object

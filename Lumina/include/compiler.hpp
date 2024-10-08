@@ -14,7 +14,7 @@ namespace Lumina
 	struct Compiler
 	{
 	private:
-		ShaderImpl _result;
+		ShaderImpl _product;
 
 		Compiler() = default;
 

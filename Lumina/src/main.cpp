@@ -28,31 +28,31 @@ int main(int argc, char** argv)
 		return (-1);
 	}
 
-	Lumina::Lexer::Result lexerResult = Lumina::Lexer::lex(tokens);
+	Lumina::Lexer::Product lexerProduct = Lumina::Lexer::lex(tokens);
 
-	if (lexerResult.errors.size() != 0)
+	if (lexerProduct.errors.size() != 0)
 	{
-		for (const auto& error : lexerResult.errors)
+		for (const auto& error : lexerProduct.errors)
 		{
 			std::cerr << error.what() << std::endl;
 		}
 		return (-1);
 	}
 
-	Lumina::Parser::Result parserResult = Lumina::Parser::parse(lexerResult.value);
+	Lumina::Parser::Product parserProduct = Lumina::Parser::parse(lexerProduct.value);
 
-	if (parserResult.errors.size() != 0)
+	if (parserProduct.errors.size() != 0)
 	{
-		for (const auto& error : parserResult.errors)
+		for (const auto& error : parserProduct.errors)
 		{
 			std::cerr << error.what() << std::endl;
 		}
 		return (-1);
 	}
 
-	Lumina::ShaderImpl compilerResult = Lumina::Compiler::compile(parserResult.value);
+	Lumina::ShaderImpl compilerProduct = Lumina::Compiler::compile(parserProduct.value);
 
-	std::cout << "Shader : " << std::endl << compilerResult << std::endl;
+	std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
 
 	return (0);
 }

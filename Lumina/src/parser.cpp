@@ -2,12 +2,12 @@
 
 namespace Lumina
 {
-	Parser::Result Parser::_parse(const Lexer::Output& p_input)
+	Parser::Product Parser::_parse(const Lexer::Output& p_input)
 	{
-		return (_result);
+		return (_product);
 	}
 
-	Parser::Result Parser::parse(const Lexer::Output& p_input)
+	Parser::Product Parser::parse(const Lexer::Output& p_input)
 	{
 		return (Parser()._parse(p_input));
 	}

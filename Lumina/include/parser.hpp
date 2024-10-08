@@ -8,16 +8,16 @@ namespace Lumina
 	{
 	public:
 		using Output = ShaderInfo;
-		using Result = Lumina::Expected<Output>;
+		using Product = Lumina::Expected<Output>;
 
 	private:
-		Result _result;
+		Product _product;
 
 		Parser() = default;
 
-		Result _parse(const Lexer::Output& p_input);
+		Product _parse(const Lexer::Output& p_input);
 
 	public:
-		static Result parse(const Lexer::Output& p_input);
+		static Product parse(const Lexer::Output& p_input);
 	};
 }
