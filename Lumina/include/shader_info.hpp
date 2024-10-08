@@ -30,6 +30,14 @@ namespace Lumina
 		ArraySizeInfo arraySizes;
 	};
 
+	struct ParameterInfo
+	{
+		TypeInfo type;
+		bool isReference;
+		NameInfo name;
+		ArraySizeInfo arraySizes;
+	};
+
 	struct SymbolBodyInfo
 	{
 
@@ -45,7 +53,7 @@ namespace Lumina
 	{
 		ExpressionTypeInfo returnType;
 		Lumina::Token name;
-		std::vector<VariableInfo> parameters;
+		std::vector<ParameterInfo> parameters;
 		SymbolBodyInfo body;
 	};
 
@@ -53,7 +61,7 @@ namespace Lumina
 	{
 		ExpressionTypeInfo returnType;
 		Lumina::Token opeType;
-		std::vector<VariableInfo> parameters;
+		std::vector<ParameterInfo> parameters;
 		SymbolBodyInfo body;
 	};
 
@@ -76,6 +84,8 @@ namespace Lumina
 		std::vector<BlockInfo> structureBlocks;
 		std::vector<BlockInfo> attributeBlocks;
 		std::vector<BlockInfo> constantBlocks;
+
+		std::vector<VariableInfo> textureInfos;
 
 		std::map<std::string, std::vector<FunctionInfo>> functionInfos;
 
