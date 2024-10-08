@@ -61,8 +61,8 @@ namespace Lumina
 	{
 		Lumina::Token name;
 		std::vector<VariableInfo> attributes;
-		std::vector<FunctionInfo> methods;
-		std::vector<OperatorInfo> operators;
+		std::map<std::string, std::vector<FunctionInfo>> methodInfos;
+		std::map<std::string, std::vector<FunctionInfo>> operatorInfos;
 	};
 
 	struct PipelinePassInfo
