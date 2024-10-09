@@ -41,11 +41,10 @@ namespace Lumina
 			Comment, // Comments: "//" until end of line or "/* */"
 			OperatorKeyword, // "operator"
 			Operator, // Operators: +, -, *, /, etc.
-			ComparatorOperator, // Operators: <, >, >=, <=, == and !=.
 			Return, // "return"
 			Discard, // "discard"
 			BoolStatement, // "true" or "false"
-			ConditionOperator, // Operator || and &&
+			ForStatement, // "for"
 			IfStatement, // "if"
 			WhileStatement, // "while"
 			ElseStatement, // "else"

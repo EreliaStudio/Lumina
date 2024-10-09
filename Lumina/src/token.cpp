@@ -77,10 +77,9 @@ namespace Lumina
 		case Token::Type::BoolStatement: return "BoolStatement";
 		case Token::Type::OperatorKeyword: return "OperatorKeyword";
 		case Token::Type::Operator: return "Operator";
-		case Token::Type::ComparatorOperator: return "ComparatorOperator";
 		case Token::Type::Return: return "Return";
 		case Token::Type::Discard: return "Discard";
-		case Token::Type::ConditionOperator: return "ConditionOperator";
+		case Token::Type::ForStatement: return "ForStatement";
 		case Token::Type::IfStatement: return "IfStatement";
 		case Token::Type::WhileStatement: return "WhileStatement";
 		case Token::Type::ElseStatement: return "ElseStatement";

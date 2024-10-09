@@ -96,7 +96,7 @@ namespace Lumina
 		return result;
 	}
 
-	SymbolBodyInfo Lexer::parseSymbolBody()
+	/*SymbolBodyInfo Lexer::parseSymbolBody()
 	{
 		SymbolBodyInfo result;
 
@@ -126,7 +126,7 @@ namespace Lumina
 		}
 
 		return result;
-	}
+	}*/
 
 	FunctionInfo Lexer::parseFunctionInfo()
 	{
@@ -158,7 +158,7 @@ namespace Lumina
 		OperatorInfo result;
 
 		expect(Lumina::Token::Type::OperatorKeyword, "Expected 'operator' keyword.");
-		result.opeType = expect({ Lumina::Token::Type::Operator, Lumina::Token::Type::ComparatorOperator, Lumina::Token::Type::ConditionOperator}, "Expected an operator token.");
+		result.opeType = expect(Lumina::Token::Type::Operator, "Expected an operator token.");
 
 		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for operator parameters.");
 		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)

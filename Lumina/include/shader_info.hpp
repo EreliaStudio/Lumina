@@ -56,6 +56,7 @@ namespace Lumina
     struct VariableExpression;
     struct BinaryExpression;
     struct UnaryExpression;
+    struct PostfixExpression;
     struct FunctionCallExpression;
     struct MemberAccessExpression;
     struct ArrayAccessExpression;
@@ -66,6 +67,7 @@ namespace Lumina
         VariableExpression,
         BinaryExpression,
         UnaryExpression,
+        PostfixExpression,
         FunctionCallExpression,
         MemberAccessExpression,
         ArrayAccessExpression,
@@ -96,6 +98,12 @@ namespace Lumina
     {
         Token operatorToken;
         std::shared_ptr<Expression> operand;
+    };
+
+    struct PostfixExpression
+    {
+        std::shared_ptr<Expression> operand;
+        Token operatorToken;
     };
 
     struct FunctionCallExpression

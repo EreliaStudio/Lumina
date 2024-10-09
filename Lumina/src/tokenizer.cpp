@@ -211,7 +211,7 @@ namespace Lumina
 				{
 					index = beginIndex;
 					tokenStr = parseSpecialToken(p_inputCode, index, std::string(1, p_inputCode[index]));
-					tokenType = Token::Type::ComparatorOperator;
+					tokenType = Token::Type::Operator;
 				}
 			}
 			else if (isIdentifierStart(p_inputCode[index]))
@@ -244,6 +244,10 @@ namespace Lumina
 				else if (tokenStr == "namespace")
 				{
 					tokenType = Token::Type::Namespace;
+				}
+				else if (tokenStr == "for")
+				{
+					tokenType = Token::Type::ForStatement;
 				}
 				else if (tokenStr == "if")
 				{
@@ -301,7 +305,7 @@ namespace Lumina
 					if (p_inputCode.substr(index, op.size()) == op)
 					{
 						tokenStr = parseSpecialToken(p_inputCode, index, op);
-						tokenType = Token::Type::ComparatorOperator;
+						tokenType = Token::Type::Operator;
 						foundOperator = true;
 						break;
 					}
@@ -314,7 +318,7 @@ namespace Lumina
 					if (p_inputCode.substr(index, op.size()) == op)
 					{
 						tokenStr = parseSpecialToken(p_inputCode, index, op);
-						tokenType = Token::Type::ConditionOperator;
+						tokenType = Token::Type::Operator;
 						foundConditionOperator = true;
 						break;
 					}
@@ -392,7 +396,7 @@ namespace Lumina
 					case '<':
 					case '>':
 						tokenStr = parseSpecialToken(p_inputCode, index, std::string(1, p_inputCode[index]));
-						tokenType = Token::Type::ComparatorOperator;
+						tokenType = Token::Type::Operator;
 						break;
 					case '+':
 					case '-':

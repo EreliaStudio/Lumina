@@ -5,7 +5,27 @@ struct Test
 
 VertexPass()
 {
+	int value = 42 * 32;
 
+	if (value[3].value[myFunction()] == test)
+	{
+		value = myFunction(variableA, 45, "ceci est un test");
+	}
+	else if (true)
+	{
+	
+	}
+	else 
+	{
+	
+	}
+	;;;;;;;;;;;
+	for (int i = 0; i < 10; i++)
+	{
+	
+	}
+
+	return (value);
 }
 
 FragmentPass()
