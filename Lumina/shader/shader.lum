@@ -34,6 +34,8 @@ FragmentPass()
     Vector3 normal = normalize(fragNormal);
     Vector3 lightDir = normalize(lightingConstants.lightPosition - fragPosition);
 
+    raiseException("Coucou", 40);
+
     // Ambient and diffuse lighting
     Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor;
     float diff = max(dot(normal, lightDir), 0.0);

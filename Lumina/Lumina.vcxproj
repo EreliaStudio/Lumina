@@ -152,6 +152,7 @@
     <ClCompile Include="src\lexer_symbol_body.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser.cpp" />
+    <ClCompile Include="src\printer.cpp" />
     <ClCompile Include="src\token.cpp" />
     <ClCompile Include="src\tokenizer.cpp" />
     <ClCompile Include="src\utils.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="include\expected.hpp" />
     <ClInclude Include="include\lexer.hpp" />
     <ClInclude Include="include\parser.hpp" />
+    <ClInclude Include="include\printer.hpp" />
     <ClInclude Include="include\shader_info.hpp" />
     <ClInclude Include="include\token.hpp" />
     <ClInclude Include="include\tokenizer.hpp" />

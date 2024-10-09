@@ -39,6 +39,9 @@
     <ClCompile Include="src\lexer_symbol_body.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\printer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\test.lum" />
@@ -75,6 +78,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\shader_info.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\printer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
