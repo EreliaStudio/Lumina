@@ -3,22 +3,27 @@
 
 namespace Lumina
 {
-	// Define the empty token
-	const Lumina::Token Lexer::_emptyToken = Lumina::Token();
-
-	TypeInfo Lexer::parseTypeInfo()
+	NamespaceDesignation Lexer::parseNamespaceDesignation()
 	{
-		TypeInfo result;
+		NamespaceDesignation result;
 
 		if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
 			advance();
 
 		while (peekNext().type == Lumina::Token::Type::NamespaceSeparator)
 		{
-			result.nspace.push_back(expect(Lumina::Token::Type::Identifier, "Expected namespace identifier."));
+			result.push_back(expect(Lumina::Token::Type::Identifier, "Expected namespace identifier."));
 			advance();
 		}
 
+		return result;
+	}
+
+	TypeInfo Lexer::parseTypeInfo()
+	{
+		TypeInfo result;
+
+		result.nspace = parseNamespaceDesignation();
 		result.value = expect(Lumina::Token::Type::Identifier, "Expected type identifier.");
 
 		return result;
@@ -176,28 +181,23 @@ namespace Lumina
 	{
 		size_t offset = 0;
 
-		// Allow "::" at the beginning for global namespace or nested types.
 		if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
 		{
 			offset++;
 		}
 
-		// Parse through a sequence of identifiers (type or namespace names).
 		while (tokenAtOffset(offset).type == Lumina::Token::Type::Identifier &&
 			tokenAtOffset(offset + 1).type == Lumina::Token::Type::NamespaceSeparator)
 		{
-			// Move past the identifier and the "::"
 			offset += 2;
 		}
 
-		// After parsing the potential namespace/type chain, expect an identifier for the method name.
 		const Lumina::Token& methodNameToken = tokenAtOffset(offset);
 		if (methodNameToken.type != Lumina::Token::Type::Identifier)
 		{
 			return false;
 		}
 
-		// The token after the method name should be an open parenthesis, indicating method parameters.
 		const Lumina::Token& afterMethodName = tokenAtOffset(offset + 1);
 		return (afterMethodName.type == Lumina::Token::Type::OpenParenthesis);
 	}
@@ -206,31 +206,33 @@ namespace Lumina
 	{
 		size_t offset = 0;
 
-		// Allow "::" at the beginning for global namespace or nested types.
 		if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
 		{
 			offset++;
 		}
 
-		// Parse through a sequence of identifiers (type or namespace names).
 		while (tokenAtOffset(offset).type == Lumina::Token::Type::Identifier &&
 			tokenAtOffset(offset + 1).type == Lumina::Token::Type::NamespaceSeparator)
 		{
-			// Move past the identifier and the "::"
 			offset += 2;
 		}
 
-		// After parsing the potential namespace/type chain, expect an identifier for the variable name.
-		const Lumina::Token& nameToken = tokenAtOffset(offset);
-		if (nameToken.type != Lumina::Token::Type::Identifier)
+		if (tokenAtOffset(offset).type != Lumina::Token::Type::Identifier)
 		{
 			return false;
 		}
+		offset++;
 
-		// Check for possible array sizes or an end-of-sentence ';' to indicate a variable declaration.
-		const Lumina::Token& nextToken = tokenAtOffset(offset + 1);
-		return (nextToken.type == Lumina::Token::Type::OpenBracket ||
-			nextToken.type == Lumina::Token::Type::EndOfSentence);
+		if (tokenAtOffset(offset).type != Lumina::Token::Type::Identifier)
+		{
+			return false;
+		}
+		offset++;
+
+		if (tokenAtOffset(offset).type == Lumina::Token::Type::EndOfSentence ||
+			tokenAtOffset(offset).type == Lumina::Token::Type::OpenBracket)
+			return (true);
+		return (false);
 	}
 
 	BlockInfo Lexer::parseBlockInfo()
@@ -258,6 +260,7 @@ namespace Lumina
 				else if (describeVariableInfo())
 				{
 					result.attributes.push_back(parseVariableInfo());
+					expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end block attribute definition.");
 				}
 				else
 				{
@@ -267,10 +270,12 @@ namespace Lumina
 			catch (TokenBasedError& e)
 			{
 				_product.errors.push_back(e);
+				skipLine();
 			}
 			
 		}
 		expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' to end block.");
+		expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end block.");
 
 		return result;
 	}
@@ -424,13 +429,14 @@ namespace Lumina
 		return result;
 	}
 
-
-
 	Lexer::Product Lexer::_lex(const std::vector<Lumina::Token>& p_tokens)
 	{
 		_tokens = p_tokens;
 		_index = 0;
 		_product = Product();
+
+		_emptyToken = Lumina::Token();
+		_emptyToken.context.originFile = p_tokens.at(0).context.originFile;
 
 		_product.value = parseShaderInfo();
 
@@ -483,7 +489,7 @@ namespace Lumina
 
 	void Lexer::skipLine()
 	{
-		while (hasTokenLeft() && currentToken().context.line == _tokens[_index + 1].context.line)
+		while (hasTokenLeft(1) && currentToken().context.line == _tokens[_index + 1].context.line)
 		{
 			advance();
 		}

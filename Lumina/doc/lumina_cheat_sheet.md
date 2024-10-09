@@ -57,7 +57,7 @@ struct StructName
     }
 
     // Operator definition inside a structure
-    operator + (TypeB other)
+    Type operator + (TypeB other)
     {
         
     }

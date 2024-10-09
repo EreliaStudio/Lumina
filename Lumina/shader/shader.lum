@@ -1,8 +1,14 @@
+struct Test
+{
+	int value;
+};
+
 VertexPass()
 {
-	int value = 43;
+
 }
 
 FragmentPass()
 {
+
 }
