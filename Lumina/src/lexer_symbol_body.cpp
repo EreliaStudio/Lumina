@@ -33,7 +33,11 @@ namespace Lumina
         {
             try
             {
-                if (currentToken().type == Lumina::Token::Type::EndOfSentence)
+                if (currentToken().type == Lumina::Token::Type::Comment)
+                {
+                    skipToken();
+                }
+                else if (currentToken().type == Lumina::Token::Type::EndOfSentence)
                 {
                     skipToken();
                 }
@@ -307,7 +311,7 @@ namespace Lumina
             }
             else
             {
-                result.statements.push_back(std::make_shared<Statement>(parseStatement()));
+                result.statements.push_back(parseStatement());
             }
         }
 

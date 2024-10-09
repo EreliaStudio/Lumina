@@ -134,7 +134,7 @@ namespace Lumina
 
 		result.returnType.type = parseTypeInfo();
 
-		result.name = expect(Lumina::Token::Type::Identifier, "Expected function name.");
+		result.name = parseNameInfo();
 
 		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters.");
 		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
@@ -240,7 +240,7 @@ namespace Lumina
 		BlockInfo result;
 
 		expect({Lumina::Token::Type::StructureBlock, Lumina::Token::Type:: AttributeBlock, Lumina::Token::Type::ConstantBlock}, "Expected a valid block definition token.");
-		result.name = expect(Lumina::Token::Type::Identifier, "Expected block name.");
+		result.name = parseNameInfo();
 		
 		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start block.");
 		while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
@@ -250,7 +250,7 @@ namespace Lumina
 				if (describeFunction())
 				{
 					FunctionInfo methodInfo = parseFunctionInfo();
-					result.methodInfos[methodInfo.name.content].push_back(std::move(methodInfo));
+					result.methodInfos[methodInfo.name.value.content].push_back(std::move(methodInfo));
 				}
 				else if (currentToken().type == Lumina::Token::Type::OperatorKeyword)
 				{
@@ -317,7 +317,7 @@ namespace Lumina
 		NamespaceInfo result;
 
 		expect(Lumina::Token::Type::Namespace, "Expected 'namespace' token.");
-		result.name = expect(Lumina::Token::Type::Identifier, "Expected namespace name.");
+		result.name = parseNameInfo();
 		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start namespace body.");
 
 		while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
@@ -347,7 +347,7 @@ namespace Lumina
 				else if (describeFunction() == true)
 				{
 					FunctionInfo functionInfo = parseFunctionInfo();
-					result.functionInfos[functionInfo.name.content].push_back(std::move(functionInfo));
+					result.functionInfos[functionInfo.name.value.content].push_back(std::move(functionInfo));
 				}
 				else
 				{
@@ -374,6 +374,10 @@ namespace Lumina
 		{
 			try
 			{
+				if (currentToken().type == Lumina::Token::Type::Comment)
+				{
+					skipToken();
+				}
 				if (currentToken().type == Lumina::Token::Type::PipelineFlow)
 				{
 					if (peekNext().type == Lumina::Token::Type::PipelineFlowSeparator)
@@ -408,7 +412,7 @@ namespace Lumina
 				else if (describeFunction() == true)
 				{
 					FunctionInfo functionInfo = parseFunctionInfo();
-					result.anonymNamespace.functionInfos[functionInfo.name.content].push_back(std::move(functionInfo));
+					result.anonymNamespace.functionInfos[functionInfo.name.value.content].push_back(std::move(functionInfo));
 				}
 				else if (currentToken().type == Lumina::Token::Type::Namespace)
 				{

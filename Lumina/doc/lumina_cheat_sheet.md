@@ -12,6 +12,27 @@ Lumina is a wrapper around GLSL behavior, designed to simplify the creation of s
 #include "shader/userProvidedInclude.lum"
 ```
 
+### Native types
+- Scalar types :
+    - int : equivalent of the int32_t of C++.
+    - uint : equivalent of the uint32_t of C++.
+    - float : equivalent of the float32_t of C++.
+    - bool : a boolean.
+
+- Vectors :
+    - Vector2, Vector2Int and Vector2UInt : representation of a 2D point using float, int and uint.
+    - Vector3, Vector3Int and Vector3UInt : representation of a 3D point using float, int and uint.
+    - Vector4, Vector4Int and Vector4UInt : representation of a 4D point using float, int and uint.
+
+- Matrix :
+    - Matrix2x2 : a matrix of 4 float.
+    - Matrix3x3 : a matrix of 9 float.
+    - Matrix4x4 : a matrix of 16 float.
+
+- Lumina types :
+    - Color : a 4 float representation of a color.
+    - Texture : a representation of a 2D texture, with a method "getPixel(Vector2 UV)" to retreive a Color.
+
 ### Pipeline Flow
 - Define data flow between shader stages.
 - Available pipeline flow :

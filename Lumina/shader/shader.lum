@@ -1,34 +1,46 @@
-struct Test
+// Define the pipeline flow
+Input -> VertexPass: Vector3 vertexPosition;
+Input -> VertexPass: Vector3 vertexNormal;
+Input -> VertexPass: Vector2 vertexUV;
+VertexPass -> FragmentPass: Vector3 fragPosition;
+VertexPass -> FragmentPass: Vector3 fragNormal;
+VertexPass -> FragmentPass: Vector2 fragUV;
+FragmentPass -> Output: Vector4 finalColor;
+
+// Define a texture
+Texture diffuseTexture;
+
+// Define constant blocks
+ConstantBlock lightingConstants
 {
-	int value;
+    Vector3 lightPosition;
+    Vector3 lightColor;
+    float ambientIntensity;
 };
 
+// Define the vertex shader stage
 VertexPass()
 {
-	int value = 42 * 32;
-
-	if (value[3].value[myFunction()] == test)
-	{
-		value = myFunction(variableA, 45, "ceci est un test");
-	}
-	else if (true)
-	{
-	
-	}
-	else 
-	{
-	
-	}
-	;;;;;;;;;;;
-	for (int i = 0; i < 10; i++)
-	{
-	
-	}
-
-	return (value);
+    Vector4 worldPosition = Vector4(vertexPosition, 1.0);
+    fragPosition = worldPosition.xyz;
+    fragNormal = vertexNormal;
+    fragUV = vertexUV;
+    pixelPosition = worldPosition;
 }
 
+// Define the fragment shader stage
 FragmentPass()
 {
+    Vector3 normal = normalize(fragNormal);
+    Vector3 lightDir = normalize(lightingConstants.lightPosition - fragPosition);
 
+    // Ambient and diffuse lighting
+    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor;
+    float diff = max(dot(normal, lightDir), 0.0);
+    Vector3 diffuse = diff * lightingConstants.lightColor;
+
+    Vector4 textureColor = getPixel(diffuseTexture, fragUV);
+    Vector3 finalColorRGB = (ambient + diffuse) * textureColor.rgb;
+    
+    finalColor = Vector4(finalColorRGB, textureColor.a);
 }

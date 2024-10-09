@@ -220,7 +220,7 @@ namespace Lumina
 
     struct CompoundStatement
     {
-        std::vector<std::shared_ptr<Statement>> statements;
+        std::vector<Statement> statements;
     };
 
 	//
@@ -236,7 +236,7 @@ namespace Lumina
 	struct FunctionInfo
 	{
 		ExpressionTypeInfo returnType;
-		Lumina::Token name;
+		NameInfo name;
 		std::vector<ParameterInfo> parameters;
 		SymbolBodyInfo body;
 	};
@@ -251,7 +251,7 @@ namespace Lumina
 
 	struct BlockInfo
 	{
-		Lumina::Token name;
+        NameInfo name;
 		std::vector<VariableInfo> attributes;
 		std::map<std::string, std::vector<FunctionInfo>> methodInfos;
 		std::map<std::string, std::vector<OperatorInfo>> operatorInfos;
@@ -259,7 +259,7 @@ namespace Lumina
 
 	struct NamespaceInfo
 	{
-		Lumina::Token name;
+        NameInfo name;
 		std::vector<BlockInfo> structureBlocks;
 		std::vector<BlockInfo> attributeBlocks;
 		std::vector<BlockInfo> constantBlocks;
