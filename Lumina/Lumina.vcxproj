@@ -175,6 +175,8 @@
     <ClInclude Include="include\lexer.hpp" />
     <ClInclude Include="include\parser.hpp" />
     <ClInclude Include="include\printer.hpp" />
+    <ClInclude Include="include\shader_code.hpp" />
+    <ClInclude Include="include\shader_impl.hpp" />
     <ClInclude Include="include\shader_info.hpp" />
     <ClInclude Include="include\token.hpp" />
     <ClInclude Include="include\tokenizer.hpp" />

@@ -96,38 +96,6 @@ namespace Lumina
 		return result;
 	}
 
-	/*SymbolBodyInfo Lexer::parseSymbolBody()
-	{
-		SymbolBodyInfo result;
-
-		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start symbol body.");
-
-		size_t openBraces = 1;
-
-		while (openBraces > 0 && hasTokenLeft())
-		{
-			if (currentToken().type == Lumina::Token::Type::OpenCurlyBracket)
-			{
-				openBraces++;
-			}
-			else if (currentToken().type == Lumina::Token::Type::CloseCurlyBracket)
-			{
-				openBraces--;
-				if (openBraces == 0)
-					break;
-			}
-			advance();
-		}
-		expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' to end symbol body.");
-
-		if (openBraces != 0)
-		{
-			throw TokenBasedError("Unmatched '{' in symbol body.", currentToken());
-		}
-
-		return result;
-	}*/
-
 	FunctionInfo Lexer::parseFunctionInfo()
 	{
 		FunctionInfo result;
