@@ -2,359 +2,683 @@
 
 namespace Lumina
 {
-	std::string Parser::currentPrefix() const
+	void Parser::composeStandardTypes()
 	{
-		std::string result;
-
-		for (const auto& nspace : _currentNamespacePrefix)
-		{
-			std::string modifiedNspace;
-			modifiedNspace += std::toupper(nspace[0]);
-
-			for (size_t i = 1; i < nspace.size(); ++i)
-			{
-				modifiedNspace += std::tolower(nspace[i]);
-			}
-
-			result += modifiedNspace;
-		}
-
-		if (result.size() != 0)
-		{
-			result += "_";
-		}
-
-		return (result);
-	}
-
-	VariableImpl Parser::parseVariable(const VariableInfo& p_variableInfo)
-	{
-		VariableImpl result;
-
-		result.type = p_variableInfo.type.value.content;
-		result.name = p_variableInfo.name.value.content;
-
-		for (const auto& dim : p_variableInfo.arraySizes.dims)
-		{
-			result.arraySize.push_back(std::stoul(dim.content));
-		}
-
-		return (result);
-	}
-
-	PipelineFlowImpl Parser::parsePipelineFlow(PipelineFlowImpl::Direction p_direction, const PipelineFlowInfo& p_pipelineInfo)
-	{
-		PipelineFlowImpl result;
-
-		result.direction = PipelineFlowImpl::Direction::In;
-		result.variable = parseVariable(p_pipelineInfo.variable);
-
-		return (result);
-	}
-
-	void Parser::parsePipelineFlows(const std::vector<PipelineFlowInfo>& p_pipelineFlows)
-	{
-		for (const auto& flow : p_pipelineFlows)
-		{
-			if (flow.input == "Input" && flow.output == "VertexPass")
-			{
-				_product.value.vertexPipelineFlows.push_back(parsePipelineFlow(PipelineFlowImpl::Direction::In, flow));
-			}
-			else if (flow.input == "VertexPass" && flow.output == "FragmentPass")
-			{
-				_product.value.vertexPipelineFlows.push_back(parsePipelineFlow(PipelineFlowImpl::Direction::Out, flow));
-				_product.value.fragmentPipelineFlows.push_back(parsePipelineFlow(PipelineFlowImpl::Direction::In, flow));
-			}
-			else if (flow.input == "FragmentPass" && flow.output == "Output")
-			{
-				_product.value.fragmentPipelineFlows.push_back(parsePipelineFlow(PipelineFlowImpl::Direction::Out, flow));
-			}
-			else
-			{
-				_product.errors.push_back(TokenBasedError("Invalid pipeline flow input/output.", flow.input + flow.output));
-			}
-		}
-	}
-
-	FunctionBodyImpl Parser::parseSymbolBody(const SymbolBodyInfo& p_symbolBody)
-	{
-		FunctionBodyImpl result;
-
-		std::cout << "Not implemented : " << __FUNCTION__ << "::" << __LINE__ << std::endl;
-
-		return (result);
-	}
-
-	FunctionImpl Parser::parsePipelinePass(const PipelinePassInfo& p_pipelinePass)
-	{
-		FunctionImpl result;
-
-		result.returnType = {"void", {}};
-		result.name = "main";
-		result.parameters = {};
-		result.body = parseSymbolBody(p_pipelinePass.body);
-
-		return (result);
-	}
-
-	void Parser::parsePipelinePasses(const std::vector<PipelinePassInfo>& p_pipelinePasses)
-	{
-		for (const auto& pass : p_pipelinePasses)
-		{
-			if (pass.name == "VertexPass")
-			{
-				if (_vertexPassParsed == false)
-				{
-					_product.value.vertexMain = parsePipelinePass(pass);
-					_vertexPassParsed = true;
+		_insertType({
+					.name = "void",
+					.attributes = {
 				}
-				else
-				{
-					_product.errors.push_back(TokenBasedError("VertexPass already defined.", pass.name));
+			});
+
+		_insertType({
+					.name = "bool",
+					.attributes = {
 				}
-			}
-			else if (pass.name == "FragmentPass")
-			{
-				if (_fragmentPassParsed == false)
-				{
-					_product.value.fragmentMain = parsePipelinePass(pass);
-					_fragmentPassParsed = true;
+			});
+
+		_insertType({
+					.name = "Texture",
+					.attributes = {
 				}
-				else
-				{
-					_product.errors.push_back(TokenBasedError("FragmentPass already defined.", pass.name));
+			});
+	}
+
+	void Parser::composeScalarTypes()
+	{
+
+		_insertType({
+					.name = "int",
+					.attributes = {
 				}
-			}
-			else
-			{
-				_product.errors.push_back(TokenBasedError("Invalid pipeline pass definition name.", pass.name));
-			}
-		}
+			});
+
+
+		_insertType({
+					.name = "uint",
+					.attributes = {
+				}
+			});
+
+		_insertType({
+					.name = "float",
+					.attributes = {
+				}
+			});
 	}
 
-	FunctionImpl Parser::parseMethodFunction(const std::string& p_blockName, const FunctionInfo& p_methodInfo)
+	void Parser::composeVector2Types()
 	{
-		FunctionImpl result;
+		_insertType({
+				.name = "Vector2Int",
+				.attributes = {
+					{
+						.type = _findType("int"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "y",
+						.arraySize = {}
+					}
+				}
+			});
 
-		result.returnType.type = p_methodInfo.returnType.type.value.content;
+		_insertType({
+				.name = "Vector2UInt",
+				.attributes = {
+					{
+						.type = _findType("uint"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "y",
+						.arraySize = {}
+					}
+				}
+			});
 
-		result.name = currentPrefix() + p_blockName + "_" + p_methodInfo.name.value.content;
-
-		for (const auto& param : p_methodInfo.parameters)
-		{
-			ParameterImpl paramImpl;
-			paramImpl.type = param.type.value.content;
-			paramImpl.name = param.name.value.content;
-			paramImpl.isReference = param.isReference;
-
-			for (const auto& dim : param.arraySizes.dims)
-			{
-				paramImpl.arraySize.push_back(std::stoul(dim.content));
-			}
-
-			result.parameters.push_back(paramImpl);
-		}
-
-		result.body = parseSymbolBody(p_methodInfo.body);
-
-		return result;
+		_insertType({
+				.name = "Vector2",
+				.attributes = {
+					{
+						.type = _findType("float"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "y",
+						.arraySize = {}
+					}
+				}
+			});
 	}
 
-	FunctionImpl Parser::parseOperatorFunction(const std::string& p_blockName, const OperatorInfo& p_operatorInfo)
+	void Parser::composeVector3Types()
 	{
-		FunctionImpl result;
+		_insertType({
+				.name = "Vector3Int",
+				.attributes = {
+					{
+						.type = _findType("int"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "z",
+						.arraySize = {}
+					}
+				}
+			});
 
-		result.returnType.type = p_operatorInfo.returnType.type.value.content;
+		_insertType({
+				.name = "Vector3UInt",
+				.attributes = {
+					{
+						.type = _findType("uint"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "z",
+						.arraySize = {}
+					}
+				}
+			});
 
-		const std::map<std::string, std::string> operatorStringMap = {
-			{"+", "plus"},
-			{"-", "minus"},
-			{"*", "multiply"},
-			{"/", "divide"},
-			{"%", "modulus"},
-			{"==", "equal"},
-			{"!=", "not_equal"},
-			{"<", "less_than"},
-			{">", "greater_than"},
-			{"<=", "less_equal"},
-			{">=", "greater_equal"},
-			{"&&", "and"},
-			{"||", "or"},
-			{"!", "not"},
-			{"++", "increment"},
-			{"--", "decrement"},
-			{"+=", "plus_assign"},
-			{"-=", "minus_assign"},
-			{"*=", "multiply_assign"},
-			{"/=", "divide_assign"}
-		};
-
-		result.name = currentPrefix() + p_blockName + "_operator_" + operatorStringMap.at(p_operatorInfo.opeType.content);
-
-		for (const auto& param : p_operatorInfo.parameters)
-		{
-			ParameterImpl paramImpl;
-			paramImpl.type = param.type.value.content;
-			paramImpl.name = param.name.value.content;
-			paramImpl.isReference = param.isReference;
-
-			for (const auto& dim : param.arraySizes.dims)
-			{
-				paramImpl.arraySize.push_back(std::stoul(dim.content));
-			}
-
-			result.parameters.push_back(paramImpl);
-		}
-
-		result.body = parseSymbolBody(p_operatorInfo.body);
-
-		return result;
+		_insertType({
+				.name = "Vector3",
+				.attributes = {
+					{
+						.type = _findType("float"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "z",
+						.arraySize = {}
+					}
+				}
+			});
 	}
 
-	BlockImpl Parser::parseBlockInfo(const BlockInfo& p_blockInfo)
+	void Parser::composeVector4Types()
 	{
-		BlockImpl result;
+		_insertType({
+				.name = "Vector4Int",
+				.attributes = {
+					{
+						.type = _findType("int"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "z",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("int"),
+						.name = "w",
+						.arraySize = {}
+					}
+				}
+			});
 
-		result.name = currentPrefix() + p_blockInfo.name.value.content;
+		_insertType({
+				.name = "Vector4UInt",
+				.attributes = {
+					{
+						.type = _findType("uint"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "z",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("uint"),
+						.name = "w",
+						.arraySize = {}
+					}
+				}
+			});
 
-		for (const auto& attribute : p_blockInfo.attributes)
-		{
-			result.variables.push_back(parseVariable(attribute));
-		}
-
-		for (const auto& methodInfoArray : p_blockInfo.methodInfos)
-		{
-			for (const auto& methodInfo : methodInfoArray.second)
-			{
-				_product.value.functions.push_back(parseMethodFunction(result.name, methodInfo));
-			}
-		}
-
-		for (const auto& operatorInfoArray : p_blockInfo.operatorInfos)
-		{
-			for (const auto& operatorInfo : operatorInfoArray.second)
-			{
-				_product.value.functions.push_back(parseOperatorFunction(result.name, operatorInfo));
-			}
-		}
-
-		return (result);
+		_insertType({
+				.name = "Vector4",
+				.attributes = {
+					{
+						.type = _findType("float"),
+						.name = "x",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "y",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "z",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "w",
+						.arraySize = {}
+					}
+				}
+			});
 	}
 
-	void Parser::parseStructureBlockInfos(const std::vector<BlockInfo>& p_structureBlockInfo)
+	Parser::Parser()
 	{
-		for (const auto& structure : p_structureBlockInfo)
-		{
-			_product.value.structures.push_back(parseBlockInfo(structure));
-		}
-	}
-
-	void Parser::parseAttributeBlockInfos(const std::vector<BlockInfo>& p_attributeBlockInfo)
-	{
-		for (const auto& attribute : p_attributeBlockInfo)
-		{
-			_product.value.attributes.push_back(parseBlockInfo(attribute));
-		}
-	}
-
-	void Parser::parseConstantBlockInfos(const std::vector<BlockInfo>& p_constantsBlockInfo)
-	{
-		for (const auto& constant : p_constantsBlockInfo)
-		{
-			_product.value.constants.push_back(parseBlockInfo(constant));
-		}
-	}
-
-	VariableImpl Parser::parseTexture(const TextureInfo& p_textureInfo)
-	{
-		VariableImpl result;
-
-		result.type = "Texture";
-		result.name = currentPrefix() + p_textureInfo.name.value.content;
-
-		for (const auto& dim : p_textureInfo.arraySizes.dims)
-		{
-			result.arraySize.push_back(std::stoul(dim.content));
-		}
-
-		return (result);
-	}
-	
-	void Parser::parseTextures(const std::vector<TextureInfo>& p_textureInfos)
-	{
-		for (const auto& texture : p_textureInfos)
-		{
-			_product.value.textures.push_back(parseTexture(texture));
-		}
-	}
-
-	FunctionImpl Parser::parseFunction(const FunctionInfo& p_function)
-	{
-		FunctionImpl result;
-
-		result.returnType.type = p_function.returnType.type.value.content;
-		result.name = currentPrefix() + p_function.name.value.content;
-
-		for (const auto& param : p_function.parameters)
-		{
-			ParameterImpl paramImpl;
-			paramImpl.type = param.type.value.content;
-			paramImpl.name = param.name.value.content;
-			paramImpl.isReference = param.isReference;
-
-			for (const auto& dim : param.arraySizes.dims)
-			{
-				paramImpl.arraySize.push_back(std::stoul(dim.content));
-			}
-
-			result.parameters.push_back(paramImpl);
-		}
-
-		result.body = parseSymbolBody(p_function.body);
-
-		return (result);
-	}
-
-	void Parser::parseFunctions(const std::vector<FunctionInfo>& p_functions)
-	{
-		for (const auto& function : p_functions)
-		{
-			_product.value.functions.push_back(parseFunction(function));
-		}
-	}
-
-	void Parser::parseNamespace(const NamespaceInfo& p_namespace)
-	{
-		parseStructureBlockInfos(p_namespace.structureBlocks);
-		parseAttributeBlockInfos(p_namespace.attributeBlocks);
-		parseConstantBlockInfos(p_namespace.constantBlocks);
-		parseTextures(p_namespace.textureInfos);
-
-		for (const auto& functionArray : p_namespace.functionInfos)
-		{
-			parseFunctions(functionArray.second);
-		}
-		
-		for (const auto& nspace : p_namespace.nestedNamespaces)
-		{
-			_currentNamespacePrefix.push_back(nspace.name.value.content);
-
-			parseNamespace(nspace);
-
-			_currentNamespacePrefix.pop_back();
-		}
+		composeStandardTypes();
+		composeScalarTypes();
+		composeVector2Types();
+		composeVector3Types();
+		composeVector4Types();
 	}
 
 	Parser::Product Parser::_parse(const Lexer::Output& p_input)
 	{
 		_product = Product();
 
-		parsePipelineFlows(p_input.pipelineFlows);
-		parsePipelinePasses(p_input.pipelinePasses);
+		_parseNamespace(p_input.anonymNamespace);
 
-		parseNamespace(p_input.anonymNamespace);
+		printParsedData();
 
 		return (_product);
+	}
+
+	void Parser::printParsedData() const
+	{
+		std::cout << "Available Types:\n";
+		for (const auto& type : _availibleTypes)
+		{
+			std::cout << "	Type: " << type.name << "\n";
+
+			if (!type.attributes.empty())
+			{
+				std::cout << "		Attributes:\n";
+				for (const auto& attr : type.attributes)
+				{
+					if (attr.type == nullptr)
+					{
+						std::cout << "			[No type] " << attr.name << "\n";
+					}
+					else
+					{
+						std::cout << "			" << attr.type->name << " " << attr.name;
+						if (!attr.arraySize.empty())
+						{
+							std::cout << "[";
+							for (size_t i = 0; i < attr.arraySize.size(); ++i)
+							{
+								if (i > 0) std::cout << ", ";
+								std::cout << attr.arraySize[i];
+							}
+							std::cout << "]";
+						}
+						std::cout << "\n";
+					}
+					
+				}
+			}
+
+			if (!type.methods.empty())
+			{
+				std::cout << "		Methods:\n";
+				for (const auto& methodPair : type.methods)
+				{
+					for (const auto& method : methodPair.second)
+					{
+						std::cout << "			" << method.name << "\n";
+					}
+				}
+			}
+
+			if (!type.operators.empty())
+			{
+				std::cout << "		Operators:\n";
+				for (const auto& operatorPair : type.operators)
+				{
+					for (const auto& op : operatorPair.second)
+					{
+						std::cout << "			" << op.name << "\n";
+					}
+				}
+			}
+		}
+
+		std::cout << "\n	Variables:\n";
+		for (const auto& var : _variables)
+		{
+			if (var.type == nullptr)
+			{
+				std::cout << "			[No type] " << var.name << "\n";
+			}
+			else
+			{
+				std::cout << "			" << var.type->name << " " << var.name;
+				if (!var.arraySize.empty())
+				{
+					std::cout << "[";
+					for (size_t i = 0; i < var.arraySize.size(); ++i)
+					{
+						if (i > 0) std::cout << ", ";
+						std::cout << var.arraySize[i];
+					}
+					std::cout << "]";
+				}
+				std::cout << "\n";
+			}
+		}
+
+		std::cout << "\n	Functions:\n";
+		for (const auto& funcPair : _availibleFunctions)
+		{
+			for (const auto& func : funcPair.second)
+			{
+				std::cout << "		Return Type: " << func.returnType.type->name << "\n";
+				std::cout << "		Function: " << func.name << "\n";
+
+				if (!func.parameters.empty())
+				{
+					std::cout << "		Parameters:\n";
+					for (const auto& param : func.parameters)
+					{
+						if (param.type == nullptr)
+						{
+							std::cout << "			[No type] " << param.name << "\n";
+						}
+						else
+						{
+							std::cout << "			" << param.type->name << " " << param.name;
+							if (!param.arraySize.empty())
+							{
+								std::cout << "[";
+								for (size_t i = 0; i < param.arraySize.size(); ++i)
+								{
+									if (i > 0) std::cout << ", ";
+									std::cout << param.arraySize[i];
+								}
+								std::cout << "]";
+							}
+							std::cout << "\n";
+						}
+					}
+				}
+			}
+		}
+
+		std::cout << "\nAttribute Types:\n";
+		for (const auto& attrType : _attributesTypes)
+		{
+			if (attrType == nullptr)
+			{
+				std::cout << "	Inserted a nullptr type in attribute" << "\n";
+			}
+			else
+			{
+				std::cout << "	" << attrType->name << "\n";
+			}
+		}
+
+		std::cout << "\nConstants Types:\n";
+		for (const auto& constType : _constantsTypes)
+		{
+			if (constType == nullptr)
+			{
+				std::cout << "Inserted a nullptr type in Constant" << "\n";
+			}
+			else
+			{
+				std::cout << "  " << constType->name << "\n";
+			}
+		}
+	}
+
+
+	std::string Parser::_composeTypeName(const TypeInfo& p_typeInfo)
+	{
+		std::string result = "";
+
+		for (const auto& nspace : p_typeInfo.nspace)
+		{
+			result += nspace.content + "_";
+		}
+
+		result += p_typeInfo.value.content;
+
+		return (result);
+	}
+
+	std::vector<size_t> Parser::_composeSizeArray(const ArraySizeInfo& p_arraySizeInfo)
+	{
+		std::vector<size_t> result;
+
+		for (const auto& size : p_arraySizeInfo.dims)
+		{
+			result.push_back(std::stoull(size.content));
+		}
+
+		return (result);
+	}
+
+	std::string Parser::_composeIdentifierName(const std::string& p_identifierName)
+	{
+		std::string result = "";
+		
+		for (const auto& nspace : _nspaces)
+		{
+			result += nspace + "_";
+		}
+
+		result += p_identifierName;
+
+		return (result);
+	}
+
+	const Parser::Type* Parser::_insertType(const Type& p_inputType)
+	{
+		_availibleTypes.insert(p_inputType);
+		_reservedIdentifiers.insert(p_inputType.name);
+		return (_findType(p_inputType.name));
+	}
+
+	const Parser::Type* Parser::_findType(const std::string& p_objectName)
+	{
+		Parser::Type expectedType = { p_objectName, {} };
+
+		if (_availibleTypes.contains(expectedType) == true)
+		{
+			return &(*(_availibleTypes.find(expectedType)));
+		}
+
+		for (size_t i = 0; i < _nspaces.size(); i++)
+		{
+			std::string prefix = "";
+			for (size_t j = i; j < _nspaces.size(); j++)
+			{
+				prefix += _nspaces[j] + "_";
+			}
+
+			expectedType = {prefix + p_objectName, {}};
+
+			if (_availibleTypes.contains(expectedType) == true)
+			{
+				return &(*(_availibleTypes.find(expectedType)));
+			}
+		}
+
+		return (nullptr);
+	}
+
+	void Parser::_insertVariable(const Parser::Variable& p_variable)
+	{
+		_variables.insert(p_variable);
+		_reservedIdentifiers.insert(p_variable.name);
+	}
+
+	Parser::Variable Parser::_composeVariable(const VariableInfo& p_variableInfo)
+	{
+		Parser::Variable result;
+
+		result.type = _findType(_composeTypeName(p_variableInfo.type));
+		result.name = _composeIdentifierName(p_variableInfo.name.value.content);
+		result.arraySize = _composeSizeArray(p_variableInfo.arraySizes);
+
+		return (result);
+	}
+
+	Parser::Type Parser::_composeType(const BlockInfo& p_block, const std::string& p_suffix)
+	{
+		std::string typeName = _composeIdentifierName(p_block.name.value.content + p_suffix);
+
+		Parser::Type result = { typeName, {} };
+
+		for (const auto& attributeInfo : p_block.attributes)
+		{
+			Parser::Variable newAttribute = _composeVariable(attributeInfo);
+
+			result.attributes.insert(newAttribute);
+		}
+
+		return (result);
+	}
+
+	Parser::Function Parser::_composeMethodFunction(const Parser::Type* p_originator, const FunctionInfo& p_functionInfo)
+	{
+		Parser::Function result;
+
+		result.name = _composeIdentifierName(p_originator->name + "_" + p_functionInfo.name.value.content);
+
+		return (result);
+	}
+
+	Parser::Function Parser::_composeOperatorFunction(const Parser::Type* p_originator, const OperatorInfo& p_operatorInfo)
+	{
+		Parser::Function result;
+
+		std::map<std::string, std::string> operatorNameMap = {
+			{"+", "Plus"},
+			{"+=", "PlusEqual"},
+			{"-", "Minus"},
+			{"-=", "MinusEqual"},
+			{"*", "Mult"},
+			{"*=", "MultEqual"},
+			{"/", "Div"},
+			{"/=", "DivEqual"},
+			{"%", "Modulo"},
+			{"%=", "ModuloEqual"},
+			{"&&", "And"},
+			{"||", "Or"},
+			{"==", "Equal"},
+			{"!=", "Diff"},
+			{"<", "Lower"},
+			{">", "Greater"},
+			{"<=", "LEqual"},
+			{">=", "GEqual"},
+		};
+
+		result.name = _composeIdentifierName(p_originator->name + "_Operator" + operatorNameMap[p_operatorInfo.opeType.content]);
+
+		return (result);
+	}
+
+	void Parser::_computeMethodAndOperator(const Parser::Type* p_originator, const BlockInfo& p_block)
+	{
+		for (const auto& methodArray : p_block.methodInfos)
+		{
+			for (const auto& method : methodArray.second)
+			{
+				Parser::Function newMethods = _composeMethodFunction(p_originator, method);
+
+				_availibleFunctions[newMethods.name].push_back(newMethods);
+			}
+		}
+
+		for (const auto& operatorArray : p_block.operatorInfos)
+		{
+			for (const auto& ope : operatorArray.second)
+			{
+				Parser::Function newOperator = _composeOperatorFunction(p_originator, ope);
+
+				_availibleFunctions[newOperator.name].push_back(newOperator);
+			}
+		}
+	}
+
+	void Parser::_parseStructure(const BlockInfo& p_block)
+	{
+		const Type* insertedType = _insertType(_composeType(p_block));
+
+		_computeMethodAndOperator(insertedType, p_block);
+	}
+
+	void Parser::_parseAttribute(const BlockInfo& p_block)
+	{
+		const Type* insertedType = _insertType(_composeType(p_block, "_Attributes"));
+
+		_attributesTypes.insert(insertedType);
+
+		_computeMethodAndOperator(insertedType, p_block);
+
+		_insertVariable({
+				.type = insertedType,
+				.name = _composeIdentifierName(p_block.name.value.content),
+				.arraySize = {}
+			});
+
+		_computeMethodAndOperator(insertedType, p_block);
+	}
+
+	void Parser::_parseConstant(const BlockInfo& p_block)
+	{
+		const Type* insertedType = _insertType(_composeType(p_block, "_Constants"));
+
+		_constantsTypes.insert(insertedType);
+
+		_computeMethodAndOperator(insertedType, p_block);
+
+		_insertVariable({
+				.type = insertedType,
+				.name = _composeIdentifierName(p_block.name.value.content),
+				.arraySize = {}
+			});
+
+		_computeMethodAndOperator(insertedType, p_block);
+	}
+
+	void Parser::_parseTexture(const TextureInfo& p_texture)
+	{
+		Parser::Variable newTexture = {
+				.type = _findType("Texture"),
+				.name = _composeIdentifierName(p_texture.name.value.content),
+				.arraySize = _composeSizeArray(p_texture.arraySizes)
+		};
+
+		_variables.insert(newTexture);
+		_reservedIdentifiers.insert(newTexture.name);
+	}
+
+	void Parser::_parseFunction(const FunctionInfo& p_function)
+	{
+
+	}
+
+	void Parser::_parseNamespace(const NamespaceInfo& p_namespace)
+	{
+		for (const auto& block : p_namespace.structureBlocks)
+		{
+			_parseStructure(block);
+		}
+
+		for (const auto& block : p_namespace.attributeBlocks)
+		{
+			_parseAttribute(block);
+		}
+
+		for (const auto& block : p_namespace.constantBlocks)
+		{
+			_parseConstant(block);
+		}
+
+		for (const auto& texture : p_namespace.textureInfos)
+		{
+			_parseTexture(texture);
+		}
+
+		for (auto it : p_namespace.functionInfos)
+		{
+			for (const auto& function : it.second)
+			{
+				_parseFunction(function);
+			}
+		}
+
+		for (const auto& nspace : p_namespace.nestedNamespaces)
+		{
+			_nspaces.push_back(nspace.name.value.content);
+
+			_parseNamespace(nspace);
+
+			_nspaces.pop_back();
+		}
 	}
 
 	Parser::Product Parser::parse(const Lexer::Output& p_input)

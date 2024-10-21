@@ -1,10 +1,16 @@
 #pragma once
 
+#include <string>
+#include <set>
+#include <vector>
+
 namespace Lumina
 {
+	struct TypeImpl;
+
 	struct VariableImpl
 	{
-		std::string type;
+		const TypeImpl* type;
 		std::string name;
 		std::vector<size_t> arraySize;
 	};
@@ -21,10 +27,10 @@ namespace Lumina
 		VariableImpl variable;
 	};
 
-	struct BlockImpl
+	struct TypeImpl
 	{
 		std::string name;
-		std::vector<VariableImpl> variables;
+		std::vector<VariableImpl> attributes;
 	};
 
 	struct ExpressionType
@@ -60,9 +66,9 @@ namespace Lumina
 		std::vector<PipelineFlowImpl> vertexPipelineFlows;
 		std::vector<PipelineFlowImpl> fragmentPipelineFlows;
 
-		std::vector<BlockImpl> structures;
-		std::vector<BlockImpl> attributes;
-		std::vector<BlockImpl> constants;
+		std::vector<TypeImpl> structures;
+		std::vector<TypeImpl> attributes;
+		std::vector<TypeImpl> constants;
 
 		std::vector<FunctionImpl> functions;
 
