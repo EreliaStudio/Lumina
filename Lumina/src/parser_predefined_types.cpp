@@ -4,21 +4,59 @@ namespace Lumina
 {
 	void Parser::composeStandardTypes()
 	{
-		_insertType({
+		Type* voidType = _insertType({
 					.name = "void",
 					.attributes = {
 				}
 			});
 
-		_insertType({
+		Type* boolType = _insertType({
 					.name = "bool",
 					.attributes = {
 				}
 			});
 
-		_insertType({
+		boolType->constructors.push_back({
+				.parameters = { {.type = boolType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		Type* colorType = _insertType({
 					.name = "Color",
 					.attributes = {
+					{
+						.type = _findType("float"),
+						.name = "r",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "g",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "b",
+						.arraySize = {}
+					},
+					{
+						.type = _findType("float"),
+						.name = "a",
+						.arraySize = {}
+					}
+				}
+			});
+
+		colorType->constructors.push_back({
+				.parameters = {
+					{.type = colorType, .isReference = false, .name = "p_r", .arraySize = {} }
+				}
+			});
+		colorType->constructors.push_back({
+				.parameters = {
+					{.type = _findType("float"), .isReference = false, .name = "p_r", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_g", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_b", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_a", .arraySize = {} }
 				}
 			});
 	}
@@ -53,30 +91,68 @@ namespace Lumina
 
 	void Parser::composeScalarTypes()
 	{
-
-		_insertType({
+		Type* intType = _insertType({
 					.name = "int",
 					.attributes = {
-				}
+					}
 			});
 
-
-		_insertType({
+		Type* uintType = _insertType({
 					.name = "uint",
 					.attributes = {
 				}
 			});
 
-		_insertType({
+		Type* floatType = _insertType({
 					.name = "float",
 					.attributes = {
 				}
+			});
+
+		intType->constructors.push_back({
+				.parameters = { {.type = intType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		intType->constructors.push_back({
+				.parameters = { {.type = uintType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		intType->constructors.push_back({
+				.parameters = { {.type = floatType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+
+
+		uintType->constructors.push_back({
+				.parameters = { {.type = intType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		uintType->constructors.push_back({
+				.parameters = { {.type = uintType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		uintType->constructors.push_back({
+				.parameters = { {.type = floatType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+
+
+		floatType->constructors.push_back({
+				.parameters = { {.type = intType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		floatType->constructors.push_back({
+				.parameters = { {.type = uintType, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+
+		floatType->constructors.push_back({
+				.parameters = { {.type = floatType, .isReference = false, .name = "value", .arraySize = {} } }
 			});
 	}
 
 	void Parser::composeVector2Types()
 	{
-		_insertType({
+		Type* ivec2Type = _insertType({
 				.name = "Vector2Int",
 				.attributes = {
 					{
@@ -92,7 +168,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* uvec2Type = _insertType({
 				.name = "Vector2UInt",
 				.attributes = {
 					{
@@ -108,7 +184,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* vec2Type = _insertType({
 				.name = "Vector2",
 				.attributes = {
 					{
@@ -123,11 +199,59 @@ namespace Lumina
 					}
 				}
 			});
+
+		ivec2Type->constructors.push_back({
+				.parameters = { {.type = ivec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec2Type->constructors.push_back({
+				.parameters = { {.type = uvec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec2Type->constructors.push_back({
+				.parameters = { {.type = vec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec2Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("int"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_y", .arraySize = {} }
+				}
+			});
+
+		uvec2Type->constructors.push_back({
+				.parameters = { {.type = ivec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec2Type->constructors.push_back({
+				.parameters = { {.type = uvec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec2Type->constructors.push_back({
+				.parameters = { {.type = vec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec2Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("uint"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_y", .arraySize = {} }
+				}
+			});
+
+		vec2Type->constructors.push_back({
+				.parameters = { {.type = ivec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec2Type->constructors.push_back({
+				.parameters = { {.type = uvec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec2Type->constructors.push_back({
+				.parameters = { {.type = vec2Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec2Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("float"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_y", .arraySize = {} }
+				}
+			});
 	}
 
 	void Parser::composeVector3Types()
 	{
-		_insertType({
+		Type* ivec3Type = _insertType({
 				.name = "Vector3Int",
 				.attributes = {
 					{
@@ -148,7 +272,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* uvec3Type = _insertType({
 				.name = "Vector3UInt",
 				.attributes = {
 					{
@@ -169,7 +293,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* vec3Type = _insertType({
 				.name = "Vector3",
 				.attributes = {
 					{
@@ -189,11 +313,82 @@ namespace Lumina
 					}
 				}
 			});
+
+
+
+		ivec3Type->constructors.push_back({
+				.parameters = { {.type = ivec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec3Type->constructors.push_back({
+				.parameters = { {.type = uvec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec3Type->constructors.push_back({
+				.parameters = { {.type = vec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("int"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
+		ivec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2Int"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
+
+		uvec3Type->constructors.push_back({
+				.parameters = { {.type = ivec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec3Type->constructors.push_back({
+				.parameters = { {.type = uvec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec3Type->constructors.push_back({
+				.parameters = { {.type = vec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("uint"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
+		uvec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2UInt"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
+
+		vec3Type->constructors.push_back({
+				.parameters = { {.type = ivec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec3Type->constructors.push_back({
+				.parameters = { {.type = uvec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec3Type->constructors.push_back({
+				.parameters = { {.type = vec3Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("float"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
+		vec3Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_z", .arraySize = {} }
+				}
+			});
 	}
 
 	void Parser::composeVector4Types()
 	{
-		_insertType({
+		Type* ivec4Type = _insertType({
 				.name = "Vector4Int",
 				.attributes = {
 					{
@@ -219,7 +414,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* uvec4Type = _insertType({
 				.name = "Vector4UInt",
 				.attributes = {
 					{
@@ -245,7 +440,7 @@ namespace Lumina
 				}
 			});
 
-		_insertType({
+		Type* vec4Type = _insertType({
 				.name = "Vector4",
 				.attributes = {
 					{
@@ -270,12 +465,107 @@ namespace Lumina
 					}
 				}
 			});
+
+
+		ivec4Type->constructors.push_back({
+					.parameters = { {.type = ivec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+				});
+		ivec4Type->constructors.push_back({
+				.parameters = { {.type = uvec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec4Type->constructors.push_back({
+				.parameters = { {.type = vec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		ivec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("int"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		ivec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2Int"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		ivec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector3Int"), .isReference = false, .name = "p_xyz", .arraySize = {} },
+					{.type = _findType("int"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+
+		uvec4Type->constructors.push_back({
+				.parameters = { {.type = ivec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec4Type->constructors.push_back({
+				.parameters = { {.type = uvec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec4Type->constructors.push_back({
+				.parameters = { {.type = vec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		uvec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("uint"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		uvec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2UInt"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		uvec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector3UInt"), .isReference = false, .name = "p_xyz", .arraySize = {} },
+					{.type = _findType("uint"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+
+		vec4Type->constructors.push_back({
+				.parameters = { {.type = ivec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec4Type->constructors.push_back({
+				.parameters = { {.type = uvec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec4Type->constructors.push_back({
+				.parameters = { {.type = vec4Type, .isReference = false, .name = "value", .arraySize = {} } }
+			});
+		vec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("float"), .isReference = false, .name = "p_x", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_y", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		vec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector2"), .isReference = false, .name = "p_xy", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_z", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
+		vec4Type->constructors.push_back({
+				.parameters = {
+					{.type = _findType("Vector3"), .isReference = false, .name = "p_xyz", .arraySize = {} },
+					{.type = _findType("float"), .isReference = false, .name = "p_w", .arraySize = {} }
+				}
+			});
 	}
 
 	Parser::Parser()
 	{
-		composeStandardTypes();
+		_reservedIdentifiers.insert("main");
 		composeScalarTypes();
+		composeStandardTypes();
 		composeVector2Types();
 		composeVector3Types();
 		composeVector4Types();

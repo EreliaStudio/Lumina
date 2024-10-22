@@ -39,6 +39,36 @@ namespace Lumina
 				}
 			}
 
+			if (!type.constructors.empty())
+			{
+				std::cout << "		Constructor:\n";
+				for (const auto& method : type.constructors)
+				{
+					std::cout << "			" << type.name << "(";
+					for (size_t i = 0; i < method.parameters.size(); i++)
+					{
+						if (i != 0)
+						{
+							std::cout << ", ";
+						}
+						const auto& param = method.parameters[i];
+						std::cout << param.type->name;
+						if (!param.arraySize.empty())
+						{
+							std::cout << "[";
+							for (size_t i = 0; i < param.arraySize.size(); ++i)
+							{
+								if (i > 0) std::cout << ", ";
+								std::cout << param.arraySize[i];
+							}
+							std::cout << "]";
+						}
+						std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
+					}
+					std::cout << ")\n";
+				}
+			}
+
 			if (!type.methods.empty())
 			{
 				std::cout << "		Methods:\n";
@@ -76,7 +106,7 @@ namespace Lumina
 								}
 								std::cout << "]";
 							}
-							std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+							std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
 						}
 						std::cout << ")\n";
 					}
@@ -120,7 +150,7 @@ namespace Lumina
 								}
 								std::cout << "]";
 							}
-							std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+							std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
 						}
 						std::cout << ")\n";
 					}
@@ -128,8 +158,56 @@ namespace Lumina
 			}
 		}
 
-		std::cout << "\n	Variables:\n";
-		for (const auto& var : _variables)
+		std::cout << "\n	Global variables:\n";
+		for (const auto& var : _globalVariables)
+		{
+			if (var.type == nullptr)
+			{
+				std::cout << "			[No type] " << var.name << "\n";
+			}
+			else
+			{
+				std::cout << "			" << var.type->name << " " << var.name;
+				if (!var.arraySize.empty())
+				{
+					std::cout << "[";
+					for (size_t i = 0; i < var.arraySize.size(); ++i)
+					{
+						if (i > 0) std::cout << ", ";
+						std::cout << var.arraySize[i];
+					}
+					std::cout << "]";
+				}
+				std::cout << "\n";
+			}
+		}
+
+		std::cout << "\n	Vertex variables:\n";
+		for (const auto& var : _vertexVariables)
+		{
+			if (var.type == nullptr)
+			{
+				std::cout << "			[No type] " << var.name << "\n";
+			}
+			else
+			{
+				std::cout << "			" << var.type->name << " " << var.name;
+				if (!var.arraySize.empty())
+				{
+					std::cout << "[";
+					for (size_t i = 0; i < var.arraySize.size(); ++i)
+					{
+						if (i > 0) std::cout << ", ";
+						std::cout << var.arraySize[i];
+					}
+					std::cout << "]";
+				}
+				std::cout << "\n";
+			}
+		}
+
+		std::cout << "\n	Fragment variables:\n";
+		for (const auto& var : _fragmentVariables)
 		{
 			if (var.type == nullptr)
 			{
@@ -187,11 +265,15 @@ namespace Lumina
 						}
 						std::cout << "]";
 					}
-					std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+					std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
 				}
 				std::cout << ")\n";
 			}
 		}
+
+		std::cout << "\n	VertexPass main()\n";
+
+		std::cout << "\n	FragmentPass main()\n";
 
 		std::cout << "\nAttribute Types:\n";
 		for (const auto& attrType : _attributesTypes)

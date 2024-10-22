@@ -121,6 +121,28 @@ namespace Lumina
 		return result;
 	}
 
+	ConstructorInfo Lexer::parseConstructorInfo()
+	{
+		ConstructorInfo result;
+
+		expect(Lumina::Token::Type::Identifier, "Expected a valid identifier.");
+		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters.");
+		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
+		{
+			if (result.parameters.size() != 0)
+			{
+				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters.");
+			}
+
+			result.parameters.push_back(parseParameterInfo());
+		}
+		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
+
+		result.body = parseSymbolBody();
+
+		return result;
+	}
+
 	OperatorInfo Lexer::parseOperatorInfo()
 	{
 		OperatorInfo result;
@@ -181,6 +203,20 @@ namespace Lumina
 		return (afterMethodName.type == Lumina::Token::Type::OpenParenthesis);
 	}
 
+	bool Lexer::describeConstructor()
+	{
+		size_t offset = 0;
+
+		const Lumina::Token& constructedTypeToken = tokenAtOffset(offset);
+		if (constructedTypeToken.type != Lumina::Token::Type::Identifier)
+		{
+			return false;
+		}
+		offset++;
+
+		const Lumina::Token& parenthesisToken = tokenAtOffset(offset);
+		return (parenthesisToken.type == Lumina::Token::Type::OpenParenthesis);
+	}
 
 	bool Lexer::describeOperator()
 	{
@@ -267,7 +303,12 @@ namespace Lumina
 		{
 			try
 			{
-				if (describeFunction())
+				if (describeConstructor())
+				{
+					ConstructorInfo constructorInfo = parseConstructorInfo();
+					result.constructorInfos.push_back(std::move(constructorInfo));
+				}
+				else if (describeFunction())
 				{
 					FunctionInfo methodInfo = parseFunctionInfo();
 					result.methodInfos[methodInfo.name.value.content].push_back(std::move(methodInfo));

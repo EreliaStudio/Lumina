@@ -28,6 +28,7 @@ namespace Lumina
 		TextureInfo parseTextureInfo();
 		ParameterInfo parseParameterInfo();
 		FunctionInfo parseFunctionInfo();
+		ConstructorInfo parseConstructorInfo();
 		OperatorInfo parseOperatorInfo();
 		BlockInfo parseBlockInfo();
 		PipelinePassInfo parsePipelinePassInfo();
@@ -63,6 +64,7 @@ namespace Lumina
 
 		ShaderInfo parseShaderInfo();
 
+		bool describeConstructor();
 		bool describeFunction();
 		bool describeOperator();
 		bool describeVariableInfo();

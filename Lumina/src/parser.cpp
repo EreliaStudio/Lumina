@@ -2,17 +2,6 @@
 
 namespace Lumina
 {
-	Parser::Product Parser::_parse(const Lexer::Output& p_input)
-	{
-		_product = Product();
-
-		_parseNamespace(p_input.anonymNamespace);
-
-		printParsedData();
-
-		return (_product);
-	}
-
 	std::string Parser::_composeTypeName(const TypeInfo& p_typeInfo)
 	{
 		std::string result = "";
@@ -95,7 +84,7 @@ namespace Lumina
 
 	void Parser::_insertVariable(const Parser::Variable& p_variable)
 	{
-		_variables.insert(p_variable);
+		_globalVariables.insert(p_variable);
 		_reservedIdentifiers.insert(p_variable.name);
 	}
 
@@ -135,8 +124,15 @@ namespace Lumina
 
 		return (result);
 	}
+	
+	Parser::SymbolBody Parser::_composeSymbolBody(const SymbolBodyInfo& p_symbolInfo)
+	{
+		Parser::SymbolBody result;
 
-	Parser::Function Parser::_composeMethodFunction(const Parser::Type* p_originator, const FunctionInfo& p_functionInfo)
+		return (result);
+	}
+
+	Parser::Function Parser::_composeMethodFunction(const FunctionInfo& p_functionInfo)
 	{
 		Parser::Function result;
 
@@ -153,10 +149,31 @@ namespace Lumina
 				});			
 		}
 
+		result.body = _composeSymbolBody(p_functionInfo.body);
+
 		return (result);
 	}
 
-	Parser::Function Parser::_composeOperatorFunction(const Parser::Type* p_originator, const OperatorInfo& p_operatorInfo)
+	Parser::Type::Constructor Parser::_composeConstructorFunction(const ConstructorInfo& p_constructorInfo)
+	{
+		Parser::Type::Constructor result;
+
+		for (const auto& parameter : p_constructorInfo.parameters)
+		{
+			result.parameters.push_back({
+					.type = _findType(parameter.type),
+					.isReference = parameter.isReference,
+					.name = parameter.name.value.content,
+					.arraySize = _composeSizeArray(parameter.arraySizes)
+				});
+		}
+
+		result.body = _composeSymbolBody(p_constructorInfo.body);
+
+		return (result);
+	}
+
+	Parser::Function Parser::_composeOperatorFunction(const OperatorInfo& p_operatorInfo)
 	{
 		Parser::Function result;
 
@@ -173,16 +190,25 @@ namespace Lumina
 				});
 		}
 
+		result.body = _composeSymbolBody(p_operatorInfo.body);
+
 		return (result);
 	}
 
 	void Parser::_computeMethodAndOperator(Parser::Type* p_originator, const BlockInfo& p_block)
 	{
+		for (const auto& constructor : p_block.constructorInfos)
+		{
+			Parser::Type::Constructor newConstructor = _composeConstructorFunction(constructor);
+
+			p_originator->constructors.push_back(newConstructor);
+		}
+
 		for (const auto& methodArray : p_block.methodInfos)
 		{
 			for (const auto& method : methodArray.second)
 			{
-				Parser::Function newMethods = _composeMethodFunction(p_originator, method);
+				Parser::Function newMethods = _composeMethodFunction(method);
 
 				p_originator->methods[newMethods.name].push_back(newMethods);
 			}
@@ -192,7 +218,7 @@ namespace Lumina
 		{
 			for (const auto& ope : operatorArray.second)
 			{
-				Parser::Function newOperator = _composeOperatorFunction(p_originator, ope);
+				Parser::Function newOperator = _composeOperatorFunction(ope);
 
 				p_originator->operators[newOperator.name].push_back(newOperator);
 			}
@@ -248,38 +274,56 @@ namespace Lumina
 				.arraySize = _composeSizeArray(p_texture.arraySizes)
 		};
 
-		_variables.insert(newTexture);
+		_globalVariables.insert(newTexture);
 		_reservedIdentifiers.insert(newTexture.name);
 	}
 
-	void Parser::_parseFunction(const FunctionInfo& p_function)
+	void Parser::_parseFunction(const FunctionInfo& p_functionInfo)
 	{
+		Function newFunction;
 
+		newFunction.returnType = _composeExpressionType(p_functionInfo.returnType);
+		newFunction.name = _composeIdentifierName(p_functionInfo.name.value.content);
+
+		for (const auto& parameter : p_functionInfo.parameters)
+		{
+			newFunction.parameters.push_back({
+					.type = _findType(parameter.type),
+					.isReference = parameter.isReference,
+					.name = parameter.name.value.content,
+					.arraySize = _composeSizeArray(parameter.arraySizes)
+				});
+		}
+
+		newFunction.body = _composeSymbolBody(p_functionInfo.body);
+
+		_reservedIdentifiers.insert(newFunction.name);
+		_availibleFunctions[newFunction.name].push_back(newFunction);
 	}
 
-	void Parser::_parseNamespace(const NamespaceInfo& p_namespace)
+	void Parser::_parseNamespace(const NamespaceInfo& p_namespaceInfo)
 	{
-		for (const auto& block : p_namespace.structureBlocks)
+		for (const auto& block : p_namespaceInfo.structureBlocks)
 		{
 			_parseStructure(block);
 		}
 
-		for (const auto& block : p_namespace.attributeBlocks)
+		for (const auto& block : p_namespaceInfo.attributeBlocks)
 		{
 			_parseAttribute(block);
 		}
 
-		for (const auto& block : p_namespace.constantBlocks)
+		for (const auto& block : p_namespaceInfo.constantBlocks)
 		{
 			_parseConstant(block);
 		}
 
-		for (const auto& texture : p_namespace.textureInfos)
+		for (const auto& texture : p_namespaceInfo.textureInfos)
 		{
 			_parseTexture(texture);
 		}
 
-		for (auto it : p_namespace.functionInfos)
+		for (auto it : p_namespaceInfo.functionInfos)
 		{
 			for (const auto& function : it.second)
 			{
@@ -287,7 +331,7 @@ namespace Lumina
 			}
 		}
 
-		for (const auto& nspace : p_namespace.nestedNamespaces)
+		for (const auto& nspace : p_namespaceInfo.nestedNamespaces)
 		{
 			_nspaces.push_back(nspace.name.value.content);
 
@@ -295,6 +339,72 @@ namespace Lumina
 
 			_nspaces.pop_back();
 		}
+	}
+		
+	void Parser::_parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow)
+	{
+		if (p_pipelineFlow.input == "Input" && p_pipelineFlow.output == "VertexPass")
+		{
+			_vertexVariables.insert(_composeVariable(p_pipelineFlow.variable));
+		}
+		else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
+		{
+			_vertexVariables.insert(_composeVariable(p_pipelineFlow.variable));
+			_fragmentVariables.insert(_composeVariable(p_pipelineFlow.variable));
+		}
+		else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
+		{
+			_fragmentVariables.insert(_composeVariable(p_pipelineFlow.variable));
+		}
+		else
+		{
+			
+		}
+	}
+	
+	Parser::Function Parser::_composePipelinePass(const PipelinePassInfo& p_pipelinePass)
+	{
+		Function result;
+
+		result.returnType = { _findType("void"), {} };
+		result.name = "main";
+		result.parameters = {};
+		result.body = _composeSymbolBody(p_pipelinePass.body);
+
+		return (result);
+	}
+	
+	void Parser::_parsePipelinePass(const PipelinePassInfo& p_pipelinePass)
+	{
+		if (p_pipelinePass.name == "VertexPass")
+		{
+			_vertexPassMain = _composePipelinePass(p_pipelinePass);
+		}
+		else if(p_pipelinePass.name == "FragmentPass")
+		{
+			_fragmentPassMain = _composePipelinePass(p_pipelinePass);
+		}
+	}
+
+	Parser::Product Parser::_parse(const Lexer::Output& p_input)
+	{
+		_product = Product();
+
+		for (const auto& flow : p_input.pipelineFlows)
+		{
+			_parsePipelineFlow(flow);
+		}
+
+		for (const auto& pass : p_input.pipelinePasses)
+		{
+			_parsePipelinePass(pass);
+		}
+
+		_parseNamespace(p_input.anonymNamespace);
+
+		printParsedData();
+
+		return (_product);
 	}
 
 	Parser::Product Parser::parse(const Lexer::Output& p_input)

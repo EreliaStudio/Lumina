@@ -5,6 +5,11 @@ ConstantBlock modelColor
 	Color color;
 };
 
+Color composeColor()
+{
+	return (modelColor.color);
+}
+
 VertexPass()
 {
 	pixelPosition = Vector4(modelPosition, 0, 1);
@@ -12,5 +17,5 @@ VertexPass()
 
 FragmentPass()
 {
-	pixelColor = modelColor.color;
+	pixelColor = composeColor();
 }

@@ -249,11 +249,18 @@ namespace Lumina
 		SymbolBodyInfo body;
 	};
 
+    struct ConstructorInfo
+    {
+        std::vector<ParameterInfo> parameters;
+        SymbolBodyInfo body;
+    };
+
 	struct BlockInfo
 	{
         NameInfo name;
 		std::vector<VariableInfo> attributes;
-		std::map<std::string, std::vector<FunctionInfo>> methodInfos;
+        std::vector<ConstructorInfo> constructorInfos;
+        std::map<std::string, std::vector<FunctionInfo>> methodInfos;
 		std::map<std::string, std::vector<OperatorInfo>> operatorInfos;
 	};
 
