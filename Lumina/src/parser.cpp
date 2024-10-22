@@ -353,8 +353,8 @@ namespace Lumina
 		{
 			for (const auto& func : funcPair.second)
 			{
-				std::cout << "		Return Type: " << func.returnType.type->name << "\n";
 				std::cout << "		Function: " << func.name << "\n";
+				std::cout << "		Return Type: " << func.returnType.type->name << "\n";
 
 				if (!func.parameters.empty())
 				{
@@ -485,7 +485,14 @@ namespace Lumina
 			}
 		}
 
+		std::cout << "No type [" << p_objectName << "] found" << std::endl;
+
 		return (nullptr);
+	}
+
+	const Parser::Type* Parser::_findType(const TypeInfo& p_typeInfo)
+	{
+		return (_findType(_composeTypeName(p_typeInfo)));
 	}
 
 	void Parser::_insertVariable(const Parser::Variable& p_variable)
@@ -520,12 +527,39 @@ namespace Lumina
 
 		return (result);
 	}
+	
+	Parser::ExpressionType Parser::_composeExpressionType(const ExpressionTypeInfo& p_expressionType)
+	{
+		Parser::ExpressionType result;
+
+		result.type = _findType(p_expressionType.type);
+		result.arraySize = _composeSizeArray(p_expressionType.arraySizes);
+
+		return (result);
+	}
 
 	Parser::Function Parser::_composeMethodFunction(const Parser::Type* p_originator, const FunctionInfo& p_functionInfo)
 	{
 		Parser::Function result;
 
+		result.returnType = _composeExpressionType(p_functionInfo.returnType);
 		result.name = _composeIdentifierName(p_originator->name + "_" + p_functionInfo.name.value.content);
+		result.parameters.push_back({
+				.type = p_originator,
+				.isReference = true,
+				.name = "self",
+				.arraySize = {}
+			});
+
+		for (const auto& parameter : p_functionInfo.parameters)
+		{
+			result.parameters.push_back({
+					.type = _findType(parameter.type),
+					.isReference = parameter.isReference,
+					.name = parameter.name.value.content,
+					.arraySize = _composeSizeArray(parameter.arraySizes)
+				});			
+		}
 
 		return (result);
 	}

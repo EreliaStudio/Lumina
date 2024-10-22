@@ -160,13 +160,21 @@ namespace Lumina
 			offset += 2;
 		}
 
+		const Lumina::Token& returnTypeNameToken = tokenAtOffset(offset);
+		if (returnTypeNameToken.type != Lumina::Token::Type::Identifier)
+		{
+			return false;
+		}
+		offset++;
+
 		const Lumina::Token& methodNameToken = tokenAtOffset(offset);
 		if (methodNameToken.type != Lumina::Token::Type::Identifier)
 		{
 			return false;
 		}
+		offset++;
 
-		const Lumina::Token& afterMethodName = tokenAtOffset(offset + 1);
+		const Lumina::Token& afterMethodName = tokenAtOffset(offset);
 		return (afterMethodName.type == Lumina::Token::Type::OpenParenthesis);
 	}
 

@@ -57,9 +57,17 @@ namespace Lumina
 
 		struct Function
 		{
+			struct Parameter
+			{
+				const Type* type;
+				bool isReference;
+				std::string name;
+				std::vector<size_t> arraySize;
+			};
+
 			ExpressionType returnType;
 			std::string name;
-			std::set<Variable> parameters;
+			std::vector<Parameter> parameters;
 		};
 
 		struct Type
@@ -107,8 +115,11 @@ namespace Lumina
 
 		const Type* _insertType(const Type& p_inputType);
 		const Type* _findType(const std::string& p_objectName);
+		const Type* _findType(const TypeInfo& p_typeInfo);
 
 		void _insertVariable(const Variable& p_variable);
+
+		ExpressionType _composeExpressionType(const ExpressionTypeInfo& p_expressionType);
 
 		Variable _composeVariable(const VariableInfo& p_variableInfo);
 		Type _composeType(const BlockInfo& p_block, const std::string& p_suffix = "");
