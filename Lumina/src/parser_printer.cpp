@@ -2,303 +2,149 @@
 
 namespace Lumina
 {
-	void Parser::printParsedData() const
-	{
-		std::cout << "Available Types:\n";
-		for (const auto& typeIterator : _availibleTypes)
-		{
-			const auto& type = typeIterator.second;
+    void Parser::printArraySizes(const std::vector<size_t>& arraySize) const {
+        if (!arraySize.empty()) {
+            std::cout << "[";
+            for (size_t i = 0; i < arraySize.size(); ++i) {
+                if (i > 0) std::cout << ", ";
+                std::cout << arraySize[i];
+            }
+            std::cout << "]";
+        }
+    }
 
-			std::cout << "	Type: " << type.name << "\n";
+    void Parser::printParameters(const std::vector<Parameter>& parameters) const {
+        for (size_t i = 0; i < parameters.size(); ++i) {
+            if (i != 0) {
+                std::cout << ", ";
+            }
+            const auto& param = parameters[i];
+            if (param.type == nullptr) {
+                std::cout << "[No type]";
+            }
+            else {
+                std::cout << param.type->name;
+                printArraySizes(param.arraySize);
+            }
+            std::cout << " " << (param.isReference ? "in " : "") << param.name;
+        }
+    }
 
-			if (!type.attributes.empty())
-			{
-				std::cout << "		Attributes:\n";
-				for (const auto& attr : type.attributes)
-				{
-					if (attr.type == nullptr)
-					{
-						std::cout << "			[No type] " << attr.name << "\n";
-					}
-					else
-					{
-						std::cout << "			" << attr.type->name << " " << attr.name;
-						if (!attr.arraySize.empty())
-						{
-							std::cout << "[";
-							for (size_t i = 0; i < attr.arraySize.size(); ++i)
-							{
-								if (i > 0) std::cout << ", ";
-								std::cout << attr.arraySize[i];
-							}
-							std::cout << "]";
-						}
-						std::cout << "\n";
-					}
+    void Parser::printVariable(const Variable& var, const std::string& indent) const {
+        if (var.type == nullptr) {
+            std::cout << indent << "[No type] " << var.name << "\n";
+        }
+        else {
+            std::cout << indent << var.type->name << " " << var.name;
+            printArraySizes(var.arraySize);
+            std::cout << "\n";
+        }
+    }
 
-				}
-			}
+    void Parser::printExpressionType(const ExpressionType& exprType) const {
+        if (exprType.type == nullptr) {
+            std::cout << "[No type]";
+        }
+        else {
+            std::cout << exprType.type->name;
+            printArraySizes(exprType.arraySize);
+        }
+    }
 
-			if (!type.constructors.empty())
-			{
-				std::cout << "		Constructor:\n";
-				for (const auto& method : type.constructors)
-				{
-					std::cout << "			" << type.name << "(";
-					for (size_t i = 0; i < method.parameters.size(); i++)
-					{
-						if (i != 0)
-						{
-							std::cout << ", ";
-						}
-						const auto& param = method.parameters[i];
-						std::cout << param.type->name;
-						if (!param.arraySize.empty())
-						{
-							std::cout << "[";
-							for (size_t i = 0; i < param.arraySize.size(); ++i)
-							{
-								if (i > 0) std::cout << ", ";
-								std::cout << param.arraySize[i];
-							}
-							std::cout << "]";
-						}
-						std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
-					}
-					std::cout << ")\n";
-				}
-			}
+    void Parser::printMethods(const std::map<std::string, std::vector<Type::Method>>& methods, const std::string& title) const {
+        if (!methods.empty()) {
+            std::cout << "        " << title << ":\n";
+            for (const auto& methodPair : methods) {
+                for (const auto& method : methodPair.second) {
+                    std::cout << "            ";
+                    printExpressionType(method.returnType);
+                    std::cout << " " << method.name << "(";
+                    printParameters(method.parameters);
+                    std::cout << ")\n";
+                }
+            }
+        }
+    }
 
-			if (!type.methods.empty())
-			{
-				std::cout << "		Methods:\n";
-				for (const auto& methodPair : type.methods)
-				{
-					for (const auto& method : methodPair.second)
-					{
-						std::cout << "			" << method.returnType.type->name;
-						if (!method.returnType.arraySize.empty())
-						{
-							std::cout << "[";
-							for (size_t i = 0; i < method.returnType.arraySize.size(); ++i)
-							{
-								if (i > 0) std::cout << ", ";
-								std::cout << method.returnType.arraySize[i];
-							}
-							std::cout << "]";
-						}
-						std::cout << " " << method.name << "(";
-						for (size_t i = 0; i < method.parameters.size(); i++)
-						{
-							if (i != 0)
-							{
-								std::cout << ", ";
-							}
-							const auto& param = method.parameters[i];
-							std::cout << param.type->name;
-							if (!param.arraySize.empty())
-							{
-								std::cout << "[";
-								for (size_t i = 0; i < param.arraySize.size(); ++i)
-								{
-									if (i > 0) std::cout << ", ";
-									std::cout << param.arraySize[i];
-								}
-								std::cout << "]";
-							}
-							std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
-						}
-						std::cout << ")\n";
-					}
-				}
-			}
+    void Parser::printConstructors(const std::string& p_constructedType, const std::vector<Type::Constructor>& constructors) const {
+        if (!constructors.empty()) {
+            std::cout << "        Constructors:\n";
+            for (const auto& constructor : constructors) {
+                std::cout << "            " << p_constructedType << "(";
+                printParameters(constructor.parameters);
+                std::cout << ")\n";
+            }
+        }
+    }
 
-			if (!type.operators.empty())
-			{
-				std::cout << "		Operators:\n";
-				for (const auto& operatorPair : type.operators)
-				{
-					for (const auto& op : operatorPair.second)
-					{
-						std::cout << "			" << op.returnType.type->name;
-						if (!op.returnType.arraySize.empty())
-						{
-							std::cout << "[";
-							for (size_t i = 0; i < op.returnType.arraySize.size(); ++i)
-							{
-								if (i > 0) std::cout << ", ";
-								std::cout << op.returnType.arraySize[i];
-							}
-							std::cout << "]";
-						}
-						std::cout << " operator " << op.name << "(";
-						for (size_t i = 0; i < op.parameters.size(); i++)
-						{
-							if (i != 0)
-							{
-								std::cout << ", ";
-							}
-							const auto& param = op.parameters[i];
-							std::cout << param.type->name;
-							if (!param.arraySize.empty())
-							{
-								std::cout << "[";
-								for (size_t i = 0; i < param.arraySize.size(); ++i)
-								{
-									if (i > 0) std::cout << ", ";
-									std::cout << param.arraySize[i];
-								}
-								std::cout << "]";
-							}
-							std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
-						}
-						std::cout << ")\n";
-					}
-				}
-			}
-		}
+    void Parser::printParsedData() const {
+        std::cout << "Available Types:\n";
+        for (const auto& typePair : _availibleTypes) {
+            const auto& type = typePair.second;
 
-		std::cout << "\n	Global variables:\n";
-		for (const auto& var : _globalVariables)
-		{
-			if (var.type == nullptr)
-			{
-				std::cout << "			[No type] " << var.name << "\n";
-			}
-			else
-			{
-				std::cout << "			" << var.type->name << " " << var.name;
-				if (!var.arraySize.empty())
-				{
-					std::cout << "[";
-					for (size_t i = 0; i < var.arraySize.size(); ++i)
-					{
-						if (i > 0) std::cout << ", ";
-						std::cout << var.arraySize[i];
-					}
-					std::cout << "]";
-				}
-				std::cout << "\n";
-			}
-		}
+            std::cout << "    Type: " << type.name << "\n";
 
-		std::cout << "\n	Vertex variables:\n";
-		for (const auto& var : _vertexVariables)
-		{
-			if (var.type == nullptr)
-			{
-				std::cout << "			[No type] " << var.name << "\n";
-			}
-			else
-			{
-				std::cout << "			" << var.type->name << " " << var.name;
-				if (!var.arraySize.empty())
-				{
-					std::cout << "[";
-					for (size_t i = 0; i < var.arraySize.size(); ++i)
-					{
-						if (i > 0) std::cout << ", ";
-						std::cout << var.arraySize[i];
-					}
-					std::cout << "]";
-				}
-				std::cout << "\n";
-			}
-		}
+            if (!type.attributes.empty()) {
+                std::cout << "        Attributes:\n";
+                for (const auto& attr : type.attributes) {
+                    printVariable(attr, "            ");
+                }
+            }
 
-		std::cout << "\n	Fragment variables:\n";
-		for (const auto& var : _fragmentVariables)
-		{
-			if (var.type == nullptr)
-			{
-				std::cout << "			[No type] " << var.name << "\n";
-			}
-			else
-			{
-				std::cout << "			" << var.type->name << " " << var.name;
-				if (!var.arraySize.empty())
-				{
-					std::cout << "[";
-					for (size_t i = 0; i < var.arraySize.size(); ++i)
-					{
-						if (i > 0) std::cout << ", ";
-						std::cout << var.arraySize[i];
-					}
-					std::cout << "]";
-				}
-				std::cout << "\n";
-			}
-		}
+            printConstructors(type.name, type.constructors);
+            printMethods(type.methods, "Methods");
+            printMethods(type.operators, "Operators");
+        }
 
-		std::cout << "\n	Functions:\n";
-		for (const auto& funcPair : _availibleFunctions)
-		{
-			for (const auto& func : funcPair.second)
-			{
-				std::cout << "		" << func.returnType.type->name;
-				if (!func.returnType.arraySize.empty())
-				{
-					std::cout << "[";
-					for (size_t i = 0; i < func.returnType.arraySize.size(); ++i)
-					{
-						if (i > 0) std::cout << ", ";
-						std::cout << func.returnType.arraySize[i];
-					}
-					std::cout << "]";
-				}
-				std::cout << " " << func.name << "(";
-				for (size_t i = 0; i < func.parameters.size(); i++)
-				{
-					if (i != 0)
-					{
-						std::cout << ", ";
-					}
-					const auto& param = func.parameters[i];
-					std::cout << param.type->name;
-					if (!param.arraySize.empty())
-					{
-						std::cout << "[";
-						for (size_t i = 0; i < param.arraySize.size(); ++i)
-						{
-							if (i > 0) std::cout << ", ";
-							std::cout << param.arraySize[i];
-						}
-						std::cout << "]";
-					}
-					std::cout << " " << (param.isReference == true ? "in " : "") << param.name;
-				}
-				std::cout << ")\n";
-			}
-		}
+        std::cout << "\nGlobal variables:\n";
+        for (const auto& var : _globalVariables) {
+            printVariable(var, "    ");
+        }
 
-		std::cout << "\n	VertexPass main()\n";
+        std::cout << "\nVertex variables:\n";
+        for (const auto& var : _vertexVariables) {
+            printVariable(var, "    ");
+        }
 
-		std::cout << "\n	FragmentPass main()\n";
+        std::cout << "\nFragment variables:\n";
+        for (const auto& var : _fragmentVariables) {
+            printVariable(var, "    ");
+        }
 
-		std::cout << "\nAttribute Types:\n";
-		for (const auto& attrType : _attributesTypes)
-		{
-			if (attrType == nullptr)
-			{
-				std::cout << "	Inserted a nullptr type in attribute" << "\n";
-			}
-			else
-			{
-				std::cout << "	" << attrType->name << "\n";
-			}
-		}
+        std::cout << "\nFunctions:\n";
+        for (const auto& funcPair : _availibleFunctions) {
+            for (const auto& func : funcPair.second) {
+                std::cout << "    ";
+                printExpressionType(func.returnType);
+                std::cout << " " << func.name << "(";
+                printParameters(func.parameters);
+                std::cout << ")\n";
+            }
+        }
 
-		std::cout << "\nConstants Types:\n";
-		for (const auto& constType : _constantsTypes)
-		{
-			if (constType == nullptr)
-			{
-				std::cout << "Inserted a nullptr type in Constant" << "\n";
-			}
-			else
-			{
-				std::cout << "  " << constType->name << "\n";
-			}
-		}
-	}
+        std::cout << "\nVertexPass main()\n";
+
+        std::cout << "\nFragmentPass main()\n";
+
+        std::cout << "\nAttribute Types:\n";
+        for (const auto& attrType : _attributesTypes) {
+            if (attrType == nullptr) {
+                std::cout << "    Inserted a nullptr type in attribute\n";
+            }
+            else {
+                std::cout << "    " << attrType->name << "\n";
+            }
+        }
+
+        std::cout << "\nConstants Types:\n";
+        for (const auto& constType : _constantsTypes) {
+            if (constType == nullptr) {
+                std::cout << "    Inserted a nullptr type in Constant\n";
+            }
+            else {
+                std::cout << "    " << constType->name << "\n";
+            }
+        }
+    }
+
 }

@@ -202,6 +202,13 @@ namespace Lumina
 		void _parsePipelinePass(const PipelinePassInfo& p_pipelinePass);
 
 		Product _parse(const Lexer::Output& p_input);
+
+		void printArraySizes(const std::vector<size_t>& arraySize) const;
+		void printParameters(const std::vector<Parameter>& parameters) const;
+		void printVariable(const Variable& var, const std::string& indent = "") const;
+		void printExpressionType(const ExpressionType& exprType) const;
+		void printMethods(const std::map<std::string, std::vector<Type::Method>>& methods, const std::string& title) const;
+		void printConstructors(const std::string& p_constructedType, const std::vector<Type::Constructor>& constructors) const;
 		void printParsedData() const;
 
 	public:
