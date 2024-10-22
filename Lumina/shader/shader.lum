@@ -1,11 +1,16 @@
-struct Test
-{
-	void method(Test paramA, int paramB)
-	{
-		this.a = 43;
-	}
+Input -> VertexPass : Vector2 modelPosition;
 
-	Test operator + (Test other)
-	{
-	}
+ConstantBlock modelColor
+{
+	Color color;
 };
+
+VertexPass()
+{
+	pixelPosition = Vector4(modelPosition, 0, 1);
+}
+
+FragmentPass()
+{
+	pixelColor = modelColor.color;
+}
