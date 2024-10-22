@@ -448,7 +448,8 @@ namespace Lumina
             advance();
             return std::make_shared<Expression>(literalExpr);
         }
-        else if (currentToken().type == Lumina::Token::Type::Identifier)
+        else if (currentToken().type == Lumina::Token::Type::Identifier ||
+                 currentToken().type == Lumina::Token::Type::ThisKeyword)
         {
             return parseVariableOrFunctionCallExpression();
         }
@@ -469,7 +470,7 @@ namespace Lumina
     {
         NamespaceDesignation nspace = parseNamespaceDesignation();
 
-        Token nameToken = expect(Lumina::Token::Type::Identifier, "Expected identifier.");
+        Token nameToken = expect({ Lumina::Token::Type::Identifier, Lumina::Token::Type::ThisKeyword }, "Expected identifier.");
 
         if (currentToken().type == Lumina::Token::Type::OpenParenthesis)
         {

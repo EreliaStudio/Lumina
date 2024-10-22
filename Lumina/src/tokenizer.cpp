@@ -225,6 +225,10 @@ namespace Lumina
 				{
 					tokenType = Token::Type::StructureBlock;
 				}
+				else if (tokenStr == "self" || tokenStr == "this")
+				{
+					tokenType = Token::Type::ThisKeyword;
+				}
 				else if (tokenStr == "operator")
 				{
 					tokenType = Token::Type::OperatorKeyword;

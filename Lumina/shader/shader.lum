@@ -2,5 +2,6 @@ struct Test
 {
 	void method(Test paramA, int paramB)
 	{
+		this.a = 43;
 	}
 };

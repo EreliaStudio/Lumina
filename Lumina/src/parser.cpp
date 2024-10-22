@@ -643,12 +643,6 @@ namespace Lumina
 
 		result.returnType = _composeExpressionType(p_functionInfo.returnType);
 		result.name = _composeIdentifierName(p_originator->name + "_" + p_functionInfo.name.value.content);
-		result.parameters.push_back({
-				.type = p_originator,
-				.isReference = true,
-				.name = "self",
-				.arraySize = {}
-			});
 
 		for (const auto& parameter : p_functionInfo.parameters)
 		{
@@ -701,7 +695,7 @@ namespace Lumina
 			{
 				Parser::Function newMethods = _composeMethodFunction(p_originator, method);
 
-				_availibleFunctions[newMethods.name].push_back(newMethods);
+				p_originator->methods[newMethods.name].push_back(newMethods);
 			}
 		}
 
@@ -711,7 +705,7 @@ namespace Lumina
 			{
 				Parser::Function newOperator = _composeOperatorFunction(p_originator, ope);
 
-				_availibleFunctions[newOperator.name].push_back(newOperator);
+				p_originator->operators[newOperator.name].push_back(newOperator);
 			}
 		}
 	}

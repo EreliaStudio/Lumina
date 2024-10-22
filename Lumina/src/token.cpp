@@ -62,6 +62,7 @@ namespace Lumina
 		case Token::Type::Identifier: return "Identifier";
 		case Token::Type::Number: return "Number";
 		case Token::Type::StructureBlock: return "StructureBlock";
+		case Token::Type::ThisKeyword: return "This";
 		case Token::Type::AttributeBlock: return "AttributeBlock";
 		case Token::Type::ConstantBlock: return "ConstantBlock";
 		case Token::Type::Texture: return "Texture";
