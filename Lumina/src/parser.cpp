@@ -682,6 +682,7 @@ namespace Lumina
 			{">=", "GEqual"},
 		};
 
+		result.returnType = _composeExpressionType(p_operatorInfo.returnType);
 		result.name = _composeIdentifierName(p_originator->name + "_Operator" + operatorNameMap[p_operatorInfo.opeType.content]);
 
 		return (result);

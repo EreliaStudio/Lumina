@@ -4,4 +4,8 @@ struct Test
 	{
 		this.a = 43;
 	}
+
+	Test operator + (Test other)
+	{
+	}
 };

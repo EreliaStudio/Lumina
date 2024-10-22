@@ -64,6 +64,7 @@ namespace Lumina
 		ShaderInfo parseShaderInfo();
 
 		bool describeFunction();
+		bool describeOperator();
 		bool describeVariableInfo();
 
 		Product _lex(const std::vector<Lumina::Token>& p_tokens);

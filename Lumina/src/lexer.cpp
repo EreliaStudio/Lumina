@@ -125,6 +125,9 @@ namespace Lumina
 	{
 		OperatorInfo result;
 
+
+		result.returnType.type = parseTypeInfo();
+
 		expect(Lumina::Token::Type::OperatorKeyword, "Expected 'operator' keyword.");
 		result.opeType = expect(Lumina::Token::Type::Operator, "Expected an operator token.");
 
@@ -169,6 +172,47 @@ namespace Lumina
 
 		const Lumina::Token& methodNameToken = tokenAtOffset(offset);
 		if (methodNameToken.type != Lumina::Token::Type::Identifier)
+		{
+			return false;
+		}
+		offset++;
+
+		const Lumina::Token& afterMethodName = tokenAtOffset(offset);
+		return (afterMethodName.type == Lumina::Token::Type::OpenParenthesis);
+	}
+
+
+	bool Lexer::describeOperator()
+	{
+		size_t offset = 0;
+
+		if (currentToken().type == Lumina::Token::Type::NamespaceSeparator)
+		{
+			offset++;
+		}
+
+		while (tokenAtOffset(offset).type == Lumina::Token::Type::Identifier &&
+			tokenAtOffset(offset + 1).type == Lumina::Token::Type::NamespaceSeparator)
+		{
+			offset += 2;
+		}
+
+		const Lumina::Token& returnTypeNameToken = tokenAtOffset(offset);
+		if (returnTypeNameToken.type != Lumina::Token::Type::Identifier)
+		{
+			return false;
+		}
+		offset++;
+
+		const Lumina::Token& operatorToken = tokenAtOffset(offset);
+		if (operatorToken.type != Lumina::Token::Type::OperatorKeyword)
+		{
+			return false;
+		}
+		offset++;
+
+		const Lumina::Token& operatorDesignationToken = tokenAtOffset(offset);
+		if (operatorDesignationToken.type != Lumina::Token::Type::Operator)
 		{
 			return false;
 		}
@@ -228,7 +272,7 @@ namespace Lumina
 					FunctionInfo methodInfo = parseFunctionInfo();
 					result.methodInfos[methodInfo.name.value.content].push_back(std::move(methodInfo));
 				}
-				else if (currentToken().type == Lumina::Token::Type::OperatorKeyword)
+				else if (describeOperator())
 				{
 					OperatorInfo operatorInfo = parseOperatorInfo();
 					result.operatorInfos[operatorInfo.opeType.content].push_back(operatorInfo);
