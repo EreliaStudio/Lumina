@@ -20,6 +20,8 @@ namespace Lumina
 
 		Lexer() = default;
 
+		void parseInclude();
+
 		NamespaceDesignation parseNamespaceDesignation();
 		TypeInfo parseTypeInfo();
 		NameInfo parseNameInfo();

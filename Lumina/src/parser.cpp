@@ -402,7 +402,7 @@ namespace Lumina
 
 		_parseNamespace(p_input.anonymNamespace);
 
-		printParsedData();
+		//printParsedData();
 
 		return (_product);
 	}

@@ -1,3 +1,5 @@
+#include "test.lum"
+
 Input -> VertexPass : Vector2 modelPosition;
 
 ConstantBlock modelColor

@@ -1,6 +1,9 @@
 #include "lexer.hpp"
 #include "token.hpp"
 
+#include "tokenizer.hpp"
+#include "utils.hpp"
+
 namespace Lumina
 {
 	NamespaceDesignation Lexer::parseNamespaceDesignation()
@@ -426,6 +429,28 @@ namespace Lumina
 
 		return result;
 	}
+	
+	void Lexer::parseInclude()
+	{
+		skipToken();
+
+		Lumina::Token includeToken = expect({ Lumina::Token::Type::IncludeLitteral, Lumina::Token::Type::StringLitteral }, "Expected a valid include path token.");
+
+		std::string fileRelativePath = includeToken.content.substr(1, includeToken.content.size() - 2);
+		std::filesystem::path currentDir = std::filesystem::current_path();
+		std::filesystem::path filePath = composeFilePath(fileRelativePath, { currentDir, includeToken.context.originFile.parent_path() });
+
+		if (!std::filesystem::exists(filePath))
+		{
+			throw TokenBasedError("Included file '" + fileRelativePath + "' does not exist.", includeToken);
+		}
+
+		std::string rawCode = Lumina::readFileAsString(filePath);
+
+		std::vector<Lumina::Token> includeTokens = Lumina::Tokenizer::tokenize(filePath, rawCode);
+
+		_tokens.insert(_tokens.begin() + _index, includeTokens.begin(), includeTokens.end());
+	}
 
 	ShaderInfo Lexer::parseShaderInfo()
 	{
@@ -439,7 +464,11 @@ namespace Lumina
 				{
 					skipToken();
 				}
-				if (currentToken().type == Lumina::Token::Type::PipelineFlow)
+				else if (currentToken().type == Lumina::Token::Type::Include)
+				{
+					parseInclude();
+				}
+				else if (currentToken().type == Lumina::Token::Type::PipelineFlow)
 				{
 					if (peekNext().type == Lumina::Token::Type::PipelineFlowSeparator)
 					{
