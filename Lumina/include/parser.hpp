@@ -82,9 +82,9 @@ namespace Lumina
 			std::map<std::string, std::vector<Method>> methods;
 			std::map<std::string, std::vector<Operator>> operators;
 
-			bool operator <(const Type& p_other) const
+			operator std::string() const
 			{
-				return (name < p_other.name);
+				return name;
 			}
 		};
 
@@ -93,9 +93,9 @@ namespace Lumina
 
 		std::set<std::string> _reservedIdentifiers;
 
-		std::set<Type> _availibleTypes;
-		std::set<const Type*> _attributesTypes;
-		std::set<const Type*> _constantsTypes;
+		std::map<std::string, Type> _availibleTypes;
+		std::vector<const Type*> _attributesTypes;
+		std::vector<const Type*> _constantsTypes;
 		std::map<std::string, std::vector<Function>> _availibleFunctions;
 
 		std::set<Variable> _variables;
@@ -107,13 +107,14 @@ namespace Lumina
 		void composeVector2Types();
 		void composeVector3Types();
 		void composeVector4Types();
+		void composeTextureType();
 		Parser();
 
 		std::string _composeTypeName(const TypeInfo& p_typeInfo);
 		std::vector<size_t> _composeSizeArray(const ArraySizeInfo& p_arraySizeInfo);
 		std::string _composeIdentifierName(const std::string& p_identifierName);
 
-		const Type* _insertType(const Type& p_inputType);
+		Type* _insertType(const Type& p_inputType);
 		const Type* _findType(const std::string& p_objectName);
 		const Type* _findType(const TypeInfo& p_typeInfo);
 
@@ -126,7 +127,7 @@ namespace Lumina
 		Function _composeMethodFunction(const Type* p_originator, const FunctionInfo& p_functionInfo);
 		Function _composeOperatorFunction(const Type* p_originator, const OperatorInfo& p_operatorInfo);
 
-		void _computeMethodAndOperator(const Type* p_originator, const BlockInfo& p_block);
+		void _computeMethodAndOperator(Type* p_originator, const BlockInfo& p_block);
 
 		void _parseStructure(const BlockInfo& p_block);
 		void _parseAttribute(const BlockInfo& p_block);

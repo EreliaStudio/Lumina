@@ -17,8 +17,36 @@ namespace Lumina
 			});
 
 		_insertType({
+					.name = "Color",
+					.attributes = {
+				}
+			});
+	}
+
+	void Parser::composeTextureType()
+	{
+		Type* textureType = _insertType({
 					.name = "Texture",
 					.attributes = {
+				}
+			});
+
+		textureType->methods.insert({
+				"getPixel", {
+					{
+					.returnType = {
+							.type = _findType("Color"),
+							.arraySize = {}
+						},
+					.name = {"getPixel"},
+					.parameters = {
+							{
+								.type = _findType("Vector2"),
+								.name = "UV",
+								.arraySize = {}
+							}
+						}
+					}
 				}
 			});
 	}
@@ -251,6 +279,7 @@ namespace Lumina
 		composeVector2Types();
 		composeVector3Types();
 		composeVector4Types();
+		composeTextureType();
 	}
 
 	Parser::Product Parser::_parse(const Lexer::Output& p_input)
@@ -267,8 +296,10 @@ namespace Lumina
 	void Parser::printParsedData() const
 	{
 		std::cout << "Available Types:\n";
-		for (const auto& type : _availibleTypes)
+		for (const auto& typeIterator : _availibleTypes)
 		{
+			const auto& type = typeIterator.second;
+
 			std::cout << "	Type: " << type.name << "\n";
 
 			if (!type.attributes.empty())
@@ -306,7 +337,39 @@ namespace Lumina
 				{
 					for (const auto& method : methodPair.second)
 					{
-						std::cout << "			" << method.name << "\n";
+						std::cout << "			" << method.returnType.type->name;
+						if (!method.returnType.arraySize.empty())
+						{
+							std::cout << "[";
+							for (size_t i = 0; i < method.returnType.arraySize.size(); ++i)
+							{
+								if (i > 0) std::cout << ", ";
+								std::cout << method.returnType.arraySize[i];
+							}
+							std::cout << "]";
+						}
+						std::cout << " " << method.name << "(";
+						for (size_t i = 0; i < method.parameters.size(); i++)
+						{
+							if (i != 0)
+							{
+								std::cout << ", ";
+							}
+							const auto& param = method.parameters[i];
+							std::cout << param.type->name;
+							if (!param.arraySize.empty())
+							{
+								std::cout << "[";
+								for (size_t i = 0; i < param.arraySize.size(); ++i)
+								{
+									if (i > 0) std::cout << ", ";
+									std::cout << param.arraySize[i];
+								}
+								std::cout << "]";
+							}
+							std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+						}
+						std::cout << ")\n";
 					}
 				}
 			}
@@ -318,7 +381,39 @@ namespace Lumina
 				{
 					for (const auto& op : operatorPair.second)
 					{
-						std::cout << "			" << op.name << "\n";
+						std::cout << "			" << op.returnType.type->name;
+						if (!op.returnType.arraySize.empty())
+						{
+							std::cout << "[";
+							for (size_t i = 0; i < op.returnType.arraySize.size(); ++i)
+							{
+								if (i > 0) std::cout << ", ";
+								std::cout << op.returnType.arraySize[i];
+							}
+							std::cout << "]";
+						}
+						std::cout << " " << op.name << "(";
+						for (size_t i = 0; i < op.parameters.size(); i++)
+						{
+							if (i != 0)
+							{
+								std::cout << ", ";
+							}
+							const auto& param = op.parameters[i];
+							std::cout << param.type->name;
+							if (!param.arraySize.empty())
+							{
+								std::cout << "[";
+								for (size_t i = 0; i < param.arraySize.size(); ++i)
+								{
+									if (i > 0) std::cout << ", ";
+									std::cout << param.arraySize[i];
+								}
+								std::cout << "]";
+							}
+							std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+						}
+						std::cout << ")\n";
 					}
 				}
 			}
@@ -353,35 +448,39 @@ namespace Lumina
 		{
 			for (const auto& func : funcPair.second)
 			{
-				std::cout << "		Function: " << func.name << "\n";
-				std::cout << "		Return Type: " << func.returnType.type->name << "\n";
-
-				if (!func.parameters.empty())
+				std::cout << "		" << func.returnType.type->name;
+				if (!func.returnType.arraySize.empty())
 				{
-					std::cout << "		Parameters:\n";
-					for (const auto& param : func.parameters)
+					std::cout << "[";
+					for (size_t i = 0; i < func.returnType.arraySize.size(); ++i)
 					{
-						if (param.type == nullptr)
-						{
-							std::cout << "			[No type] " << param.name << "\n";
-						}
-						else
-						{
-							std::cout << "			" << param.type->name << " " << param.name;
-							if (!param.arraySize.empty())
-							{
-								std::cout << "[";
-								for (size_t i = 0; i < param.arraySize.size(); ++i)
-								{
-									if (i > 0) std::cout << ", ";
-									std::cout << param.arraySize[i];
-								}
-								std::cout << "]";
-							}
-							std::cout << "\n";
-						}
+						if (i > 0) std::cout << ", ";
+						std::cout << func.returnType.arraySize[i];
 					}
+					std::cout << "]";
 				}
+				std::cout << " " << func.name << "(";
+				for (size_t i = 0; i < func.parameters.size(); i++)
+				{
+					if (i != 0)
+					{
+						std::cout << ", ";
+					}
+					const auto& param = func.parameters[i];
+					std::cout << param.type->name;
+					if (!param.arraySize.empty())
+					{
+						std::cout << "[";
+						for (size_t i = 0; i < param.arraySize.size(); ++i)
+						{
+							if (i > 0) std::cout << ", ";
+							std::cout << param.arraySize[i];
+						}
+						std::cout << "]";
+					}
+					std::cout << " " << (param.isReference == true ? "in" : "out") << " " << param.name;
+				}
+				std::cout << ")\n";
 			}
 		}
 
@@ -453,11 +552,11 @@ namespace Lumina
 		return (result);
 	}
 
-	const Parser::Type* Parser::_insertType(const Type& p_inputType)
+	Parser::Type* Parser::_insertType(const Type& p_inputType)
 	{
-		_availibleTypes.insert(p_inputType);
+		_availibleTypes[p_inputType] = p_inputType;
 		_reservedIdentifiers.insert(p_inputType.name);
-		return (_findType(p_inputType.name));
+		return (&_availibleTypes[p_inputType]);
 	}
 
 	const Parser::Type* Parser::_findType(const std::string& p_objectName)
@@ -466,7 +565,7 @@ namespace Lumina
 
 		if (_availibleTypes.contains(expectedType) == true)
 		{
-			return &(*(_availibleTypes.find(expectedType)));
+			return &(_availibleTypes.at(expectedType));
 		}
 
 		for (size_t i = 0; i < _nspaces.size(); i++)
@@ -481,7 +580,7 @@ namespace Lumina
 
 			if (_availibleTypes.contains(expectedType) == true)
 			{
-				return &(*(_availibleTypes.find(expectedType)));
+				return &(_availibleTypes.at(expectedType));
 			}
 		}
 
@@ -594,7 +693,7 @@ namespace Lumina
 		return (result);
 	}
 
-	void Parser::_computeMethodAndOperator(const Parser::Type* p_originator, const BlockInfo& p_block)
+	void Parser::_computeMethodAndOperator(Parser::Type* p_originator, const BlockInfo& p_block)
 	{
 		for (const auto& methodArray : p_block.methodInfos)
 		{
@@ -619,16 +718,16 @@ namespace Lumina
 
 	void Parser::_parseStructure(const BlockInfo& p_block)
 	{
-		const Type* insertedType = _insertType(_composeType(p_block));
+		Type* insertedType = _insertType(_composeType(p_block));
 
 		_computeMethodAndOperator(insertedType, p_block);
 	}
 
 	void Parser::_parseAttribute(const BlockInfo& p_block)
 	{
-		const Type* insertedType = _insertType(_composeType(p_block, "_Attributes"));
+		Type* insertedType = _insertType(_composeType(p_block, "_Attributes"));
 
-		_attributesTypes.insert(insertedType);
+		_attributesTypes.push_back(insertedType);
 
 		_computeMethodAndOperator(insertedType, p_block);
 
@@ -643,9 +742,9 @@ namespace Lumina
 
 	void Parser::_parseConstant(const BlockInfo& p_block)
 	{
-		const Type* insertedType = _insertType(_composeType(p_block, "_Constants"));
+		Type* insertedType = _insertType(_composeType(p_block, "_Constants"));
 
-		_constantsTypes.insert(insertedType);
+		_constantsTypes.push_back(insertedType);
 
 		_computeMethodAndOperator(insertedType, p_block);
 
