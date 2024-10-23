@@ -119,7 +119,7 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBody();
+		result.body = parseSymbolBodyInfo();
 
 		return result;
 	}
@@ -141,7 +141,7 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBody();
+		result.body = parseSymbolBodyInfo();
 
 		return result;
 	}
@@ -168,7 +168,7 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBody();
+		result.body = parseSymbolBodyInfo();
 
 		return result;
 	}
@@ -371,7 +371,7 @@ namespace Lumina
 		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' token.");
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' token.");
 
-		result.body = parseSymbolBody();
+		result.body = parseSymbolBodyInfo();
 
 		return result;
 	}

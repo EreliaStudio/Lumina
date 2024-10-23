@@ -23,6 +23,24 @@ namespace
         std::cout << "\n";
     }
 
+    void printExpressionTypeInfo(const Lumina::ExpressionTypeInfo& p_toPrint, size_t p_tabulationSize)
+    {
+        printIndentation(p_tabulationSize);
+        std::cout << "ExpressionType: ";
+        for (const auto& token : p_toPrint.type.nspace)
+        {
+            std::cout << token.content;
+            std::cout << "::";
+        }
+        std::cout << p_toPrint.type.value.content;
+
+        for (const auto& size : p_toPrint.arraySizes.dims)
+        {
+            std::cout << "[" << size << "]";
+        }
+        std::cout << "\n";
+    }
+
     void printNameInfo(const Lumina::NameInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
@@ -71,15 +89,15 @@ namespace
     }
 
     void printSymbolBodyInfo(const Lumina::SymbolBodyInfo& p_toPrint, size_t p_tabulationSize);
-    void printExpression(const Lumina::Expression& expr, size_t p_tabulationSize);
+    void printExpression(const Lumina::ExpressionInfo& expr, size_t p_tabulationSize);
 
-    void printLiteralExpression(const Lumina::LiteralExpression& expr, size_t p_tabulationSize)
+    void printLiteralExpression(const Lumina::LiteralExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "LiteralExpression: " << expr.value.content << "\n";
     }
 
-    void printVariableExpression(const Lumina::VariableExpression& expr, size_t p_tabulationSize)
+    void printVariableExpression(const Lumina::VariableExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "VariableExpression: ";
@@ -90,7 +108,7 @@ namespace
         std::cout << expr.variableName.content << "\n";
     }
 
-    void printBinaryExpression(const Lumina::BinaryExpression& expr, size_t p_tabulationSize)
+    void printBinaryExpression(const Lumina::BinaryExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "BinaryExpression:\n";
@@ -100,7 +118,7 @@ namespace
         printExpression(*expr.right, p_tabulationSize + 1);
     }
 
-    void printUnaryExpression(const Lumina::UnaryExpression& expr, size_t p_tabulationSize)
+    void printUnaryExpression(const Lumina::UnaryExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "UnaryExpression:\n";
@@ -109,7 +127,7 @@ namespace
         printExpression(*expr.operand, p_tabulationSize + 1);
     }
 
-    void printPostfixExpression(const Lumina::PostfixExpression& expr, size_t p_tabulationSize)
+    void printPostfixExpression(const Lumina::PostfixExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "PostfixExpression:\n";
@@ -118,7 +136,7 @@ namespace
         std::cout << "Operator: " << expr.operatorToken.content << "\n";
     }
 
-    void printFunctionCallExpression(const Lumina::FunctionCallExpression& expr, size_t p_tabulationSize)
+    void printFunctionCallExpression(const Lumina::FunctionCallExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "FunctionCallExpression: ";
@@ -135,7 +153,7 @@ namespace
         }
     }
 
-    void printMemberAccessExpression(const Lumina::MemberAccessExpression& expr, size_t p_tabulationSize)
+    void printMemberAccessExpression(const Lumina::MemberAccessExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "MemberAccessExpression:\n";
@@ -144,7 +162,7 @@ namespace
         std::cout << "Member: " << expr.memberName.content << "\n";
     }
 
-    void printArrayAccessExpression(const Lumina::ArrayAccessExpression& expr, size_t p_tabulationSize)
+    void printArrayAccessExpression(const Lumina::ArrayAccessExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "ArrayAccessExpression:\n";
@@ -152,11 +170,11 @@ namespace
         printExpression(*expr.index, p_tabulationSize + 1);
     }
 
-    void printCastExpression(const Lumina::CastExpression& expr, size_t p_tabulationSize)
+    void printCastExpression(const Lumina::CastExpressionInfo& expr, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "CastExpression:\n";
-        printTypeInfo(expr.targetType, p_tabulationSize + 1);
+        printExpressionTypeInfo(expr.targetType, p_tabulationSize + 1);
         printIndentation(p_tabulationSize + 1);
         std::cout << "Arguments:\n";
         for (const auto& arg : expr.arguments)
@@ -165,32 +183,32 @@ namespace
         }
     }
 
-    void printExpression(const Lumina::Expression& expr, size_t p_tabulationSize)
+    void printExpression(const Lumina::ExpressionInfo& expr, size_t p_tabulationSize)
     {
         std::visit([&](const auto& expression) {
             using T = std::decay_t<decltype(expression)>;
-            if constexpr (std::is_same_v<T, Lumina::LiteralExpression>)
+            if constexpr (std::is_same_v<T, Lumina::LiteralExpressionInfo>)
                 printLiteralExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::VariableExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::VariableExpressionInfo>)
                 printVariableExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::BinaryExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::BinaryExpressionInfo>)
                 printBinaryExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::UnaryExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::UnaryExpressionInfo>)
                 printUnaryExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::PostfixExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::PostfixExpressionInfo>)
                 printPostfixExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::FunctionCallExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::FunctionCallExpressionInfo>)
                 printFunctionCallExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::MemberAccessExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::MemberAccessExpressionInfo>)
                 printMemberAccessExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::ArrayAccessExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::ArrayAccessExpressionInfo>)
                 printArrayAccessExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::CastExpression>)
+            else if constexpr (std::is_same_v<T, Lumina::CastExpressionInfo>)
                 printCastExpression(expression, p_tabulationSize);
             }, expr);
     }
 
-    void printVariableDeclarationStatement(const Lumina::VariableDeclarationStatement& p_toPrint, size_t p_tabulationSize)
+    void printVariableDeclarationStatementInfo(const Lumina::VariableDeclarationStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "VariableDeclarationStatement:\n";
@@ -203,14 +221,14 @@ namespace
         }
     }
 
-    void printExpressionStatement(const Lumina::ExpressionStatement& p_toPrint, size_t p_tabulationSize)
+    void printExpressionStatementInfo(const Lumina::ExpressionStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "ExpressionStatement:\n";
         printExpression(*p_toPrint.expression, p_tabulationSize + 1);
     }
 
-    void printAssignmentStatement(const Lumina::AssignmentStatement& p_toPrint, size_t p_tabulationSize)
+    void printAssignmentStatementInfo(const Lumina::AssignmentStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "AssignmentStatement:\n";
@@ -220,7 +238,7 @@ namespace
         printExpression(*p_toPrint.value, p_tabulationSize + 1);
     }
 
-    void printReturnStatement(const Lumina::ReturnStatement& p_toPrint, size_t p_tabulationSize)
+    void printReturnStatementInfo(const Lumina::ReturnStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "ReturnStatement:\n";
@@ -230,13 +248,13 @@ namespace
         }
     }
 
-    void printDiscardStatement(const Lumina::DiscardStatement&, size_t p_tabulationSize)
+    void printDiscardStatementInfo(const Lumina::DiscardStatementInfo&, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "DiscardStatement\n";
     }
 
-    void printIfStatement(const Lumina::IfStatement& p_toPrint, size_t p_tabulationSize)
+    void printIfStatementInfo(const Lumina::IfStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "IfStatement:\n";
@@ -249,7 +267,7 @@ namespace
         }
     }
 
-    void printWhileStatement(const Lumina::WhileStatement& p_toPrint, size_t p_tabulationSize)
+    void printWhileStatementInfo(const Lumina::WhileStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "WhileStatement:\n";
@@ -257,9 +275,9 @@ namespace
         printSymbolBodyInfo(p_toPrint.loop.body, p_tabulationSize + 1);
     }
 
-    void printStatement(const Lumina::Statement& p_toPrint, size_t p_tabulationSize);
+    void printStatementInfo(const Lumina::StatementInfo& p_toPrint, size_t p_tabulationSize);
 
-    void printForStatement(const Lumina::ForStatement& p_toPrint, size_t p_tabulationSize)
+    void printForStatementInfo(const Lumina::ForStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "ForStatement:\n";
@@ -267,7 +285,7 @@ namespace
         std::cout << "Initializer:\n";
         if (p_toPrint.initializer)
         {
-            printStatement(*p_toPrint.initializer, p_tabulationSize + 2);
+            printStatementInfo(*p_toPrint.initializer, p_tabulationSize + 2);
         }
         printIndentation(p_tabulationSize + 1);
         std::cout << "Condition:\n";
@@ -284,47 +302,44 @@ namespace
         printSymbolBodyInfo(p_toPrint.body, p_tabulationSize + 1);
     }
 
-    void printRaiseExceptionStatement(const Lumina::RaiseExceptionStatement& p_toPrint, size_t p_tabulationSize)
+    void printRaiseExceptionStatementInfo(const Lumina::RaiseExceptionStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "RaiseExceptionStatement:\n";
         printExpression(*p_toPrint.functionCall, p_tabulationSize + 1);
     }
 
-    void printCompoundStatement(const Lumina::CompoundStatement& p_toPrint, size_t p_tabulationSize)
+    void printCompoundStatementInfo(const Lumina::CompoundStatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         printIndentation(p_tabulationSize);
         std::cout << "CompoundStatement:\n";
-        for (const auto& subStmt : p_toPrint.statements)
-        {
-            printStatement(subStmt, p_tabulationSize + 1);
-        }
+        printSymbolBodyInfo(p_toPrint.body, p_tabulationSize + 1);
     }
 
-    void printStatement(const Lumina::Statement& p_toPrint, size_t p_tabulationSize)
+    void printStatementInfo(const Lumina::StatementInfo& p_toPrint, size_t p_tabulationSize)
     {
         std::visit([&](const auto& p_toPrint) {
             using T = std::decay_t<decltype(p_toPrint)>;
-            if constexpr (std::is_same_v<T, Lumina::VariableDeclarationStatement>)
-                printVariableDeclarationStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::ExpressionStatement>)
-                printExpressionStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::AssignmentStatement>)
-                printAssignmentStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::ReturnStatement>)
-                printReturnStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::DiscardStatement>)
-                printDiscardStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::IfStatement>)
-                printIfStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::WhileStatement>)
-                printWhileStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::ForStatement>)
-                printForStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::RaiseExceptionStatement>)
-                printRaiseExceptionStatement(p_toPrint, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::CompoundStatement>)
-                printCompoundStatement(p_toPrint, p_tabulationSize);
+            if constexpr (std::is_same_v<T, Lumina::VariableDeclarationStatementInfo>)
+                printVariableDeclarationStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::ExpressionStatementInfo>)
+                printExpressionStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::AssignmentStatementInfo>)
+                printAssignmentStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::ReturnStatementInfo>)
+                printReturnStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::DiscardStatementInfo>)
+                printDiscardStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::IfStatementInfo>)
+                printIfStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::WhileStatementInfo>)
+                printWhileStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::ForStatementInfo>)
+                printForStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::RaiseExceptionStatementInfo>)
+                printRaiseExceptionStatementInfo(p_toPrint, p_tabulationSize);
+            else if constexpr (std::is_same_v<T, Lumina::CompoundStatementInfo>)
+                printCompoundStatementInfo(p_toPrint, p_tabulationSize);
             }, p_toPrint);
     }
 
@@ -337,7 +352,7 @@ namespace
         std::cout << "{\n";
         for (const auto& statement : p_toPrint.statements)
         {
-            printStatement(statement, p_tabulationSize + 1);
+            printStatementInfo(statement, p_tabulationSize + 1);
         }
         printIndentation(p_tabulationSize);
         std::cout << "}\n";
@@ -348,7 +363,7 @@ namespace
     {
         printIndentation(p_tabulationSize);
         std::cout << "FunctionInfo:\n";
-        printTypeInfo(p_toPrint.returnType.type, p_tabulationSize + 1);
+        printExpressionTypeInfo(p_toPrint.returnType, p_tabulationSize + 1);
         printNameInfo(p_toPrint.name, p_tabulationSize + 1);
         printIndentation(p_tabulationSize + 1);
         std::cout << "Parameters:\n";
@@ -363,7 +378,7 @@ namespace
     {
         printIndentation(p_tabulationSize);
         std::cout << "OperatorInfo:\n";
-        printTypeInfo(p_toPrint.returnType.type, p_tabulationSize + 1);
+        printExpressionTypeInfo(p_toPrint.returnType, p_tabulationSize + 1);
         printIndentation(p_tabulationSize);
         std::cout << "Operator: " << p_toPrint.opeType.content << "\n";
         printIndentation(p_tabulationSize + 1);

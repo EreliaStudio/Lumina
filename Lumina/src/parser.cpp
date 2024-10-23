@@ -28,7 +28,7 @@ namespace Lumina
 		return (result);
 	}
 
-	std::string Parser::_composeIdentifierName(const std::string& p_identifierName)
+	std::string Parser::currentNamespace()
 	{
 		std::string result = "";
 		
@@ -37,9 +37,12 @@ namespace Lumina
 			result += nspace + "_";
 		}
 
-		result += p_identifierName;
-
 		return (result);
+	}
+	
+	std::string Parser::_extractNameInfo(const NameInfo& p_nameInfo)
+	{
+		return (p_nameInfo.value.content);
 	}
 
 	Parser::Type* Parser::_insertType(const Type& p_inputType)
@@ -93,7 +96,7 @@ namespace Lumina
 		Parser::Variable result;
 
 		result.type = _findType(_composeTypeName(p_variableInfo.type));
-		result.name = _composeIdentifierName(p_variableInfo.name.value.content);
+		result.name = _extractNameInfo(p_variableInfo.name);
 		result.arraySize = _composeSizeArray(p_variableInfo.arraySizes);
 
 		return (result);
@@ -101,7 +104,7 @@ namespace Lumina
 
 	Parser::Type Parser::_composeType(const BlockInfo& p_block, const std::string& p_suffix)
 	{
-		std::string typeName = _composeIdentifierName(p_block.name.value.content + p_suffix);
+		std::string typeName = currentNamespace() + p_block.name.value.content + p_suffix;
 
 		Parser::Type result = { typeName, {} };
 
@@ -125,9 +128,14 @@ namespace Lumina
 		return (result);
 	}
 	
-	Parser::SymbolBody Parser::_composeSymbolBody(const SymbolBodyInfo& p_symbolInfo)
+	Parser::Parameter Parser::_composeParameter(const ParameterInfo& p_parameterInfo)
 	{
-		Parser::SymbolBody result;
+		Parser::Parameter result = {
+			.type = _findType(p_parameterInfo.type),
+				.isReference = p_parameterInfo.isReference,
+				.name = _extractNameInfo(p_parameterInfo.name),
+				.arraySize = _composeSizeArray(p_parameterInfo.arraySizes)
+		};
 
 		return (result);
 	}
@@ -141,12 +149,7 @@ namespace Lumina
 
 		for (const auto& parameter : p_functionInfo.parameters)
 		{
-			result.parameters.push_back({
-					.type = _findType(parameter.type),
-					.isReference = parameter.isReference,
-					.name = parameter.name.value.content,
-					.arraySize = _composeSizeArray(parameter.arraySizes)
-				});			
+			result.parameters.push_back(_composeParameter(parameter));
 		}
 
 		result.body = _composeSymbolBody(p_functionInfo.body);
@@ -160,12 +163,7 @@ namespace Lumina
 
 		for (const auto& parameter : p_constructorInfo.parameters)
 		{
-			result.parameters.push_back({
-					.type = _findType(parameter.type),
-					.isReference = parameter.isReference,
-					.name = parameter.name.value.content,
-					.arraySize = _composeSizeArray(parameter.arraySizes)
-				});
+			result.parameters.push_back(_composeParameter(parameter));
 		}
 
 		result.body = _composeSymbolBody(p_constructorInfo.body);
@@ -182,12 +180,7 @@ namespace Lumina
 
 		for (const auto& parameter : p_operatorInfo.parameters)
 		{
-			result.parameters.push_back({
-					.type = _findType(parameter.type),
-					.isReference = parameter.isReference,
-					.name = parameter.name.value.content,
-					.arraySize = _composeSizeArray(parameter.arraySizes)
-				});
+			result.parameters.push_back(_composeParameter(parameter));
 		}
 
 		result.body = _composeSymbolBody(p_operatorInfo.body);
@@ -242,11 +235,9 @@ namespace Lumina
 
 		_insertVariable({
 				.type = insertedType,
-				.name = _composeIdentifierName(p_block.name.value.content),
+				.name = currentNamespace() + _extractNameInfo(p_block.name),
 				.arraySize = {}
 			});
-
-		_computeMethodAndOperator(insertedType, p_block);
 	}
 
 	void Parser::_parseConstant(const BlockInfo& p_block)
@@ -259,18 +250,16 @@ namespace Lumina
 
 		_insertVariable({
 				.type = insertedType,
-				.name = _composeIdentifierName(p_block.name.value.content),
+				.name = currentNamespace() + _extractNameInfo(p_block.name),
 				.arraySize = {}
 			});
-
-		_computeMethodAndOperator(insertedType, p_block);
 	}
 
 	void Parser::_parseTexture(const TextureInfo& p_texture)
 	{
 		Parser::Variable newTexture = {
 				.type = _findType("Texture"),
-				.name = _composeIdentifierName(p_texture.name.value.content),
+				.name = currentNamespace() + _extractNameInfo(p_texture.name),
 				.arraySize = _composeSizeArray(p_texture.arraySizes)
 		};
 
@@ -283,7 +272,7 @@ namespace Lumina
 		Function newFunction;
 
 		newFunction.returnType = _composeExpressionType(p_functionInfo.returnType);
-		newFunction.name = _composeIdentifierName(p_functionInfo.name.value.content);
+		newFunction.name = currentNamespace() + _extractNameInfo(p_functionInfo.name);
 
 		for (const auto& parameter : p_functionInfo.parameters)
 		{

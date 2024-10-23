@@ -38,26 +38,26 @@ namespace Lumina
 		NamespaceInfo parseNamespaceInfo();
 
 		// Parsing methods for statements
-		SymbolBodyInfo parseSymbolBody();
-		Statement parseStatement();
-		VariableDeclarationStatement parseVariableDeclarationStatement();
-		ExpressionStatement parseExpressionStatement();
-		AssignmentStatement parseAssignmentStatement();
-		ReturnStatement parseReturnStatement();
-		DiscardStatement parseDiscardStatement();
-		IfStatement parseIfStatement();
-		WhileStatement parseWhileStatement();
-		ForStatement parseForStatement();
-		CompoundStatement parseCompoundStatement();
+		SymbolBodyInfo parseSymbolBodyInfo();
+		StatementInfo parseStatementInfo();
+		VariableDeclarationStatementInfo parseVariableDeclarationStatementInfo();
+		ExpressionStatementInfo parseExpressionStatementInfo();
+		AssignmentStatementInfo parseAssignmentStatementInfo();
+		ReturnStatementInfo parseReturnStatementInfo();
+		DiscardStatementInfo parseDiscardStatementInfo();
+		IfStatementInfo parseIfStatementInfo();
+		WhileStatementInfo parseWhileStatementInfo();
+		ForStatementInfo parseForStatementInfo();
+		CompoundStatementInfo parseCompoundStatementInfo();
 
 		// Parsing methods for expressions
-		std::shared_ptr<Expression> parseExpression();
-		std::shared_ptr<Expression> parseAssignmentExpression();
-		std::shared_ptr<Expression> parseBinaryExpression(int minPrecedence);
-		std::shared_ptr<Expression> parseUnaryExpression();
-		std::shared_ptr<Expression> parsePostfixExpression();
-		std::shared_ptr<Expression> parsePrimaryExpression();
-		std::shared_ptr<Expression> parseVariableOrFunctionCallExpression();
+		std::shared_ptr<ExpressionInfo> parseExpressionInfo();
+		std::shared_ptr<ExpressionInfo> parseAssignmentExpressionInfo();
+		std::shared_ptr<ExpressionInfo> parseBinaryExpressionInfo(int minPrecedence);
+		std::shared_ptr<ExpressionInfo> parseUnaryExpressionInfo();
+		std::shared_ptr<ExpressionInfo> parsePostfixExpressionInfo();
+		std::shared_ptr<ExpressionInfo> parsePrimaryExpressionInfo();
+		std::shared_ptr<ExpressionInfo> parseVariableOrFunctionCallExpressionInfo();
 
 		// Helper methods
 		bool isVariableDeclaration();

@@ -23,7 +23,7 @@ namespace Lumina
         return -1;
     }
 
-    SymbolBodyInfo Lexer::parseSymbolBody()
+    SymbolBodyInfo Lexer::parseSymbolBodyInfo()
     {
         SymbolBodyInfo result;
 
@@ -43,7 +43,7 @@ namespace Lumina
                 }
                 else
                 {
-                    result.statements.push_back(parseStatement());
+                    result.statements.push_back(parseStatementInfo());
                 }
             }
             catch (TokenBasedError& e)
@@ -58,43 +58,43 @@ namespace Lumina
         return result;
     }
 
-    Statement Lexer::parseStatement()
+    StatementInfo Lexer::parseStatementInfo()
     {
         if (currentToken().type == Lumina::Token::Type::Return)
         {
-            return parseReturnStatement();
+            return parseReturnStatementInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::Discard)
         {
-            return parseDiscardStatement();
+            return parseDiscardStatementInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::IfStatement)
         {
-            return parseIfStatement();
+            return parseIfStatementInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::WhileStatement)
         {
-            return parseWhileStatement();
+            return parseWhileStatementInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::ForStatement)
         {
-            return parseForStatement();
+            return parseForStatementInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::OpenCurlyBracket)
         {
-            return parseCompoundStatement();
+            return parseCompoundStatementInfo();
         }
         else if (isVariableDeclaration())
         {
-            return parseVariableDeclarationStatement();
+            return parseVariableDeclarationStatementInfo();
         }
         else if (isAssignmentStatement())
         {
-            return parseAssignmentStatement();
+            return parseAssignmentStatementInfo();
         }
         else
         {
-            return parseExpressionStatement();
+            return parseExpressionStatementInfo();
         }
     }
 
@@ -132,7 +132,7 @@ namespace Lumina
         size_t savedIndex = _index;
         try
         {
-            auto targetExpr = parseExpression();
+            auto targetExpr = parseExpressionInfo();
             if (currentToken().type == Lumina::Token::Type::Assignator)
             {
                 _index = savedIndex;
@@ -147,15 +147,15 @@ namespace Lumina
         return false;
     }
 
-    VariableDeclarationStatement Lexer::parseVariableDeclarationStatement()
+    VariableDeclarationStatementInfo Lexer::parseVariableDeclarationStatementInfo()
     {
-        VariableDeclarationStatement result;
+        VariableDeclarationStatementInfo result;
         result.variable = parseVariableInfo();
 
         if (currentToken().type == Lumina::Token::Type::Assignator)
         {
             advance();
-            result.initializer = parseExpression();
+            result.initializer = parseExpressionInfo();
         }
 
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after variable declaration.");
@@ -163,36 +163,36 @@ namespace Lumina
         return result;
     }
 
-    ExpressionStatement Lexer::parseExpressionStatement()
+    ExpressionStatementInfo Lexer::parseExpressionStatementInfo()
     {
-        ExpressionStatement result;
-        result.expression = parseExpression();
+        ExpressionStatementInfo result;
+        result.expression = parseExpressionInfo();
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after expression statement.");
         return result;
     }
 
-    AssignmentStatement Lexer::parseAssignmentStatement()
+    AssignmentStatementInfo Lexer::parseAssignmentStatementInfo()
     {
-        AssignmentStatement result;
-        result.target = parseExpression();
+        AssignmentStatementInfo result;
+        result.target = parseExpressionInfo();
 
         result.operatorToken = expect(Lumina::Token::Type::Assignator, "Expected '=' token.");
 
-        result.value = parseExpression();
+        result.value = parseExpressionInfo();
 
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after assignment statement.");
 
         return result;
     }
 
-    ReturnStatement Lexer::parseReturnStatement()
+    ReturnStatementInfo Lexer::parseReturnStatementInfo()
     {
-        ReturnStatement result;
+        ReturnStatementInfo result;
         expect(Lumina::Token::Type::Return, "Expected 'return' keyword.");
 
         if (currentToken().type != Lumina::Token::Type::EndOfSentence)
         {
-            result.expression = parseExpression();
+            result.expression = parseExpressionInfo();
         }
 
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after return statement.");
@@ -200,26 +200,26 @@ namespace Lumina
         return result;
     }
 
-    DiscardStatement Lexer::parseDiscardStatement()
+    DiscardStatementInfo Lexer::parseDiscardStatementInfo()
     {
-        DiscardStatement result;
+        DiscardStatementInfo result;
         expect(Lumina::Token::Type::Discard, "Expected 'discard' keyword.");
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after discard statement.");
         return result;
     }
 
-    IfStatement Lexer::parseIfStatement()
+    IfStatementInfo Lexer::parseIfStatementInfo()
     {
-        IfStatement result;
+        IfStatementInfo result;
         expect(Lumina::Token::Type::IfStatement, "Expected 'if' keyword.");
 
         expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'if'.");
-        auto condition = parseExpression();
+        auto condition = parseExpressionInfo();
         expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
 
         ConditionalBranch branch;
         branch.condition = condition;
-        branch.body = parseSymbolBody();
+        branch.body = parseSymbolBodyInfo();
         result.branches.push_back(branch);
 
         while (currentToken().type == Lumina::Token::Type::ElseStatement)
@@ -229,17 +229,17 @@ namespace Lumina
             {
                 advance();
                 expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'else if'.");
-                auto elseIfCondition = parseExpression();
+                auto elseIfCondition = parseExpressionInfo();
                 expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
 
                 ConditionalBranch elseIfBranch;
                 elseIfBranch.condition = elseIfCondition;
-                elseIfBranch.body = parseSymbolBody();
+                elseIfBranch.body = parseSymbolBodyInfo();
                 result.branches.push_back(elseIfBranch);
             }
             else
             {
-                result.elseBody = parseSymbolBody();
+                result.elseBody = parseSymbolBodyInfo();
                 break;
             }
         }
@@ -247,25 +247,25 @@ namespace Lumina
         return result;
     }
 
-    WhileStatement Lexer::parseWhileStatement()
+    WhileStatementInfo Lexer::parseWhileStatementInfo()
     {
-        WhileStatement result;
+        WhileStatementInfo result;
         expect(Lumina::Token::Type::WhileStatement, "Expected 'while' keyword.");
         expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'while'.");
-        auto condition = parseExpression();
+        auto condition = parseExpressionInfo();
         expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
 
         ConditionalBranch loop;
         loop.condition = condition;
-        loop.body = parseSymbolBody();
+        loop.body = parseSymbolBodyInfo();
         result.loop = loop;
 
         return result;
     }
 
-    ForStatement Lexer::parseForStatement()
+    ForStatementInfo Lexer::parseForStatementInfo()
     {
-        ForStatement result;
+        ForStatementInfo result;
         expect(Lumina::Token::Type::ForStatement, "Expected 'for' keyword.");
         expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'for'.");
 
@@ -273,74 +273,61 @@ namespace Lumina
         {
             if (isVariableDeclaration())
             {
-                result.initializer = std::make_shared<Statement>(parseVariableDeclarationStatement());
+                result.initializer = std::make_shared<StatementInfo>(parseVariableDeclarationStatementInfo());
             }
             else
             {
-                result.initializer = std::make_shared<Statement>(parseExpressionStatement());
+                result.initializer = std::make_shared<StatementInfo>(parseExpressionStatementInfo());
             }
         }
 
         if (currentToken().type != Lumina::Token::Type::EndOfSentence)
         {
-            result.condition = parseExpression();
+            result.condition = parseExpressionInfo();
         }
         expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after loop condition.");
 
         if (currentToken().type != Lumina::Token::Type::CloseParenthesis)
         {
-            result.increment = parseExpression();
+            result.increment = parseExpressionInfo();
         }
         expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after for loop control.");
 
-        result.body = parseSymbolBody();
+        result.body = parseSymbolBodyInfo();
 
         return result;
     }
 
-    CompoundStatement Lexer::parseCompoundStatement()
+    CompoundStatementInfo Lexer::parseCompoundStatementInfo()
     {
-        CompoundStatement result;
-        expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start compound statement.");
+        CompoundStatementInfo result;
 
-        while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
-        {
-            if (currentToken().type == Lumina::Token::Type::EndOfSentence)
-            {
-                skipToken();
-            }
-            else
-            {
-                result.statements.push_back(parseStatement());
-            }
-        }
-
-        expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' to end compound statement.");
+        result.body = parseSymbolBodyInfo();
 
         return result;
     }
 
-    std::shared_ptr<Expression> Lexer::parseExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parseExpressionInfo()
     {
-        return parseAssignmentExpression();
+        return parseAssignmentExpressionInfo();
     }
 
-    std::shared_ptr<Expression> Lexer::parseAssignmentExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parseAssignmentExpressionInfo()
     {
-        auto left = parseBinaryExpression(0);
+        auto left = parseBinaryExpressionInfo(0);
 
         if (currentToken().type == Lumina::Token::Type::Assignator)
         {
             Token opToken = currentToken();
             advance();
-            auto right = parseAssignmentExpression();
+            auto right = parseAssignmentExpressionInfo();
 
-            BinaryExpression binExpr;
+            BinaryExpressionInfo binExpr;
             binExpr.left = left;
             binExpr.operatorToken = opToken;
             binExpr.right = right;
 
-            return std::make_shared<Expression>(binExpr);
+            return std::make_shared<ExpressionInfo>(binExpr);
         }
         else
         {
@@ -348,9 +335,9 @@ namespace Lumina
         }
     }
 
-    std::shared_ptr<Expression> Lexer::parseBinaryExpression(int minPrecedence)
+    std::shared_ptr<ExpressionInfo> Lexer::parseBinaryExpressionInfo(int minPrecedence)
     {
-        auto left = parseUnaryExpression();
+        auto left = parseUnaryExpressionInfo();
 
         while (true)
         {
@@ -361,40 +348,40 @@ namespace Lumina
 
             advance();
 
-            auto right = parseBinaryExpression(precedence + 1);
+            auto right = parseBinaryExpressionInfo(precedence + 1);
 
-            BinaryExpression binExpr;
+            BinaryExpressionInfo binExpr;
             binExpr.left = left;
             binExpr.operatorToken = opToken;
             binExpr.right = right;
 
-            left = std::make_shared<Expression>(binExpr);
+            left = std::make_shared<ExpressionInfo>(binExpr);
         }
 
         return left;
     }
 
-    std::shared_ptr<Expression> Lexer::parseUnaryExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parseUnaryExpressionInfo()
     {
         if (currentToken().type == Lumina::Token::Type::Operator &&
             (currentToken().content == "-" || currentToken().content == "+" || currentToken().content == "!" || currentToken().content == "~"))
         {
             Token opToken = currentToken();
             advance();
-            UnaryExpression unaryExpr;
+            UnaryExpressionInfo unaryExpr;
             unaryExpr.operatorToken = opToken;
-            unaryExpr.operand = parseUnaryExpression();
-            return std::make_shared<Expression>(unaryExpr);
+            unaryExpr.operand = parseUnaryExpressionInfo();
+            return std::make_shared<ExpressionInfo>(unaryExpr);
         }
         else
         {
-            return parsePostfixExpression();
+            return parsePostfixExpressionInfo();
         }
     }
 
-    std::shared_ptr<Expression> Lexer::parsePostfixExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parsePostfixExpressionInfo()
     {
-        auto expr = parsePrimaryExpression();
+        auto expr = parsePrimaryExpressionInfo();
 
         while (true)
         {
@@ -402,31 +389,31 @@ namespace Lumina
             {
                 advance();
                 Token memberName = expect(Lumina::Token::Type::Identifier, "Expected member name after '.'.");
-                MemberAccessExpression memberExpr;
+                MemberAccessExpressionInfo memberExpr;
                 memberExpr.object = expr;
                 memberExpr.memberName = memberName;
-                expr = std::make_shared<Expression>(memberExpr);
+                expr = std::make_shared<ExpressionInfo>(memberExpr);
             }
             else if (currentToken().type == Lumina::Token::Type::OpenBracket)
             {
                 advance();
-                auto indexExpr = parseExpression();
+                auto indexExpr = parseExpressionInfo();
                 expect(Lumina::Token::Type::CloseBracket, "Expected ']' after array index.");
-                ArrayAccessExpression arrayAccessExpr;
+                ArrayAccessExpressionInfo arrayAccessExpr;
                 arrayAccessExpr.array = expr;
                 arrayAccessExpr.index = indexExpr;
-                expr = std::make_shared<Expression>(arrayAccessExpr);
+                expr = std::make_shared<ExpressionInfo>(arrayAccessExpr);
             }
             else if (currentToken().type == Lumina::Token::Type::Incrementor)
             {
                 Token opToken = currentToken();
                 advance();
 
-                PostfixExpression postfixExpr;
+                PostfixExpressionInfo postfixExpr;
                 postfixExpr.operand = expr;
                 postfixExpr.operatorToken = opToken;
 
-                expr = std::make_shared<Expression>(postfixExpr);
+                expr = std::make_shared<ExpressionInfo>(postfixExpr);
             }
             else
             {
@@ -437,26 +424,26 @@ namespace Lumina
         return expr;
     }
 
-    std::shared_ptr<Expression> Lexer::parsePrimaryExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parsePrimaryExpressionInfo()
     {
         if (currentToken().type == Lumina::Token::Type::Number ||
             currentToken().type == Lumina::Token::Type::StringLitteral ||
             currentToken().type == Lumina::Token::Type::BoolStatement)
         {
-            LiteralExpression literalExpr;
+            LiteralExpressionInfo literalExpr;
             literalExpr.value = currentToken();
             advance();
-            return std::make_shared<Expression>(literalExpr);
+            return std::make_shared<ExpressionInfo>(literalExpr);
         }
         else if (currentToken().type == Lumina::Token::Type::Identifier ||
                  currentToken().type == Lumina::Token::Type::ThisKeyword)
         {
-            return parseVariableOrFunctionCallExpression();
+            return parseVariableOrFunctionCallExpressionInfo();
         }
         else if (currentToken().type == Lumina::Token::Type::OpenParenthesis)
         {
             advance();
-            auto expr = parseExpression();
+            auto expr = parseExpressionInfo();
             expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after expression.");
             return expr;
         }
@@ -466,7 +453,7 @@ namespace Lumina
         }
     }
 
-    std::shared_ptr<Expression> Lexer::parseVariableOrFunctionCallExpression()
+    std::shared_ptr<ExpressionInfo> Lexer::parseVariableOrFunctionCallExpressionInfo()
     {
         NamespaceDesignation nspace = parseNamespaceDesignation();
 
@@ -474,7 +461,7 @@ namespace Lumina
 
         if (currentToken().type == Lumina::Token::Type::OpenParenthesis)
         {
-            FunctionCallExpression funcCallExpr;
+            FunctionCallExpressionInfo funcCallExpr;
 
             funcCallExpr.namespacePath = nspace;
             funcCallExpr.functionName = nameToken;
@@ -487,21 +474,21 @@ namespace Lumina
                 {
                     expect(Lumina::Token::Type::Comma, "Expected ',' between arguments.");
                 }
-                funcCallExpr.arguments.push_back(parseExpression());
+                funcCallExpr.arguments.push_back(parseExpressionInfo());
             }
 
             expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after function arguments.");
 
-            return std::make_shared<Expression>(funcCallExpr);
+            return std::make_shared<ExpressionInfo>(funcCallExpr);
         }
         else
         {
-            VariableExpression varExpr;
+            VariableExpressionInfo varExpr;
 
             varExpr.namespacePath = nspace;
             varExpr.variableName = nameToken;
 
-            return std::make_shared<Expression>(varExpr);
+            return std::make_shared<ExpressionInfo>(varExpr);
         }
     }
 }

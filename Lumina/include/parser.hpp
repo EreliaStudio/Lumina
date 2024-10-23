@@ -18,6 +18,45 @@ namespace Lumina
 	private:
 		struct Type;
 
+		enum class ArithmeticOperator
+		{
+			Plus,
+			Minus,
+			Multiply,
+			Divide,
+			Modulo,
+			ConditionEqual,
+			NotEqual,
+			Less,
+			Greater,
+			LessEqual,
+			GreaterEqual,
+			LogicalAnd,
+			LogicalOr,
+			Equal,
+			PlusEqual,
+			MinusEqual,
+			MultiplyEqual,
+			DivideEqual,
+			ModuloEqual
+		};
+
+		enum class UnaryOperator
+		{
+			Increment,
+			Decrement
+		};
+
+		enum class AssignatorOperator
+		{
+			Equal,
+			PlusEqual,
+			MinusEqual,
+			MultiplyEqual,
+			DivideEqual,
+			ModuloEqual
+		};
+
 		struct Variable
 		{
 			const Type* type;
@@ -83,8 +122,129 @@ namespace Lumina
 			}
 		};
 
+		struct Expression
+		{
+			virtual ~Expression() = default;
+		};
+
+		struct Statement
+		{
+			virtual ~Statement() = default;
+		};
+
 		struct SymbolBody
 		{
+			std::vector<std::shared_ptr<Statement>> statements;
+		};
+
+		struct LiteralExpression : public Expression
+		{
+			std::variant<int, float, std::string, bool> value;
+		};
+
+		struct VariableExpression : public Expression
+		{
+			std::string variableName;
+		};
+
+		struct BinaryExpression : public Expression
+		{
+			std::shared_ptr<Expression> left;
+			ArithmeticOperator op;
+			std::shared_ptr<Expression> right;
+		};
+
+		struct UnaryExpression : public Expression
+		{
+			UnaryOperator op;
+			std::shared_ptr<Expression> operand;
+		};
+
+		struct FunctionCallExpression : public Expression
+		{
+			std::string functionName;
+			std::vector<std::shared_ptr<Expression>> arguments;
+		};
+
+		struct MemberAccessExpression : public Expression
+		{
+			std::shared_ptr<Expression> object;
+			std::string memberName;
+		};
+
+		struct ArrayAccessExpression : public Expression
+		{
+			std::shared_ptr<Expression> array;
+			std::shared_ptr<Expression> index;
+		};
+
+		struct CastExpression : public Expression
+		{
+			ExpressionType targetType;
+			std::vector<std::shared_ptr<Expression>> arguments;
+		};
+
+		struct VariableDeclarationStatement : public Statement
+		{
+			Variable variable;
+			std::shared_ptr<Expression> initializer;
+		};
+
+		struct ExpressionStatement : public Statement
+		{
+			std::shared_ptr<Expression> expression;
+		};
+
+		struct AssignmentStatement : public Statement
+		{
+			std::shared_ptr<Expression> target;
+			AssignatorOperator op;
+			std::shared_ptr<Expression> value;
+		};
+
+		struct ReturnStatement : public Statement
+		{
+			std::shared_ptr<Expression> expression;
+		};
+
+		struct DiscardStatement : public Statement
+		{
+		};
+
+		struct IfStatement : public Statement
+		{
+			struct ConditionalBranch
+			{
+				std::shared_ptr<Expression> condition;
+				SymbolBody body;
+			};
+
+			std::vector<ConditionalBranch> branches;
+			SymbolBody elseBody;
+		};
+
+		struct WhileStatement : public Statement
+		{
+			std::shared_ptr<Expression> condition;
+			SymbolBody body;
+		};
+
+		struct ForStatement : public Statement
+		{
+			std::shared_ptr<Statement> initializer;
+			std::shared_ptr<Expression> condition;
+			std::shared_ptr<Expression> increment;
+			SymbolBody body;
+		};
+
+		struct RaiseExceptionStatement : public Statement
+		{
+
+		};
+
+		struct CompoundStatement : public Statement
+		{
+			SymbolBody body;
 		};
 
 		struct Function
@@ -101,7 +261,7 @@ namespace Lumina
 			using Attribute = Variable;
 			using Method = Function;
 			using Operator = Function;
-			
+
 			struct Constructor
 			{
 				std::vector<Parameter> parameters;
@@ -167,9 +327,15 @@ namespace Lumina
 		void composeTextureType();
 		Parser();
 
+		ArithmeticOperator _stringToOperator(const std::string& opStr);
+		UnaryOperator _stringToUnaryOperator(const std::string& opStr);
+		AssignatorOperator _stringToAssignatorOperator(const std::string& opStr);
+
 		std::string _composeTypeName(const TypeInfo& p_typeInfo);
 		std::vector<size_t> _composeSizeArray(const ArraySizeInfo& p_arraySizeInfo);
-		std::string _composeIdentifierName(const std::string& p_identifierName);
+		std::string currentNamespace();
+
+		std::string _extractNameInfo(const NameInfo& p_nameInfo);
 
 		Type* _insertType(const Type& p_inputType);
 		const Type* _findType(const std::string& p_objectName);
@@ -182,7 +348,32 @@ namespace Lumina
 		Variable _composeVariable(const VariableInfo& p_variableInfo);
 		Type _composeType(const BlockInfo& p_block, const std::string& p_suffix = "");
 
-		SymbolBody _composeSymbolBody(const SymbolBodyInfo& p_symbolInfo);
+		SymbolBody _composeSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo);
+		std::shared_ptr<Statement> _composeStatement(const StatementInfo& p_statementInfo);
+		std::shared_ptr<Expression> _composeExpression(const ExpressionInfo& p_expressionInfo);
+
+		std::shared_ptr<Statement> _composeVariableDeclarationStatement(const VariableDeclarationStatementInfo& p_variableDeclarationStatementInfo);
+		std::shared_ptr<Statement> _composeExpressionStatement(const ExpressionStatementInfo& p_expressionStatementInfo);
+		std::shared_ptr<Statement> _composeAssignmentStatement(const AssignmentStatementInfo& p_assignmentStatementInfo);
+		std::shared_ptr<Statement> _composeReturnStatement(const ReturnStatementInfo& p_returnStatementInfo);
+		std::shared_ptr<Statement> _composeDiscardStatement(const DiscardStatementInfo& p_discardStatementInfo);
+		std::shared_ptr<Statement> _composeIfStatement(const IfStatementInfo& p_ifStatementInfo);
+		std::shared_ptr<Statement> _composeWhileStatement(const WhileStatementInfo& p_whileStatementInfo);
+		std::shared_ptr<Statement> _composeForStatement(const ForStatementInfo& p_forStatementInfo);
+		std::shared_ptr<Statement> _composeRaiseExceptionStatement(const RaiseExceptionStatementInfo& p_raiseExceptionStatementInfo);
+		std::shared_ptr<Statement> _composeCompoundStatement(const CompoundStatementInfo& p_compoundStatementInfo);
+
+		std::shared_ptr<Expression> _composeLiteralExpression(const LiteralExpressionInfo& p_literalExpressionInfo);
+		std::shared_ptr<Expression> _composeVariableExpression(const VariableExpressionInfo& p_variableExpressionInfo);
+		std::shared_ptr<Expression> _composeBinaryExpression(const BinaryExpressionInfo& p_binaryExpressionInfo);
+		std::shared_ptr<Expression> _composeUnaryExpression(const UnaryExpressionInfo& p_unaryExpressionInfo);
+		std::shared_ptr<Expression> _composeUnaryExpression(const PostfixExpressionInfo& p_postfixExpressionInfo);
+		std::shared_ptr<Expression> _composeFunctionCallExpression(const FunctionCallExpressionInfo& p_functionCallExpressionInfo);
+		std::shared_ptr<Expression> _composeMemberAccessExpression(const MemberAccessExpressionInfo& p_memberAccessExpressionInfo);
+		std::shared_ptr<Expression> _composeArrayAccessExpression(const ArrayAccessExpressionInfo& p_arrayAccessExpressionInfo);
+		std::shared_ptr<Expression> _composeCastExpression(const CastExpressionInfo& p_castExpressionInfo);
+
+		Parameter _composeParameter(const ParameterInfo& p_parameterInfo);
 		Function _composeMethodFunction(const FunctionInfo& p_functionInfo);
 		Type::Constructor _composeConstructorFunction(const ConstructorInfo& p_constructorInfo);
 		Function _composeOperatorFunction(const OperatorInfo& p_operatorInfo);

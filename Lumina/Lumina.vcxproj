@@ -154,6 +154,7 @@
     <ClCompile Include="src\parser.cpp" />
     <ClCompile Include="src\parser_predefined_types.cpp" />
     <ClCompile Include="src\parser_printer.cpp" />
+    <ClCompile Include="src\parser_symbol_body.cpp" />
     <ClCompile Include="src\printer.cpp" />
     <ClCompile Include="src\token.cpp" />
     <ClCompile Include="src\tokenizer.cpp" />
