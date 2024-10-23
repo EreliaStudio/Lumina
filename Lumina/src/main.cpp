@@ -20,10 +20,8 @@ int main(int argc, char** argv)
 		std::cout << "Usage : " << argv[0] << " [path to your lumina shader code] [path to your compiled shader file]" << std::endl;
 		return (0);
 	}
-
-	std::string rawCode = Lumina::readFileAsString(argv[1]);
-
-	std::vector<Lumina::Token> tokens = Lumina::Tokenizer::tokenize(argv[1], rawCode);
+	
+	std::vector<Lumina::Token> tokens = Lumina::Tokenizer::tokenize(argv[1]);
 
 	if (tokens.size() == 0)
 	{

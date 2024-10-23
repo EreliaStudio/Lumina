@@ -1,5 +1,6 @@
 #include "tokenizer.hpp"
 
+#include "utils.hpp"
 #include <iostream>
 
 namespace Lumina
@@ -141,6 +142,11 @@ namespace Lumina
 
 			return (p_rawCode.substr(startIndex, endIndex - startIndex));
 		}
+	}
+
+	std::vector<Token> Tokenizer::tokenize(const std::filesystem::path& p_path)
+	{
+		return (tokenize(p_path, Lumina::readFileAsString(p_path)));
 	}
 
 	std::vector<Token> Tokenizer::tokenize(const std::filesystem::path& p_path, const std::string& p_inputCode)

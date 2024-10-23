@@ -318,17 +318,13 @@ namespace Lumina
 		Function _vertexPassMain;
 		Function _fragmentPassMain;
 
-
 		Type::Constructor composeConstructor(const Type* p_originatorType, const std::string& p_sourceCode);
 		Type::Operator composeOperator(const Type* p_originatorType, const std::string& p_sourceCode);
 		Type::Method composeMethod(const Type* p_originatorType, const std::string& p_sourceCode);
 
 		void composeStandardTypes();
-		void composeScalarTypes();
-		void composeVector2Types();
-		void composeVector3Types();
-		void composeVector4Types();
-		void composeTextureType();
+		void composePredefinedTypes();
+		void composeComplexStandardTypes();
 		Parser();
 
 		static inline ArithmeticOperator _stringToOperator(const std::string& opStr);
