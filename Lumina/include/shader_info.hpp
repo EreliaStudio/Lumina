@@ -66,7 +66,6 @@ namespace Lumina
     struct FunctionCallExpressionInfo;
     struct MemberAccessExpressionInfo;
     struct ArrayAccessExpressionInfo;
-    struct CastExpressionInfo;
 
     using ExpressionInfo = std::variant<
         LiteralExpressionInfo,
@@ -76,8 +75,7 @@ namespace Lumina
         PostfixExpressionInfo,
         FunctionCallExpressionInfo,
         MemberAccessExpressionInfo,
-        ArrayAccessExpressionInfo,
-        CastExpressionInfo
+        ArrayAccessExpressionInfo
     >;
 
     // Expression structs
@@ -129,12 +127,6 @@ namespace Lumina
     {
         std::shared_ptr<ExpressionInfo> array;
         std::shared_ptr<ExpressionInfo> index;
-    };
-
-    struct CastExpressionInfo
-    {
-        ExpressionTypeInfo targetType;
-        std::vector<std::shared_ptr<ExpressionInfo>> arguments;
     };
 
     struct VariableDeclarationStatementInfo;

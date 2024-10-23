@@ -92,6 +92,13 @@ namespace Lumina
             }
         }
     }
+    void Parser::_printConvertions(const std::string& p_constructedType, const std::vector<const Type*>& convertions) const
+    {
+        std::cout << "        Convertions:\n";
+        for (const auto& convertion : convertions) {
+            std::cout << "            " << p_constructedType << " -> " << convertion->name << "\n";
+        }
+    }
 
     void Parser::_printSymbolBody(const SymbolBody& body, const std::string& indent) const {
         for (const auto& stmt : body.statements) {
@@ -261,9 +268,6 @@ namespace Lumina
         else if (auto arrayAccessExpr = std::dynamic_pointer_cast<ArrayAccessExpression>(expr)) {
             _printArrayAccessExpression(*arrayAccessExpr, indent);
         }
-        else if (auto castExpr = std::dynamic_pointer_cast<CastExpression>(expr)) {
-            _printCastExpression(*castExpr, indent);
-        }
         else {
             std::cout << indent << "[Unknown Expression]";
         }
@@ -346,17 +350,6 @@ namespace Lumina
         std::cout << "]";
     }
 
-    void Parser::_printCastExpression(const CastExpression& expr, const std::string& indent) const {
-        std::cout << "(" << expr.targetType.type->name << ")";
-        std::cout << "(";
-        for (size_t i = 0; i < expr.arguments.size(); ++i) {
-            if (i > 0) std::cout << ", ";
-            _printExpression(expr.arguments[i], "");
-        }
-        std::cout << ")";
-    }
-
-
     void Parser::_printParsedData() const {
         std::cout << "Available Types:\n";
         for (const auto& typePair : _availibleTypes) {
@@ -374,6 +367,7 @@ namespace Lumina
             _printConstructors(type.name, type.constructors);
             _printMethods(type.methods, "Methods");
             _printMethods(type.operators, "Operators");
+            _printConvertions(type.name, type.acceptedConvertions);
         }
 
         std::cout << "\nGlobal variables:\n";

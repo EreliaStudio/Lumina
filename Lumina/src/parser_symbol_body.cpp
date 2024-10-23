@@ -2,8 +2,25 @@
 
 #include <unordered_map>
 
+#include "tokenizer.hpp"
+
 namespace Lumina
 {
+    Parser::Type::Constructor Parser::composeConstructor(const Type* p_originatorType, const std::string& p_sourceCode)
+    {
+        return (_composeConstructorFunction(p_originatorType, Lexer::lexConstructorSourceCode(p_sourceCode)));
+    }
+    
+    Parser::Type::Operator Parser::composeOperator(const Type* p_originatorType, const std::string& p_sourceCode)
+    {
+        return (_composeOperatorFunction(p_originatorType, Lexer::lexOperatorSourceCode(p_sourceCode)));
+    }
+    
+    Parser::Type::Method Parser::composeMethod(const Type* p_originatorType, const std::string& p_sourceCode)
+    {
+        return (_composeMethodFunction(p_originatorType, Lexer::lexFunctionSourceCode(p_sourceCode)));
+    }
+    
     Parser::ArithmeticOperator Parser::_stringToOperator(const std::string& opStr)
     {
         static const std::unordered_map<std::string, ArithmeticOperator> operatorMap = {
@@ -202,11 +219,6 @@ namespace Lumina
         case 7: // ArrayAccessExpressionInfo
         {
             result = _composeArrayAccessExpression(std::get<ArrayAccessExpressionInfo>(p_expressionInfo));
-            break;
-        }
-        case 8: // CastExpressionInfo
-        {
-            result = _composeCastExpression(std::get<CastExpressionInfo>(p_expressionInfo));
             break;
         }
         default:
@@ -430,19 +442,4 @@ namespace Lumina
 
         return expression;
     }
-
-    std::shared_ptr<Parser::Expression> Parser::_composeCastExpression(const CastExpressionInfo& p_castExpressionInfo)
-    {
-        auto expression = std::make_shared<CastExpression>();
-
-        expression->targetType = _composeExpressionType(p_castExpressionInfo.targetType);
-
-        for (const auto& arg : p_castExpressionInfo.arguments)
-        {
-            expression->arguments.push_back(_composeExpression(*arg));
-        }
-
-        return expression;
-    }
-
 }

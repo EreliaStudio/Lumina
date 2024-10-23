@@ -140,7 +140,7 @@ namespace Lumina
 		return (result);
 	}
 
-	Parser::Function Parser::_composeMethodFunction(const FunctionInfo& p_functionInfo)
+	Parser::Function Parser::_composeMethodFunction(const Type* p_originatorType, const FunctionInfo& p_functionInfo)
 	{
 		Parser::Function result;
 
@@ -157,7 +157,7 @@ namespace Lumina
 		return (result);
 	}
 
-	Parser::Type::Constructor Parser::_composeConstructorFunction(const ConstructorInfo& p_constructorInfo)
+	Parser::Type::Constructor Parser::_composeConstructorFunction(const Type* p_originatorType, const ConstructorInfo& p_constructorInfo)
 	{
 		Parser::Type::Constructor result;
 
@@ -171,7 +171,7 @@ namespace Lumina
 		return (result);
 	}
 
-	Parser::Function Parser::_composeOperatorFunction(const OperatorInfo& p_operatorInfo)
+	Parser::Function Parser::_composeOperatorFunction(const Type* p_originatorType, const OperatorInfo& p_operatorInfo)
 	{
 		Parser::Function result;
 
@@ -192,7 +192,7 @@ namespace Lumina
 	{
 		for (const auto& constructor : p_block.constructorInfos)
 		{
-			Parser::Type::Constructor newConstructor = _composeConstructorFunction(constructor);
+			Parser::Type::Constructor newConstructor = _composeConstructorFunction(p_originator, constructor);
 
 			p_originator->constructors.push_back(newConstructor);
 		}
@@ -201,7 +201,7 @@ namespace Lumina
 		{
 			for (const auto& method : methodArray.second)
 			{
-				Parser::Function newMethods = _composeMethodFunction(method);
+				Parser::Function newMethods = _composeMethodFunction(p_originator, method);
 
 				p_originator->methods[newMethods.name].push_back(newMethods);
 			}
@@ -211,7 +211,7 @@ namespace Lumina
 		{
 			for (const auto& ope : operatorArray.second)
 			{
-				Parser::Function newOperator = _composeOperatorFunction(ope);
+				Parser::Function newOperator = _composeOperatorFunction(p_originator, ope);
 
 				p_originator->operators[newOperator.name].push_back(newOperator);
 			}

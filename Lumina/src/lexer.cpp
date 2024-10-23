@@ -630,4 +630,43 @@ namespace Lumina
 	{
 		return (Lexer()._lex(p_tokens));
 	}
+
+	ConstructorInfo Lexer::lexConstructorSourceCode(const std::string& p_sourceCode)
+	{
+		ConstructorInfo result;
+		Lexer tmpLexer;
+
+		tmpLexer._tokens = Lumina::Tokenizer::tokenize("Native code", p_sourceCode);
+		tmpLexer._index = 0;
+
+		result = tmpLexer.parseConstructorInfo();
+
+		return (result);
+	}
+
+	FunctionInfo Lexer::lexFunctionSourceCode(const std::string& p_sourceCode)
+	{
+		FunctionInfo result;
+		Lexer tmpLexer;
+
+		tmpLexer._tokens = Lumina::Tokenizer::tokenize("Native code", p_sourceCode);
+		tmpLexer._index = 0;
+
+		result = tmpLexer.parseFunctionInfo();
+
+		return (result);
+	}
+
+	OperatorInfo Lexer::lexOperatorSourceCode(const std::string& p_sourceCode)
+	{
+		OperatorInfo result;
+		Lexer tmpLexer;
+
+		tmpLexer._tokens = Lumina::Tokenizer::tokenize("Native code", p_sourceCode);
+		tmpLexer._index = 0;
+
+		result = tmpLexer.parseOperatorInfo();
+
+		return (result);
+	}
 }

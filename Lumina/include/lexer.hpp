@@ -85,5 +85,8 @@ namespace Lumina
 		void moveBack(size_t p_steps = 1);
 	public:
 		static Product lex(const std::vector<Lumina::Token>& p_tokens);
+		static ConstructorInfo lexConstructorSourceCode(const std::string& p_sourceCode);
+		static FunctionInfo lexFunctionSourceCode(const std::string& p_sourceCode);
+		static OperatorInfo lexOperatorSourceCode(const std::string& p_sourceCode);
 	};
 }

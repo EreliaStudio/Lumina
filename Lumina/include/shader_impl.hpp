@@ -49,7 +49,7 @@ namespace Lumina
 
 	struct FunctionBodyImpl
 	{
-		std::vector<std::string> instructions;
+		std::string code;
 	}; 
 
 	struct FunctionImpl

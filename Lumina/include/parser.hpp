@@ -178,12 +178,6 @@ namespace Lumina
 			std::shared_ptr<Expression> index;
 		};
 
-		struct CastExpression : public Expression
-		{
-			ExpressionType targetType;
-			std::vector<std::shared_ptr<Expression>> arguments;
-		};
-
 		struct VariableDeclarationStatement : public Statement
 		{
 			Variable variable;
@@ -268,6 +262,10 @@ namespace Lumina
 
 				SymbolBody body;
 
+				Constructor() = default;
+
+				Constructor(const std::string& p_sourceCode);
+
 				bool operator ==(const Constructor& p_other) const
 				{
 					if (parameters.size() != p_other.parameters.size())
@@ -290,6 +288,7 @@ namespace Lumina
 			std::string name;
 			std::set<Attribute> attributes;
 
+			std::vector<const Type*> acceptedConvertions;
 			std::vector<Constructor> constructors;
 			std::map<std::string, std::vector<Method>> methods;
 			std::map<std::string, std::vector<Operator>> operators;
@@ -318,6 +317,11 @@ namespace Lumina
 
 		Function _vertexPassMain;
 		Function _fragmentPassMain;
+
+
+		Type::Constructor composeConstructor(const Type* p_originatorType, const std::string& p_sourceCode);
+		Type::Operator composeOperator(const Type* p_originatorType, const std::string& p_sourceCode);
+		Type::Method composeMethod(const Type* p_originatorType, const std::string& p_sourceCode);
 
 		void composeStandardTypes();
 		void composeScalarTypes();
@@ -374,12 +378,11 @@ namespace Lumina
 		std::shared_ptr<Expression> _composeFunctionCallExpression(const FunctionCallExpressionInfo& p_functionCallExpressionInfo);
 		std::shared_ptr<Expression> _composeMemberAccessExpression(const MemberAccessExpressionInfo& p_memberAccessExpressionInfo);
 		std::shared_ptr<Expression> _composeArrayAccessExpression(const ArrayAccessExpressionInfo& p_arrayAccessExpressionInfo);
-		std::shared_ptr<Expression> _composeCastExpression(const CastExpressionInfo& p_castExpressionInfo);
 
 		Parameter _composeParameter(const ParameterInfo& p_parameterInfo);
-		Function _composeMethodFunction(const FunctionInfo& p_functionInfo);
-		Type::Constructor _composeConstructorFunction(const ConstructorInfo& p_constructorInfo);
-		Function _composeOperatorFunction(const OperatorInfo& p_operatorInfo);
+		Function _composeMethodFunction(const Type* p_originatorType, const FunctionInfo& p_functionInfo);
+		Type::Constructor _composeConstructorFunction(const Type* p_originatorType, const ConstructorInfo& p_constructorInfo);
+		Function _composeOperatorFunction(const Type* p_originatorType, const OperatorInfo& p_operatorInfo);
 
 		void _computeMethodAndOperator(Type* p_originator, const BlockInfo& p_block);
 
@@ -403,6 +406,7 @@ namespace Lumina
 		void _printExpressionType(const ExpressionType& exprType) const;
 		void _printMethods(const std::map<std::string, std::vector<Type::Method>>& methods, const std::string& title) const;
 		void _printConstructors(const std::string& p_constructedType, const std::vector<Type::Constructor>& constructors) const;
+		void _printConvertions(const std::string& p_constructedType, const std::vector<const Type*>& convertions) const;
 
 		void _printSymbolBody(const SymbolBody& body, const std::string& indent = "") const;
 		void _printStatement(const std::shared_ptr<Statement>& stmt, const std::string& indent) const;
@@ -424,7 +428,6 @@ namespace Lumina
 		void _printFunctionCallExpression(const FunctionCallExpression& expr, const std::string& indent) const;
 		void _printMemberAccessExpression(const MemberAccessExpression& expr, const std::string& indent) const;
 		void _printArrayAccessExpression(const ArrayAccessExpression& expr, const std::string& indent) const;
-		void _printCastExpression(const CastExpression& expr, const std::string& indent) const;
 
 		void _printParsedData() const;
 

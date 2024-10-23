@@ -170,19 +170,6 @@ namespace
         printExpression(*expr.index, p_tabulationSize + 1);
     }
 
-    void printCastExpression(const Lumina::CastExpressionInfo& expr, size_t p_tabulationSize)
-    {
-        printIndentation(p_tabulationSize);
-        std::cout << "CastExpression:\n";
-        printExpressionTypeInfo(expr.targetType, p_tabulationSize + 1);
-        printIndentation(p_tabulationSize + 1);
-        std::cout << "Arguments:\n";
-        for (const auto& arg : expr.arguments)
-        {
-            printExpression(*arg, p_tabulationSize + 2);
-        }
-    }
-
     void printExpression(const Lumina::ExpressionInfo& expr, size_t p_tabulationSize)
     {
         std::visit([&](const auto& expression) {
@@ -203,8 +190,6 @@ namespace
                 printMemberAccessExpression(expression, p_tabulationSize);
             else if constexpr (std::is_same_v<T, Lumina::ArrayAccessExpressionInfo>)
                 printArrayAccessExpression(expression, p_tabulationSize);
-            else if constexpr (std::is_same_v<T, Lumina::CastExpressionInfo>)
-                printCastExpression(expression, p_tabulationSize);
             }, expr);
     }
 
