@@ -391,7 +391,7 @@ namespace Lumina
 
 		_parseNamespace(p_input.anonymNamespace);
 
-		//printParsedData();
+		_printParsedData();
 
 		return (_product);
 	}

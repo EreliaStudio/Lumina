@@ -327,9 +327,12 @@ namespace Lumina
 		void composeTextureType();
 		Parser();
 
-		ArithmeticOperator _stringToOperator(const std::string& opStr);
-		UnaryOperator _stringToUnaryOperator(const std::string& opStr);
-		AssignatorOperator _stringToAssignatorOperator(const std::string& opStr);
+		static inline ArithmeticOperator _stringToOperator(const std::string& opStr);
+		static inline std::string _arithmeticOperatorToString(ArithmeticOperator op);
+		static inline UnaryOperator _stringToUnaryOperator(const std::string& opStr);
+		static inline std::string _unaryOperatorToString(UnaryOperator op);
+		static inline AssignatorOperator _stringToAssignatorOperator(const std::string& opStr);
+		static inline std::string _assignatorOperatorToString(AssignatorOperator op);
 
 		std::string _composeTypeName(const TypeInfo& p_typeInfo);
 		std::vector<size_t> _composeSizeArray(const ArraySizeInfo& p_arraySizeInfo);
@@ -394,13 +397,36 @@ namespace Lumina
 
 		Product _parse(const Lexer::Output& p_input);
 
-		void printArraySizes(const std::vector<size_t>& arraySize) const;
-		void printParameters(const std::vector<Parameter>& parameters) const;
-		void printVariable(const Variable& var, const std::string& indent = "") const;
-		void printExpressionType(const ExpressionType& exprType) const;
-		void printMethods(const std::map<std::string, std::vector<Type::Method>>& methods, const std::string& title) const;
-		void printConstructors(const std::string& p_constructedType, const std::vector<Type::Constructor>& constructors) const;
-		void printParsedData() const;
+		void _printArraySizes(const std::vector<size_t>& arraySize) const;
+		void _printParameters(const std::vector<Parameter>& parameters) const;
+		void _printVariable(const Variable& var, const std::string& indent = "") const;
+		void _printExpressionType(const ExpressionType& exprType) const;
+		void _printMethods(const std::map<std::string, std::vector<Type::Method>>& methods, const std::string& title) const;
+		void _printConstructors(const std::string& p_constructedType, const std::vector<Type::Constructor>& constructors) const;
+
+		void _printSymbolBody(const SymbolBody& body, const std::string& indent = "") const;
+		void _printStatement(const std::shared_ptr<Statement>& stmt, const std::string& indent) const;
+		void _printExpression(const std::shared_ptr<Expression>& expr, const std::string& indent) const;
+
+		void _printVariableDeclarationStatement(const VariableDeclarationStatement& stmt, const std::string& indent) const;
+		void _printExpressionStatement(const ExpressionStatement& stmt, const std::string& indent) const;
+		void _printAssignmentStatement(const AssignmentStatement& stmt, const std::string& indent) const;
+		void _printReturnStatement(const ReturnStatement& stmt, const std::string& indent) const;
+		void _printIfStatement(const IfStatement& stmt, const std::string& indent) const;
+		void _printWhileStatement(const WhileStatement& stmt, const std::string& indent) const;
+		void _printForStatement(const ForStatement& stmt, const std::string& indent) const;
+		void _printCompoundStatement(const CompoundStatement& stmt, const std::string& indent) const;
+
+		void _printLiteralExpression(const LiteralExpression& expr, const std::string& indent) const;
+		void _printVariableExpression(const VariableExpression& expr, const std::string& indent) const;
+		void _printBinaryExpression(const BinaryExpression& expr, const std::string& indent) const;
+		void _printUnaryExpression(const UnaryExpression& expr, const std::string& indent) const;
+		void _printFunctionCallExpression(const FunctionCallExpression& expr, const std::string& indent) const;
+		void _printMemberAccessExpression(const MemberAccessExpression& expr, const std::string& indent) const;
+		void _printArrayAccessExpression(const ArrayAccessExpression& expr, const std::string& indent) const;
+		void _printCastExpression(const CastExpression& expr, const std::string& indent) const;
+
+		void _printParsedData() const;
 
 	public:
 		static Product parse(const Lexer::Output& p_input);
