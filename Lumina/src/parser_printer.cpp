@@ -352,8 +352,7 @@ namespace Lumina
 
     void Parser::_printParsedData() const {
         std::cout << "Available Types:\n";
-        for (const auto& typePair : _availibleTypes) {
-            const auto& type = typePair.second;
+        for (const auto& type : _availibleTypes) {
 
             std::cout << "    Type: " << type.name << "\n";
 

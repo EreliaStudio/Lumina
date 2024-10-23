@@ -4,6 +4,7 @@
 
 #include "shader_impl.hpp"
 
+#include <list>
 #include <deque>
 #include <set>
 
@@ -304,7 +305,7 @@ namespace Lumina
 
 		std::set<std::string> _reservedIdentifiers;
 
-		std::map<std::string, Type> _availibleTypes;
+		std::list<Type> _availibleTypes;
 		std::vector<const Type*> _attributesTypes;
 		std::vector<const Type*> _constantsTypes;
 		std::map<std::string, std::vector<Function>> _availibleFunctions;

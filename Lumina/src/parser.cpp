@@ -47,18 +47,21 @@ namespace Lumina
 
 	Parser::Type* Parser::_insertType(const Type& p_inputType)
 	{
-		_availibleTypes[p_inputType] = p_inputType;
+		_availibleTypes.push_back(p_inputType);
 		_reservedIdentifiers.insert(p_inputType.name);
-		return (&_availibleTypes[p_inputType]);
+		return (&(_availibleTypes.back()));
 	}
 
 	const Parser::Type* Parser::_findType(const std::string& p_objectName)
 	{
 		Parser::Type expectedType = { p_objectName, {} };
 
-		if (_availibleTypes.contains(expectedType) == true)
+		for (const auto& type : _availibleTypes)
 		{
-			return &(_availibleTypes.at(expectedType));
+			if (type.name == expectedType.name)
+			{
+				return (&type);
+			}
 		}
 
 		for (size_t i = 0; i < _nspaces.size(); i++)
@@ -71,9 +74,12 @@ namespace Lumina
 
 			expectedType = {prefix + p_objectName, {}};
 
-			if (_availibleTypes.contains(expectedType) == true)
+			for (const auto& type : _availibleTypes)
 			{
-				return &(_availibleTypes.at(expectedType));
+				if (type.name == expectedType.name)
+				{
+					return (&type);
+				}
 			}
 		}
 
@@ -221,6 +227,8 @@ namespace Lumina
 	void Parser::_parseStructure(const BlockInfo& p_block)
 	{
 		Type* insertedType = _insertType(_composeType(p_block));
+
+		insertedType->acceptedConvertions = { insertedType };
 
 		_computeMethodAndOperator(insertedType, p_block);
 	}
