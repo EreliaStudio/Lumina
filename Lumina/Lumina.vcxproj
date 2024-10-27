@@ -153,9 +153,9 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser.cpp" />
     <ClCompile Include="src\parser_predefined_types.cpp" />
-    <ClCompile Include="src\parser_printer.cpp" />
     <ClCompile Include="src\parser_symbol_body.cpp" />
     <ClCompile Include="src\printer.cpp" />
+    <ClCompile Include="src\shader_representation.cpp" />
     <ClCompile Include="src\token.cpp" />
     <ClCompile Include="src\tokenizer.cpp" />
     <ClCompile Include="src\utils.cpp" />
@@ -168,6 +168,7 @@
   <ItemGroup>
     <ClInclude Include="include\compiler.hpp" />
     <ClInclude Include="include\expected.hpp" />
+    <ClInclude Include="include\shader_representation.hpp" />
     <ClInclude Include="include\lexer.hpp" />
     <ClInclude Include="include\parser.hpp" />
     <ClInclude Include="include\printer.hpp" />
