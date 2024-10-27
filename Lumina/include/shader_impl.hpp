@@ -77,4 +77,6 @@ namespace Lumina
 		FunctionImpl vertexMain;
 		FunctionImpl fragmentMain;
 	};
+
+	std::ostream& operator<<(std::ostream& os, const ShaderImpl& shader);
 }

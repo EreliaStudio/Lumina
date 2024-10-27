@@ -227,6 +227,7 @@ namespace Lumina
 
 	struct FunctionInfo
 	{
+		bool isPrototype;
 		ExpressionTypeInfo returnType;
 		NameInfo name;
 		std::vector<ParameterInfo> parameters;
@@ -235,6 +236,7 @@ namespace Lumina
 
 	struct OperatorInfo
 	{
+		bool isPrototype;
 		ExpressionTypeInfo returnType;
 		Lumina::Token opeType;
 		std::vector<ParameterInfo> parameters;
@@ -243,6 +245,7 @@ namespace Lumina
 
     struct ConstructorInfo
     {
+		bool isPrototype;
         std::vector<ParameterInfo> parameters;
         SymbolBodyInfo body;
     };

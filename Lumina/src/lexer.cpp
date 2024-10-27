@@ -119,7 +119,17 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBodyInfo();
+		if (currentToken().type != Token::Type::EndOfSentence)
+		{
+			result.isPrototype = false;
+			result.body = parseSymbolBodyInfo();
+		}
+		else
+		{
+			result.isPrototype = true;
+			result.body = SymbolBodyInfo();
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end function prototype.");
+		}
 
 		return result;
 	}
@@ -141,7 +151,17 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBodyInfo();
+		if (currentToken().type != Token::Type::EndOfSentence)
+		{
+			result.isPrototype = false;
+			result.body = parseSymbolBodyInfo();
+		}
+		else
+		{
+			result.isPrototype = true;
+			result.body = SymbolBodyInfo();
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end constructor prototype.");
+		}
 
 		return result;
 	}
@@ -168,7 +188,17 @@ namespace Lumina
 		}
 		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
 
-		result.body = parseSymbolBodyInfo();
+		if (currentToken().type != Token::Type::EndOfSentence)
+		{
+			result.isPrototype = false;
+			result.body = parseSymbolBodyInfo();
+		}
+		else
+		{
+			result.isPrototype = true;
+			result.body = SymbolBodyInfo();
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end operator prototype.");
+		}
 
 		return result;
 	}

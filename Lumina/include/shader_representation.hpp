@@ -244,6 +244,7 @@ namespace Lumina
 
 		struct Function
 		{
+			bool isPrototype;
 			ExpressionType returnType;
 			std::string name;
 			std::vector<Parameter> parameters;
@@ -258,6 +259,7 @@ namespace Lumina
 
 			struct Constructor
 			{
+				bool isPrototype;
 				std::vector<Parameter> parameters;
 				SymbolBody body;
 

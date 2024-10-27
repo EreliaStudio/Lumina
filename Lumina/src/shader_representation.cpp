@@ -284,7 +284,7 @@ namespace Lumina
 			os << constructor.parameters[i];
 		}
 		os << ")";
-		if (!constructor.body.statements.empty())
+		if (constructor.isPrototype == false)
 		{
 			os << " {\n";
 			os << constructor.body;
@@ -323,7 +323,7 @@ namespace Lumina
 			os << func.parameters[i];
 		}
 		os << ")";
-		if (!func.body.statements.empty())
+		if (func.isPrototype == false)
 		{
 			os << " {\n";
 			os << func.body;

@@ -57,9 +57,9 @@ namespace Lumina
 		{
 			for (const auto& error : lexerProduct.errors)
 			{
-				std::cerr << error.what() << std::endl;
+				_product.errors.push_back(error);
 			}
-			throw std::runtime_error("Error parsing predefined types");
+			return ;
 		}
 
 		// Parse the anonymous namespace from the lexed output

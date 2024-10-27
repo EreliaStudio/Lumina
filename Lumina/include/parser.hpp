@@ -2,6 +2,7 @@
 
 #include "lexer.hpp"
 #include "shader_representation.hpp"
+#include "shader_impl.hpp"
 
 #include <list>
 #include <deque>
@@ -14,7 +15,7 @@ namespace Lumina
 	class Parser
 	{
 	public:
-		using Output = ShaderRepresentation;
+		using Output = ShaderImpl;
 		using Product = Lumina::Expected<Output>;
 
 	private:
@@ -27,6 +28,8 @@ namespace Lumina
 		void composeComplexStandardTypes();
 
 		Parser();
+
+		Product _product;
 
 		// ShaderRepresentation instance to build up the parsed shader
 		ShaderRepresentation _shaderRepresentation;
@@ -92,6 +95,14 @@ namespace Lumina
 
 		ShaderRepresentation::Function _composePipelinePass(const PipelinePassInfo& p_pipelinePass);
 		void _parsePipelinePass(const PipelinePassInfo& p_pipelinePass);
+
+		const TypeImpl* _findTypeImpl(const std::string& typeName);
+		void _composeShaderImpl();
+		TypeImpl _convertType(const ShaderRepresentation::Type& type);
+		VariableImpl _convertVariable(const ShaderRepresentation::Variable& variable);
+		FunctionImpl _convertFunction(const ShaderRepresentation::Function& function, const std::string& typeName = "");
+		ParameterImpl _convertParameter(const ShaderRepresentation::Parameter& parameter);
+		FunctionBodyImpl _convertFunctionBody(const ShaderRepresentation::SymbolBody& body);
 
 		Product _parse(const Lexer::Output& p_input);
 
