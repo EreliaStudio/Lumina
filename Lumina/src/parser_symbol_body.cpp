@@ -113,6 +113,44 @@ namespace Lumina
 		return expression;
 	}
 
+	std::shared_ptr<ShaderRepresentation::Expression> Parser::_composeFunctionCallExpression(const FunctionCallExpressionInfo& p_functionCallExpressionInfo)
+	{
+		auto expression = std::make_shared<ShaderRepresentation::FunctionCallExpression>();
+
+		for (const auto& nspace : p_functionCallExpressionInfo.namespacePath)
+		{
+			expression->functionName += nspace.content + "_";
+		}
+		expression->functionName += p_functionCallExpressionInfo.functionName.content;
+
+		for (const auto& arg : p_functionCallExpressionInfo.arguments)
+		{
+			expression->arguments.push_back(_composeExpression(*arg));
+		}
+
+		return expression;
+	}
+
+	std::shared_ptr<ShaderRepresentation::Expression> Parser::_composeMemberAccessExpression(const MemberAccessExpressionInfo& p_memberAccessExpressionInfo)
+	{
+		auto expression = std::make_shared<ShaderRepresentation::MemberAccessExpression>();
+
+		expression->object = _composeExpression(*p_memberAccessExpressionInfo.object);
+		expression->memberName = p_memberAccessExpressionInfo.memberName.content;
+
+		return expression;
+	}
+
+	std::shared_ptr<ShaderRepresentation::Expression> Parser::_composeArrayAccessExpression(const ArrayAccessExpressionInfo& p_arrayAccessExpressionInfo)
+	{
+		auto expression = std::make_shared<ShaderRepresentation::ArrayAccessExpression>();
+
+		expression->array = _composeExpression(*p_arrayAccessExpressionInfo.array);
+		expression->index = _composeExpression(*p_arrayAccessExpressionInfo.index);
+
+		return expression;
+	}
+
 	std::shared_ptr<ShaderRepresentation::Statement> Parser::_composeReturnStatement(const ReturnStatementInfo& p_returnStatementInfo)
 	{
 		auto statement = std::make_shared<ShaderRepresentation::ReturnStatement>();
@@ -283,21 +321,47 @@ namespace Lumina
 
 		switch (p_expressionInfo.index())
 		{
-		case 0: // LiteralExpressionInfo
+		case 0:
+		{
 			result = _composeLiteralExpression(std::get<LiteralExpressionInfo>(p_expressionInfo));
 			break;
-		case 1: // VariableExpressionInfo
+		}
+		case 1:
+		{
 			result = _composeVariableExpression(std::get<VariableExpressionInfo>(p_expressionInfo));
 			break;
-		case 2: // BinaryExpressionInfo
+		}
+		case 2:
+		{
 			result = _composeBinaryExpression(std::get<BinaryExpressionInfo>(p_expressionInfo));
 			break;
-		case 3: // UnaryExpressionInfo
+		}
+		case 3:
+		{
 			result = _composeUnaryExpression(std::get<UnaryExpressionInfo>(p_expressionInfo));
 			break;
-			// Handle other expression types similarly...
+		}
+		case 4:
+		{
+			result = _composeUnaryExpression(std::get<PostfixExpressionInfo>(p_expressionInfo));
+			break;
+		}
+		case 5:
+		{
+			result = _composeFunctionCallExpression(std::get<FunctionCallExpressionInfo>(p_expressionInfo));
+			break;
+		}
+		case 6:
+		{
+			result = _composeMemberAccessExpression(std::get<MemberAccessExpressionInfo>(p_expressionInfo));
+			break;
+		}
+		case 7:
+		{
+			result = _composeArrayAccessExpression(std::get<ArrayAccessExpressionInfo>(p_expressionInfo));
+			break;
+		}
 		default:
-			// Handle unexpected cases if necessary
 			break;
 		}
 

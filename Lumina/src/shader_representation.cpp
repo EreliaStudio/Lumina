@@ -177,7 +177,7 @@ namespace Lumina
 		}
 		else if (auto assignStmt = dynamic_cast<const ShaderRepresentation::AssignmentStatement*>(&stmt))
 		{
-			os << indent << *assignStmt->target << " " << assignStmt->op << " " << *assignStmt->value << ";\n";
+			os << indent << *(assignStmt->target) << " " << assignStmt->op << " " << *(assignStmt->value) << ";\n";
 		}
 		else if (auto returnStmt = dynamic_cast<const ShaderRepresentation::ReturnStatement*>(&stmt))
 		{

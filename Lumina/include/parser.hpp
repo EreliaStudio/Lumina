@@ -70,6 +70,9 @@ namespace Lumina
 		std::shared_ptr<ShaderRepresentation::Expression> _composeBinaryExpression(const BinaryExpressionInfo& p_binaryExpressionInfo);
 		std::shared_ptr<ShaderRepresentation::Expression> _composeUnaryExpression(const UnaryExpressionInfo& p_unaryExpressionInfo);
 		std::shared_ptr<ShaderRepresentation::Expression> _composeUnaryExpression(const PostfixExpressionInfo& p_postfixExpressionInfo);
+		std::shared_ptr<ShaderRepresentation::Expression> _composeFunctionCallExpression(const FunctionCallExpressionInfo& p_functionCallExpressionInfo);
+		std::shared_ptr<ShaderRepresentation::Expression> _composeMemberAccessExpression(const MemberAccessExpressionInfo& p_memberAccessExpressionInfo);
+		std::shared_ptr<ShaderRepresentation::Expression> _composeArrayAccessExpression(const ArrayAccessExpressionInfo& p_arrayAccessExpressionInfo);
 
 		ShaderRepresentation::Parameter _composeParameter(const ParameterInfo& p_parameterInfo);
 		ShaderRepresentation::Function _composeMethodFunction(const ShaderRepresentation::Type* p_originatorType, const FunctionInfo& p_functionInfo);
