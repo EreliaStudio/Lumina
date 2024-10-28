@@ -465,4 +465,11 @@ namespace Lumina
 
 		return os;
 	}
+
+	std::string ShaderRepresentation::SymbolBody::toString() const
+	{
+		std::ostringstream oss;
+		oss << *this;
+		return oss.str();
+	}
 }

@@ -96,13 +96,20 @@ namespace Lumina
 		ShaderRepresentation::Function _composePipelinePass(const PipelinePassInfo& p_pipelinePass);
 		void _parsePipelinePass(const PipelinePassInfo& p_pipelinePass);
 
-		const TypeImpl* _findTypeImpl(const std::string& typeName);
+
+		TypeImpl _findTypeImpl(const ShaderRepresentation::Type* p_type);
+		TypeImpl _convertType(const ShaderRepresentation::Type* p_type);
+		ExpressionTypeImpl _convertExpressionType(const ShaderRepresentation::ExpressionType& p_expressionType);
+		ParameterImpl _convertParameter(const ShaderRepresentation::Parameter& p_parameter);
+		FunctionBodyImpl _convertFunctionBody(const ShaderRepresentation::SymbolBody& p_symbolBody);
+		FunctionImpl _convertConstructor(const TypeImpl& p_originator, const ShaderRepresentation::Type::Constructor& p_constructor);
+		FunctionImpl _convertFunction(const TypeImpl& p_originator, const ShaderRepresentation::Function& p_function);
+		VariableImpl _convertVariable(const ShaderRepresentation::Variable& p_variable);
+
+		void _composeTypeArray(const std::vector<const ShaderRepresentation::Type*>& typeArray, std::vector<TypeImpl>& p_destination);
+		void _composeShaderTypes();
+		void _composeShaderPipelineFlows();
 		void _composeShaderImpl();
-		TypeImpl _convertType(const ShaderRepresentation::Type& type);
-		VariableImpl _convertVariable(const ShaderRepresentation::Variable& variable);
-		FunctionImpl _convertFunction(const ShaderRepresentation::Function& function, const std::string& typeName = "");
-		ParameterImpl _convertParameter(const ShaderRepresentation::Parameter& parameter);
-		FunctionBodyImpl _convertFunctionBody(const ShaderRepresentation::SymbolBody& body);
 
 		Product _parse(const Lexer::Output& p_input);
 

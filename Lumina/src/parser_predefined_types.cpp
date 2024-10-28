@@ -13,30 +13,35 @@ namespace Lumina
 			.attributes = {},
 			.acceptedConvertions = {}
 			});
+		_shaderRepresentation.structureTypes.push_back(voidType);
 
 		ShaderRepresentation::Type* boolType = _shaderRepresentation.insertType({
 			.name = "bool",
 			.attributes = {},
 			.acceptedConvertions = {}
 			});
+		_shaderRepresentation.structureTypes.push_back(boolType);
 
 		ShaderRepresentation::Type* intType = _shaderRepresentation.insertType({
 			.name = "int",
 			.attributes = {},
 			.acceptedConvertions = {}
 			});
+		_shaderRepresentation.structureTypes.push_back(intType);
 
 		ShaderRepresentation::Type* uintType = _shaderRepresentation.insertType({
 			.name = "uint",
 			.attributes = {},
 			.acceptedConvertions = {}
 			});
+		_shaderRepresentation.structureTypes.push_back(uintType);
 
 		ShaderRepresentation::Type* floatType = _shaderRepresentation.insertType({
 			.name = "float",
 			.attributes = {},
 			.acceptedConvertions = {}
 			});
+		_shaderRepresentation.structureTypes.push_back(floatType);
 
 		// Set accepted conversions between types
 		intType->acceptedConvertions = { intType, uintType, floatType };
@@ -81,6 +86,8 @@ namespace Lumina
                 return texture(self, p_UV);
             }
         )"));
+
+		_shaderRepresentation.structureTypes.push_back(textureType);
 	}
 
 	// Implement composeMethod to parse method source code and create a Function

@@ -9,6 +9,7 @@
 #include <deque>
 #include <variant>
 #include <iostream>
+#include <sstream>
 
 namespace Lumina
 {
@@ -135,6 +136,8 @@ namespace Lumina
 		struct SymbolBody
 		{
 			std::vector<std::shared_ptr<Statement>> statements;
+
+			std::string toString() const;
 		};
 
 		// Expression and Statement derived classes
@@ -300,13 +303,16 @@ namespace Lumina
 		// Data members
 		std::set<std::string> reservedIdentifiers;
 		std::list<Type> availableTypes;
+		std::vector<const Type*> structureTypes;
 		std::vector<const Type*> attributesTypes;
 		std::vector<const Type*> constantsTypes;
 		std::map<std::string, std::vector<Function>> availableFunctions;
 
 		std::set<Variable> globalVariables;
+
 		std::set<Variable> vertexVariables;
 		std::set<Variable> fragmentVariables;
+		std::set<Variable> outputVariables;
 
 		Function vertexPassMain;
 		Function fragmentPassMain;
@@ -327,6 +333,7 @@ namespace Lumina
 		Type* insertType(const Type& inputType)
 		{
 			availableTypes.push_back(inputType);
+			
 			reservedIdentifiers.insert(inputType.name);
 			return &availableTypes.back();
 		}

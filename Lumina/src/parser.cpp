@@ -129,12 +129,11 @@ namespace Lumina
 		}
 		else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
 		{
-			_shaderRepresentation.vertexVariables.insert(_composeVariable(p_pipelineFlow.variable));
 			_shaderRepresentation.fragmentVariables.insert(_composeVariable(p_pipelineFlow.variable));
 		}
 		else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
 		{
-			_shaderRepresentation.fragmentVariables.insert(_composeVariable(p_pipelineFlow.variable));
+			_shaderRepresentation.outputVariables.insert(_composeVariable(p_pipelineFlow.variable));
 		}
 		else
 		{
@@ -214,6 +213,8 @@ namespace Lumina
 	{
 		ShaderRepresentation::Type newType = _composeType(p_block);
 		ShaderRepresentation::Type* insertedType = _shaderRepresentation.insertType(newType);
+		
+		_shaderRepresentation.structureTypes.push_back(insertedType);
 
 		insertedType->acceptedConvertions = { insertedType };
 
@@ -370,217 +371,6 @@ namespace Lumina
 
 		return result;
 	}
-
-	void Parser::_composeShaderImpl()
-	{
-		// Convert pipeline flows
-		for (const auto& variable : _shaderRepresentation.vertexVariables)
-		{
-			PipelineFlowImpl flowImpl;
-			flowImpl.direction = PipelineFlowImpl::Direction::Out;
-			flowImpl.variable = _convertVariable(variable);
-			_product.value.vertexPipelineFlows.push_back(flowImpl);
-		}
-
-		for (const auto& variable : _shaderRepresentation.fragmentVariables)
-		{
-			PipelineFlowImpl flowImpl;
-			flowImpl.direction = PipelineFlowImpl::Direction::In;
-			flowImpl.variable = _convertVariable(variable);
-			_product.value.fragmentPipelineFlows.push_back(flowImpl);
-		}
-
-		// Convert types (structures, attributes, constants)
-		for (const auto& type : _shaderRepresentation.availableTypes)
-		{
-			TypeImpl typeImpl = _convertType(type);
-
-			// Determine type category
-			if (std::find(_shaderRepresentation.attributesTypes.begin(), _shaderRepresentation.attributesTypes.end(), &type) != _shaderRepresentation.attributesTypes.end())
-			{
-				_product.value.attributes.push_back(typeImpl);
-			}
-			else if (std::find(_shaderRepresentation.constantsTypes.begin(), _shaderRepresentation.constantsTypes.end(), &type) != _shaderRepresentation.constantsTypes.end())
-			{
-				_product.value.constants.push_back(typeImpl);
-			}
-			else
-			{
-				_product.value.structures.push_back(typeImpl);
-			}
-		}
-
-		// Convert functions
-		for (const auto& functionPair : _shaderRepresentation.availableFunctions)
-		{
-			for (const auto& function : functionPair.second)
-			{
-				FunctionImpl functionImpl = _convertFunction(function);
-				_product.value.functions.push_back(functionImpl);
-			}
-		}
-
-		// Convert methods, operators, and constructors
-		for (const auto& type : _shaderRepresentation.availableTypes)
-		{
-			std::string typeName = type.name;
-			// Methods
-			for (const auto& methodPair : type.methods)
-			{
-				for (const auto& method : methodPair.second)
-				{
-					FunctionImpl functionImpl = _convertFunction(method, typeName);
-					_product.value.functions.push_back(functionImpl);
-				}
-			}
-
-			// Operators
-			for (const auto& operatorPair : type.operators)
-			{
-				for (const auto& op : operatorPair.second)
-				{
-					FunctionImpl functionImpl = _convertFunction(op, typeName);
-					_product.value.functions.push_back(functionImpl);
-				}
-			}
-
-			// Constructors
-			for (const auto& constructor : type.constructors)
-			{
-				FunctionImpl functionImpl;
-				functionImpl.returnType.type = typeName;
-				functionImpl.name = typeName + "_constructor";
-
-				// Add parameters
-				for (const auto& param : constructor.parameters)
-				{
-					functionImpl.parameters.push_back(_convertParameter(param));
-				}
-
-				functionImpl.body = _convertFunctionBody(constructor.body);
-				_product.value.functions.push_back(functionImpl);
-			}
-		}
-
-		// Convert global variables (textures)
-		for (const auto& variable : _shaderRepresentation.globalVariables)
-		{
-			VariableImpl variableImpl = _convertVariable(variable);
-			_product.value.textures.push_back(variableImpl);
-		}
-
-		// Convert main functions
-		_product.value.vertexMain = _convertFunction(_shaderRepresentation.vertexPassMain);
-		_product.value.fragmentMain = _convertFunction(_shaderRepresentation.fragmentPassMain);
-	}
-
-	// Convert a ShaderRepresentation::Type to TypeImpl
-	TypeImpl Parser::_convertType(const ShaderRepresentation::Type& type)
-	{
-		TypeImpl typeImpl;
-		typeImpl.name = type.name;
-
-		// Convert attributes (variables)
-		for (const auto& attribute : type.attributes)
-		{
-			VariableImpl varImpl = _convertVariable(attribute);
-			typeImpl.attributes.push_back(varImpl);
-		}
-
-		return typeImpl;
-	}
-
-	// Convert a ShaderRepresentation::Variable to VariableImpl
-	VariableImpl Parser::_convertVariable(const ShaderRepresentation::Variable& variable)
-	{
-		VariableImpl varImpl;
-		varImpl.type = _findTypeImpl(variable.type->name);
-		varImpl.name = variable.name;
-		varImpl.arraySize = variable.arraySize;
-		return varImpl;
-	}
-
-	// Helper method to find or create a TypeImpl based on type name
-	const TypeImpl* Parser::_findTypeImpl(const std::string& typeName)
-	{
-		// Search in existing types
-		for (const auto& typeImpl : _product.value.structures)
-		{
-			if (typeImpl.name == typeName)
-				return &typeImpl;
-		}
-		for (const auto& typeImpl : _product.value.attributes)
-		{
-			if (typeImpl.name == typeName)
-				return &typeImpl;
-		}
-		for (const auto& typeImpl : _product.value.constants)
-		{
-			if (typeImpl.name == typeName)
-				return &typeImpl;
-		}
-
-		return nullptr;
-	}
-
-	// Convert a ShaderRepresentation::Function to FunctionImpl
-	FunctionImpl Parser::_convertFunction(const ShaderRepresentation::Function& function, const std::string& typeName)
-	{
-		FunctionImpl funcImpl;
-		funcImpl.returnType.type = function.returnType.type->name;
-		funcImpl.returnType.arraySize = function.returnType.arraySize;
-
-		// If converting a method, add 'self' parameter
-		if (!typeName.empty())
-		{
-			funcImpl.name = typeName + "_" + function.name;
-
-			ParameterImpl selfParam;
-			selfParam.type = typeName + "*";
-			selfParam.isReference = false;
-			selfParam.name = "self";
-			funcImpl.parameters.push_back(selfParam);
-		}
-		else
-		{
-			funcImpl.name = function.name;
-		}
-
-		// Convert parameters
-		for (const auto& param : function.parameters)
-		{
-			funcImpl.parameters.push_back(_convertParameter(param));
-		}
-
-		// Convert function body (here, we just collect the code as a string)
-		funcImpl.body = _convertFunctionBody(function.body);
-
-		return funcImpl;
-	}
-
-	// Convert a ShaderRepresentation::Parameter to ParameterImpl
-	ParameterImpl Parser::_convertParameter(const ShaderRepresentation::Parameter& parameter)
-	{
-		ParameterImpl paramImpl;
-		paramImpl.type = parameter.type->name;
-		if (parameter.isReference)
-			paramImpl.type += "*"; // Using pointer to represent reference in C-style
-		paramImpl.isReference = parameter.isReference;
-		paramImpl.name = parameter.name;
-		paramImpl.arraySize = parameter.arraySize;
-		return paramImpl;
-	}
-
-	// Convert function body (SymbolBody) to FunctionBodyImpl
-	FunctionBodyImpl Parser::_convertFunctionBody(const ShaderRepresentation::SymbolBody& body)
-	{
-		FunctionBodyImpl bodyImpl;
-		// For the purpose of this conversion, we will simulate the code as a string
-		// In a real implementation, we would need to generate the actual code
-		bodyImpl.code = "// Function body code goes here\n";
-		return bodyImpl;
-	}
-
 
 	// The main parse method
 	Parser::Product Parser::parse(const Lexer::Output& p_input)

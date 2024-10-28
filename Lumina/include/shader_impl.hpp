@@ -6,11 +6,17 @@
 
 namespace Lumina
 {
-	struct TypeImpl;
+	struct VariableImpl;
+
+	struct TypeImpl
+	{
+		std::string name = "NoName";
+		std::vector<VariableImpl> attributes;
+	};
 
 	struct VariableImpl
 	{
-		const TypeImpl* type;
+		TypeImpl type;
 		std::string name;
 		std::vector<size_t> arraySize;
 	};
@@ -27,21 +33,15 @@ namespace Lumina
 		VariableImpl variable;
 	};
 
-	struct TypeImpl
+	struct ExpressionTypeImpl
 	{
-		std::string name;
-		std::vector<VariableImpl> attributes;
-	};
-
-	struct ExpressionType
-	{
-		std::string type;
+		TypeImpl type;
 		std::vector<size_t> arraySize;
 	};
 
 	struct ParameterImpl
 	{
-		std::string type;
+		TypeImpl type;
 		bool isReference;
 		std::string name;
 		std::vector<size_t> arraySize;
@@ -54,7 +54,7 @@ namespace Lumina
 
 	struct FunctionImpl
 	{
-		ExpressionType returnType;
+		ExpressionTypeImpl returnType;
 		std::string name;
 		std::vector<ParameterImpl> parameters;
 
