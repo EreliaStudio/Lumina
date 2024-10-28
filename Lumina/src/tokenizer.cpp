@@ -231,7 +231,7 @@ namespace Lumina
 				{
 					tokenType = Token::Type::StructureBlock;
 				}
-				else if (tokenStr == "self" || tokenStr == "this")
+				else if (tokenStr == "this")
 				{
 					tokenType = Token::Type::ThisKeyword;
 				}

@@ -1,403 +1,510 @@
 #include "parser.hpp"
 
+#include "tokenizer.hpp"
+#include "lexer.hpp"
+
 namespace Lumina
 {
-	// Helper method to compose the type name
-	std::string Parser::_composeTypeName(const TypeInfo& p_typeInfo)
+	Parser::Parser()
 	{
-		std::string result = "";
+		_availibleTypes = {
+			{ "void", {} },
+			{ "bool", {} },
+			{ "int", {} },
+			{ "uint", {} },
+			{ "float", {} },
+			{ "Texture", {}},
+			{ "Matrix2x2", {}},
+			{ "Matrix3x3", {}},
+			{ "Matrix4x4", {}}
+		};
 
-		for (const auto& nspace : p_typeInfo.nspace)
+		std::vector<Lumina::Token> predefinedTokens = Lumina::Tokenizer::tokenize("predefined_header/lumina_header.lum");
+
+		Lexer::Product lexerProduct = Lexer::lex(predefinedTokens);
+
+		if (lexerProduct.errors.size() != 0)
 		{
-			result += nspace.content + "_";
+			for (const auto& error : lexerProduct.errors)
+			{
+				_product.errors.push_back(error);
+			}
+			return;
 		}
 
-		result += p_typeInfo.value.content;
-
-		return result;
+		_parse(lexerProduct.value);
 	}
 
-	// Helper method to compose array sizes
-	std::vector<size_t> Parser::_composeSizeArray(const ArraySizeInfo& p_arraySizeInfo)
+	Parser::Product Parser::parse(const Lexer::Output& p_input)
+	{
+		Parser parser;
+
+		parser._parse(p_input);
+
+		return parser._product;
+	}
+	
+	TypeImpl Parser::_getType(const std::string& p_relativeName)
+	{
+		auto it = _availibleTypes.find({ p_relativeName, {} });
+		if (it != _availibleTypes.end())
+		{
+			return *it;
+		}
+
+		std::string namespaceName = "";
+		for (const auto& ns : _nspaces)
+		{
+			namespaceName += ns + "::";
+
+			it = _availibleTypes.find({ namespaceName + p_relativeName, {} });
+			if (it != _availibleTypes.end())
+			{
+				return *it;
+			}
+		}
+
+		return (TypeImpl());
+	}
+	
+	TypeImpl Parser::_getType(const TypeInfo& p_typeInfo)
+	{
+		std::string fullTypeName = "";
+
+		for (const auto& ns : p_typeInfo.nspace)
+		{
+			fullTypeName += ns.content;
+		}
+		fullTypeName += p_typeInfo.value.content;
+
+		return (_getType(fullTypeName));
+	}
+
+	std::string Parser::_composeName(const NameInfo& p_nameInfo)
+	{
+		return (p_nameInfo.value.content);
+	}
+	
+	std::vector<size_t> Parser::_composeArraySizes(const ArraySizeInfo& p_arraySize)
 	{
 		std::vector<size_t> result;
 
-		for (const auto& size : p_arraySizeInfo.dims)
+		for (const auto& sizeToken : p_arraySize.dims)
 		{
-			result.push_back(std::stoull(size.content));
+			result.push_back(std::stoll(sizeToken.content));
 		}
 
-		return result;
+		return (result);
+	}
+	
+	VariableImpl Parser::_composeVariable(const VariableInfo& p_variableInfo)
+	{
+		VariableImpl result;
+
+		result.type = _getType(p_variableInfo.type);
+		result.name = _composeName(p_variableInfo.name);
+		result.arraySizes = _composeArraySizes(p_variableInfo.arraySizes);
+
+		return (result);
 	}
 
-	// Get the current namespace as a string
-	std::string Parser::currentNamespace()
+	VariableImpl Parser::_composePipelineFlowVariable(const PipelineFlowInfo& p_pipelineFlowInfo)
 	{
-		std::string result = "";
-
-		for (const auto& nspace : _nspaces)
-		{
-			result += nspace + "_";
-		}
-
-		return result;
+		return (_composeVariable(p_pipelineFlowInfo.variable));
 	}
 
-	// Extract the name from NameInfo
-	std::string Parser::_extractNameInfo(const NameInfo& p_nameInfo)
+	ExpressionTypeImpl Parser::_composeExpressionTypeImpl(const ExpressionTypeInfo& p_expressionTypeInfo)
 	{
-		return p_nameInfo.value.content;
+		ExpressionTypeImpl result;
+
+		result.type = _getType(p_expressionTypeInfo.type);
+		result.arraySize = _composeArraySizes(p_expressionTypeInfo.arraySizes);
+
+		return (result);
 	}
 
-	// Find a type by name
-	const ShaderRepresentation::Type* Parser::_findType(const std::string& p_objectName)
+	ParameterImpl Parser::_composeParameter(const ParameterInfo& p_parameterInfo)
 	{
-		return _shaderRepresentation.findType(p_objectName);
-	}
+		ParameterImpl result;
 
-	// Find a type using TypeInfo
-	const ShaderRepresentation::Type* Parser::_findType(const TypeInfo& p_typeInfo)
-	{
-		return _findType(_composeTypeName(p_typeInfo));
-	}
-
-	// Insert a variable into the shader representation
-	void Parser::_insertVariable(const ShaderRepresentation::Variable& p_variable)
-	{
-		_shaderRepresentation.insertVariable(p_variable);
-	}
-
-	// Compose an ExpressionType from ExpressionTypeInfo
-	ShaderRepresentation::ExpressionType Parser::_composeExpressionType(const ExpressionTypeInfo& p_expressionType)
-	{
-		ShaderRepresentation::ExpressionType result;
-
-		result.type = _findType(p_expressionType.type);
-		result.arraySize = _composeSizeArray(p_expressionType.arraySizes);
-
-		return result;
-	}
-
-	// Compose a Variable from VariableInfo
-	ShaderRepresentation::Variable Parser::_composeVariable(const VariableInfo& p_variableInfo)
-	{
-		ShaderRepresentation::Variable result;
-
-		result.type = _findType(_composeTypeName(p_variableInfo.type));
-		result.name = _extractNameInfo(p_variableInfo.name);
-		result.arraySize = _composeSizeArray(p_variableInfo.arraySizes);
-
-		return result;
-	}
-
-	// Compose a Type from BlockInfo
-	ShaderRepresentation::Type Parser::_composeType(const BlockInfo& p_block, const std::string& p_suffix)
-	{
-		std::string typeName = currentNamespace() + p_block.name.value.content + p_suffix;
-
-		ShaderRepresentation::Type result;
-		result.name = typeName;
-
-		for (const auto& attributeInfo : p_block.attributes)
-		{
-			ShaderRepresentation::Variable newAttribute = _composeVariable(attributeInfo);
-			result.attributes.insert(newAttribute);
-		}
-
-		return result;
-	}
-
-	// Compose a Parameter from ParameterInfo
-	ShaderRepresentation::Parameter Parser::_composeParameter(const ParameterInfo& p_parameterInfo)
-	{
-		ShaderRepresentation::Parameter result;
-
-		result.type = _findType(p_parameterInfo.type);
+		result.type = _getType(p_parameterInfo.type);
 		result.isReference = p_parameterInfo.isReference;
-		result.name = _extractNameInfo(p_parameterInfo.name);
-		result.arraySize = _composeSizeArray(p_parameterInfo.arraySizes);
+		result.name = _composeName(p_parameterInfo.name);
+		result.arraySize = _composeArraySizes(p_parameterInfo.arraySizes);
 
-		return result;
+		return (result);
 	}
 
-	// Parse the pipeline flows
+	SymbolBodyImpl Parser::_composeSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo)
+	{
+		SymbolBodyImpl result;
+
+		return (result);
+	}
+
+	VariableImpl Parser::_composeTexture(const TextureInfo& p_textureInfo)
+	{
+		VariableImpl result;
+
+		result.type = _getType("Texture");
+		result.name = _composeName(p_textureInfo.name);
+		result.arraySizes = _composeArraySizes(p_textureInfo.arraySizes);
+
+		return (result);
+	}
+
+	FunctionImpl Parser::_composeFunction(const FunctionInfo& p_functionInfo)
+	{
+		FunctionImpl result;
+
+		result.returnType = _composeExpressionTypeImpl(p_functionInfo.returnType);
+		result.name = _composeName(p_functionInfo.name);
+		result.isPrototype = p_functionInfo.isPrototype;
+		for (const auto& param : p_functionInfo.parameters)
+		{
+			result.parameters.push_back(_composeParameter(param));
+		}
+		result.body = _composeSymbolBody(p_functionInfo.body);
+
+		return (result);
+	}
+
+	TypeImpl Parser::_composeTypeImpl(const BlockInfo& p_blockInfo)
+	{
+		TypeImpl result;
+
+		result.name = _composeName(p_blockInfo.name);
+		for (const auto& element : p_blockInfo.attributes)
+		{
+			result.attributes.push_back(_composeVariable(element));
+		}
+
+		return (result);
+	}
+
+	std::vector<FunctionImpl> Parser::_composeConstructors(const BlockInfo& p_blockInfo)
+	{
+		std::vector<FunctionImpl> result;
+
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
+
+		for (const auto& constructorInfo : p_blockInfo.constructorInfos)
+		{
+			FunctionImpl newConstructor = {
+				.isPrototype = constructorInfo.isPrototype,
+				.returnType = {originator, {}},
+				.name = originator.name + "_Constructor",
+				.parameters = {},
+				.body = {}
+			};
+
+			newConstructor.parameters.push_back({ originator, true, "this", {} });
+			for (const auto& param : constructorInfo.parameters)
+			{
+				newConstructor.parameters.push_back(_composeParameter(param));
+			}
+
+			newConstructor.body = _composeSymbolBody(constructorInfo.body);
+
+			result.push_back(newConstructor);
+		}
+
+		return (result);
+	}
+
+	std::vector<FunctionImpl> Parser::_composeMethods(const BlockInfo& p_blockInfo)
+	{
+		std::vector<FunctionImpl> result;
+
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
+
+		for (const auto& [key, methodInfoArray] : p_blockInfo.methodInfos)
+		{
+			for (const auto& methodInfo : methodInfoArray)
+			{
+				FunctionImpl newMethod = {
+					.isPrototype = methodInfo.isPrototype,
+					.returnType = {originator, {}},
+					.name = originator.name + "_" + _composeName(methodInfo.name),
+					.parameters = {},
+					.body = {}
+				};
+
+				newMethod.parameters.push_back({ originator, true, "this", {} });
+				for (const auto& param : methodInfo.parameters)
+				{
+					newMethod.parameters.push_back(_composeParameter(param));
+				}
+
+				newMethod.body = _composeSymbolBody(methodInfo.body);
+
+				result.push_back(newMethod);
+			}
+		}
+
+		return (result);
+	}
+	
+	std::vector<FunctionImpl> Parser::_composeOperators(const BlockInfo& p_blockInfo)
+	{
+		const static std::map<std::string, std::string> _operatorNames = {
+			{"+", "Plus"},
+			{"-", "Minus"},
+			{"*", "Multiply"},
+			{"/", "Divide"},
+			{"%", "Modulo"},
+
+			{"=", "Assign"},
+			{"+=", "AddAssign"},
+			{"-=", "SubtractAssign"},
+			{"*=", "MultiplyAssign"},
+			{"/=", "DivideAssign"},
+			{"%=", "ModuloAssign"},
+
+			{"==", "Equal"},
+			{"!=", "NEqual"},
+			{"<", "Less"},
+			{">", "Greater"},
+			{"<=", "LEqual"},
+			{">=", "GEqual"},
+
+			{"&&", "And"},
+			{"||", "Or"},
+
+			{"++", "Increment"},
+			{"--", "Decrement"},
+		};
+		std::vector<FunctionImpl> result;
+
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
+
+		for (const auto& [key, operatorInfoArray] : p_blockInfo.operatorInfos)
+		{
+			for (const auto& operatorInfo : operatorInfoArray)
+			{
+				FunctionImpl newOperator = {
+					.isPrototype = operatorInfo.isPrototype,
+					.returnType = {originator, {}},
+					.name = originator.name + "_Operator" + _operatorNames.at(operatorInfo.opeType.content),
+					.parameters = {},
+					.body = {}
+				};
+
+				newOperator.parameters.push_back({ originator, true, "this", {} });
+				for (const auto& param : operatorInfo.parameters)
+				{
+					newOperator.parameters.push_back(_composeParameter(param));
+				}
+
+				newOperator.body = _composeSymbolBody(operatorInfo.body);
+
+				result.push_back(newOperator);
+			}
+		}
+
+		return (result);
+	}
+
+	PipelinePassImpl Parser::_composePipelinePass(const PipelinePassInfo& p_pipelinePassInfo)
+	{
+		PipelinePassImpl result;
+
+		result.isDefined = true;
+		result.body = _composeSymbolBody(p_pipelinePassInfo.body);
+
+		return (result);
+	}
+
 	void Parser::_parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow)
 	{
+		VariableImpl pipelineVariable = _composePipelineFlowVariable(p_pipelineFlow);
+
 		if (p_pipelineFlow.input == "Input" && p_pipelineFlow.output == "VertexPass")
 		{
-			_shaderRepresentation.vertexVariables.insert(_composeVariable(p_pipelineFlow.variable));
+			_product.value.vertexPipelineFlows.push_back({
+					.direction = PipelineFlowImpl::Direction::In,
+					.variable = pipelineVariable
+				});
 		}
 		else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
 		{
-			_shaderRepresentation.fragmentVariables.insert(_composeVariable(p_pipelineFlow.variable));
+			_product.value.vertexPipelineFlows.push_back({
+					.direction = PipelineFlowImpl::Direction::Out,
+					.variable = pipelineVariable
+				});
+
+			_product.value.fragmentPipelineFlows.push_back({
+					.direction = PipelineFlowImpl::Direction::In,
+					.variable = pipelineVariable
+				});
 		}
 		else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
 		{
-			_shaderRepresentation.outputVariables.insert(_composeVariable(p_pipelineFlow.variable));
+			_product.value.fragmentPipelineFlows.push_back({
+					.direction = PipelineFlowImpl::Direction::Out,
+					.variable = pipelineVariable
+				});
 		}
 		else
 		{
-			// Handle other cases if necessary
+			throw Lumina::TokenBasedError("Invalid pipeline flow definition.", p_pipelineFlow.input + p_pipelineFlow.output);
 		}
 	}
 
-	// Parse the pipeline passes
 	void Parser::_parsePipelinePass(const PipelinePassInfo& p_pipelinePass)
 	{
 		if (p_pipelinePass.name == "VertexPass")
 		{
-			_shaderRepresentation.vertexPassMain = _composePipelinePass(p_pipelinePass);
+			if (_product.value.vertexPipelinePass.isDefined == true)
+			{
+				throw Lumina::TokenBasedError("VertexPass already defined.", p_pipelinePass.name);
+			}
+
+			_product.value.vertexPipelinePass = _composePipelinePass(p_pipelinePass);
 		}
 		else if (p_pipelinePass.name == "FragmentPass")
 		{
-			_shaderRepresentation.fragmentPassMain = _composePipelinePass(p_pipelinePass);
-		}
-	}
-
-	// Compose a pipeline pass function
-	ShaderRepresentation::Function Parser::_composePipelinePass(const PipelinePassInfo& p_pipelinePass)
-	{
-		ShaderRepresentation::Function result;
-
-		result.returnType = { _findType("void"), {} };
-		result.name = "main";
-		result.parameters = {};
-		result.body = _composeSymbolBody(p_pipelinePass.body);
-
-		return result;
-	}
-
-	// Parse namespaces recursively
-	void Parser::_parseNamespace(const NamespaceInfo& p_namespaceInfo)
-	{
-		for (const auto& block : p_namespaceInfo.structureBlocks)
-		{
-			_parseStructure(block);
-		}
-
-		for (const auto& block : p_namespaceInfo.attributeBlocks)
-		{
-			_parseAttribute(block);
-		}
-
-		for (const auto& block : p_namespaceInfo.constantBlocks)
-		{
-			_parseConstant(block);
-		}
-
-		for (const auto& texture : p_namespaceInfo.textureInfos)
-		{
-			_parseTexture(texture);
-		}
-
-		for (const auto& funcPair : p_namespaceInfo.functionInfos)
-		{
-			for (const auto& function : funcPair.second)
+			if (_product.value.fragmentPipelinePass.isDefined == true)
 			{
-				_parseFunction(function);
+				throw Lumina::TokenBasedError("VertexPass already defined.", p_pipelinePass.name);
+			}
+
+			_product.value.fragmentPipelinePass = _composePipelinePass(p_pipelinePass);
+		}
+		else
+		{
+			throw Lumina::TokenBasedError("Only VertexPass and FragmentPass can be defined.", p_pipelinePass.name);
+		}
+	}
+
+	void Parser::_parseBlockInfo(const BlockInfo& p_blockInfo, std::vector<TypeImpl>& p_destination)
+	{
+		TypeImpl newType = _composeTypeImpl(p_blockInfo);
+
+		_availibleTypes.insert(newType);
+		p_destination.push_back(newType);
+
+		std::vector<FunctionImpl> constructors = _composeConstructors(p_blockInfo);
+		std::vector<FunctionImpl> methods = _composeMethods(p_blockInfo);
+		std::vector<FunctionImpl> operators = _composeOperators(p_blockInfo);
+
+		_product.value.functions.insert(_product.value.functions.end(), constructors.begin(), constructors.end());
+		_product.value.functions.insert(_product.value.functions.end(), methods.begin(), methods.end());
+		_product.value.functions.insert(_product.value.functions.end(), operators.begin(), operators.end());
+	}
+	
+	void Parser::_parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination)
+	{
+		for (const auto& structure : p_blockInfos)
+		{
+			try
+			{
+				_parseBlockInfo(structure, p_destination);
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
 			}
 		}
+	}
+
+	void Parser::_parseTextures(const std::vector<TextureInfo>& p_textureInfos)
+	{
+		for (const auto& textureInfo : p_textureInfos)
+		{
+			try
+			{
+				_product.value.textures.push_back(_composeTexture(textureInfo));
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
+		}
+	}
+	void Parser::_parseFunctions(const std::vector<FunctionInfo>& p_functionInfos)
+	{
+		for (const auto& function : p_functionInfos)
+		{
+			try
+			{
+				_product.value.functions.push_back(_composeFunction(function));
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
+		}
+	}
+	
+	void Parser::_parseFunctionMap(const std::map<std::string, std::vector<FunctionInfo>>& p_functionInfosMap)
+	{
+		for (const auto& [key, functionArray] : p_functionInfosMap)
+		{
+			try
+			{
+				_parseFunctions(functionArray);
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
+		}
+	}
+
+	void Parser::_parseNamespace(const NamespaceInfo& p_namespaceInfo)
+	{
+		_parseBlockArray(p_namespaceInfo.structureBlocks, _product.value.structures);
+		_parseBlockArray(p_namespaceInfo.attributeBlocks, _product.value.attributes);
+		_parseBlockArray(p_namespaceInfo.constantBlocks, _product.value.constants);
+
+		_parseTextures(p_namespaceInfo.textureInfos);
+
+		_parseFunctionMap(p_namespaceInfo.functionInfos);
 
 		for (const auto& nspace : p_namespaceInfo.nestedNamespaces)
 		{
-			_nspaces.push_back(nspace.name.value.content);
+			_nspaces.push_back(_composeName(nspace.name));
 
-			_parseNamespace(nspace);
+			try
+			{
+				_parseNamespace(nspace);
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
 
 			_nspaces.pop_back();
 		}
 	}
-
-	// Parse structures
-	void Parser::_parseStructure(const BlockInfo& p_block)
+	
+	void Parser::_parse(const Lexer::Output& p_input)
 	{
-		ShaderRepresentation::Type newType = _composeType(p_block);
-		ShaderRepresentation::Type* insertedType = _shaderRepresentation.insertType(newType);
-		
-		_shaderRepresentation.structureTypes.push_back(insertedType);
-
-		insertedType->acceptedConvertions = { insertedType };
-
-		_computeMethodAndOperator(insertedType, p_block);
-	}
-
-	// Parse attributes
-	void Parser::_parseAttribute(const BlockInfo& p_block)
-	{
-		ShaderRepresentation::Type newType = _composeType(p_block, "_Attributes");
-		ShaderRepresentation::Type* insertedType = _shaderRepresentation.insertType(newType);
-
-		_shaderRepresentation.attributesTypes.push_back(insertedType);
-
-		_computeMethodAndOperator(insertedType, p_block);
-
-		ShaderRepresentation::Variable var;
-		var.type = insertedType;
-		var.name = currentNamespace() + _extractNameInfo(p_block.name);
-		var.arraySize = {};
-
-		_shaderRepresentation.insertVariable(var);
-	}
-
-	// Parse constants
-	void Parser::_parseConstant(const BlockInfo& p_block)
-	{
-		ShaderRepresentation::Type newType = _composeType(p_block, "_Constants");
-		ShaderRepresentation::Type* insertedType = _shaderRepresentation.insertType(newType);
-
-		_shaderRepresentation.constantsTypes.push_back(insertedType);
-
-		_computeMethodAndOperator(insertedType, p_block);
-
-		ShaderRepresentation::Variable var;
-		var.type = insertedType;
-		var.name = currentNamespace() + _extractNameInfo(p_block.name);
-		var.arraySize = {};
-
-		_shaderRepresentation.insertVariable(var);
-	}
-
-	// Parse textures
-	void Parser::_parseTexture(const TextureInfo& p_texture)
-	{
-		ShaderRepresentation::Variable newTexture = {
-			.type = _shaderRepresentation.findType("Texture"),
-			.name = currentNamespace() + _extractNameInfo(p_texture.name),
-			.arraySize = _composeSizeArray(p_texture.arraySizes)
-		};
-
-		_shaderRepresentation.globalVariables.insert(newTexture);
-		_shaderRepresentation.reservedIdentifiers.insert(newTexture.name);
-	}
-
-	// Parse functions
-	void Parser::_parseFunction(const FunctionInfo& p_functionInfo)
-	{
-		ShaderRepresentation::Function newFunction;
-
-		newFunction.returnType = _composeExpressionType(p_functionInfo.returnType);
-		newFunction.name = currentNamespace() + _extractNameInfo(p_functionInfo.name);
-
-		for (const auto& parameter : p_functionInfo.parameters)
+		for (const auto& pipelineFlow : p_input.pipelineFlows)
 		{
-			newFunction.parameters.push_back(_composeParameter(parameter));
-		}
-
-		newFunction.isPrototype = p_functionInfo.isPrototype;
-		newFunction.body = _composeSymbolBody(p_functionInfo.body);
-
-		_shaderRepresentation.reservedIdentifiers.insert(newFunction.name);
-		_shaderRepresentation.availableFunctions[newFunction.name].push_back(newFunction);
-	}
-
-	// Compute methods and operators for a type
-	void Parser::_computeMethodAndOperator(ShaderRepresentation::Type* p_originator, const BlockInfo& p_block)
-	{
-		for (const auto& constructor : p_block.constructorInfos)
-		{
-			ShaderRepresentation::Type::Constructor newConstructor = _composeConstructorFunction(p_originator, constructor);
-			p_originator->constructors.push_back(newConstructor);
-		}
-
-		for (const auto& methodArray : p_block.methodInfos)
-		{
-			for (const auto& method : methodArray.second)
+			try
 			{
-				ShaderRepresentation::Function newMethod = _composeMethodFunction(p_originator, method);
-				p_originator->methods[newMethod.name].push_back(newMethod);
+				_parsePipelineFlow(pipelineFlow);
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
 			}
 		}
 
-		for (const auto& operatorArray : p_block.operatorInfos)
+		for (const auto& pipelinePass : p_input.pipelinePasses)
 		{
-			for (const auto& ope : operatorArray.second)
+			try
 			{
-				ShaderRepresentation::Function newOperator = _composeOperatorFunction(p_originator, ope);
-				p_originator->operators[newOperator.name].push_back(newOperator);
+				_parsePipelinePass(pipelinePass);
 			}
-		}
-	}
-
-	// Parse method function
-	ShaderRepresentation::Function Parser::_composeMethodFunction(const ShaderRepresentation::Type* p_originatorType, const FunctionInfo& p_functionInfo)
-	{
-		ShaderRepresentation::Function result;
-
-		result.returnType = _composeExpressionType(p_functionInfo.returnType);
-		result.name = p_functionInfo.name.value.content;
-
-		for (const auto& parameter : p_functionInfo.parameters)
-		{
-			result.parameters.push_back(_composeParameter(parameter));
-		}
-
-		result.isPrototype = p_functionInfo.isPrototype;
-		result.body = _composeSymbolBody(p_functionInfo.body);
-
-		return result;
-	}
-
-	// Parse constructor function
-	ShaderRepresentation::Type::Constructor Parser::_composeConstructorFunction(const ShaderRepresentation::Type* p_originatorType, const ConstructorInfo& p_constructorInfo)
-	{
-		ShaderRepresentation::Type::Constructor result;
-
-		for (const auto& parameter : p_constructorInfo.parameters)
-		{
-			result.parameters.push_back(_composeParameter(parameter));
-		}
-
-		result.isPrototype = p_constructorInfo.isPrototype;
-		result.body = _composeSymbolBody(p_constructorInfo.body);
-
-		return result;
-	}
-
-	// Parse operator function
-	ShaderRepresentation::Function Parser::_composeOperatorFunction(const ShaderRepresentation::Type* p_originatorType, const OperatorInfo& p_operatorInfo)
-	{
-		ShaderRepresentation::Function result;
-
-		result.returnType = _composeExpressionType(p_operatorInfo.returnType);
-		result.name = p_operatorInfo.opeType.content;
-
-		for (const auto& parameter : p_operatorInfo.parameters)
-		{
-			result.parameters.push_back(_composeParameter(parameter));
-		}
-
-		result.isPrototype = p_operatorInfo.isPrototype;
-		result.body = _composeSymbolBody(p_operatorInfo.body);
-
-		return result;
-	}
-
-	// The main parse method
-	Parser::Product Parser::parse(const Lexer::Output& p_input)
-	{
-		Parser parser;
-		return parser._parse(p_input);
-	}
-
-	// Internal parse method
-	Parser::Product Parser::_parse(const Lexer::Output& p_input)
-	{
-		for (const auto& flow : p_input.pipelineFlows)
-		{
-			_parsePipelineFlow(flow);
-		}
-
-		for (const auto& pass : p_input.pipelinePasses)
-		{
-			_parsePipelinePass(pass);
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
 		}
 
 		_parseNamespace(p_input.anonymNamespace);
-
-		_composeShaderImpl();
-
-		std::cout << _product.value << std::endl;
-
-		return _product;
 	}
 }

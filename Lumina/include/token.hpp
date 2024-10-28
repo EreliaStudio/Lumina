@@ -29,7 +29,7 @@ namespace Lumina
 			Identifier, // Alphanumeric string
 			Number, // Numeric value
 			StructureBlock, // "struct"
-			ThisKeyword, // "self", "this"
+			ThisKeyword, // "this"
 			AttributeBlock, // "AttributeBlock"
 			ConstantBlock, // "ConstantBlock"
 			Texture, // "Texture"

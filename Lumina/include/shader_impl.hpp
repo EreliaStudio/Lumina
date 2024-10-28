@@ -10,15 +10,20 @@ namespace Lumina
 
 	struct TypeImpl
 	{
-		std::string name = "NoName";
+		std::string name = "UnknownTypeName";
 		std::vector<VariableImpl> attributes;
+
+		bool operator < (const TypeImpl& p_other) const
+		{
+			return (name < p_other.name);
+		}
 	};
 
 	struct VariableImpl
 	{
 		TypeImpl type;
 		std::string name;
-		std::vector<size_t> arraySize;
+		std::vector<size_t> arraySizes;
 	};
 
 	struct PipelineFlowImpl
@@ -47,24 +52,32 @@ namespace Lumina
 		std::vector<size_t> arraySize;
 	};
 
-	struct FunctionBodyImpl
+	struct SymbolBodyImpl
 	{
 		std::string code;
 	}; 
 
 	struct FunctionImpl
 	{
+		bool isPrototype;
 		ExpressionTypeImpl returnType;
 		std::string name;
 		std::vector<ParameterImpl> parameters;
 
-		FunctionBodyImpl body;
+		SymbolBodyImpl body;
+	};
+
+	struct PipelinePassImpl
+	{
+		bool isDefined = false;
+		SymbolBodyImpl body;
 	};
 
 	struct ShaderImpl
 	{
 		std::vector<PipelineFlowImpl> vertexPipelineFlows;
 		std::vector<PipelineFlowImpl> fragmentPipelineFlows;
+		std::vector<PipelineFlowImpl> outputPipelineFlows;
 
 		std::vector<TypeImpl> structures;
 		std::vector<TypeImpl> attributes;
@@ -74,8 +87,8 @@ namespace Lumina
 
 		std::vector<VariableImpl> textures;
 
-		FunctionImpl vertexMain;
-		FunctionImpl fragmentMain;
+		PipelinePassImpl vertexPipelinePass;
+		PipelinePassImpl fragmentPipelinePass;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const ShaderImpl& shader);

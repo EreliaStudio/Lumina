@@ -53,9 +53,11 @@ int main(int argc, char** argv)
 		return (-1);
 	}
 
+	std::cout << "Parser product : " << std::endl << parserProduct.value << std::endl;
+
 	Lumina::Compiler::Product compilerProduct = Lumina::Compiler::compile(parserProduct.value);
 
-	std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
+	//std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
 
 	return (0);
 }

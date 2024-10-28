@@ -4,13 +4,25 @@
 
 namespace Lumina
 {
-    void printArraySizes(std::ostream& os, const std::vector<size_t>& arraySize);
+    void printArraySizes(std::ostream& os, const std::vector<size_t>& arraySize)
+    {
+        if (!arraySize.empty())
+        {
+            os << "[";
+            for (size_t i = 0; i < arraySize.size(); ++i)
+            {
+                if (i > 0) os << ", ";
+                os << arraySize[i];
+            }
+            os << "]";
+        }
+    }
 
     // Overload for VariableImpl
     std::ostream& operator<<(std::ostream& os, const VariableImpl& variable)
     {
         os << variable.type.name << " " << variable.name;
-        printArraySizes(os, variable.arraySize);
+        printArraySizes(os, variable.arraySizes);
         return os;
     }
 
@@ -31,7 +43,7 @@ namespace Lumina
         return os;
     }
 
-    std::ostream& operator<<(std::ostream& os, const FunctionBodyImpl& functionBody)
+    std::ostream& operator<<(std::ostream& os, const SymbolBodyImpl& functionBody)
     {
         os << functionBody.code;
         return os;
@@ -82,6 +94,15 @@ namespace Lumina
         return os;
     }
 
+    // Overload for PipelinePassImpl
+    std::ostream& operator<<(std::ostream& os, const PipelinePassImpl& pipelineFlow)
+    {
+        os << "{\n";
+        os << pipelineFlow.body << "\n";
+        os << "}";
+        return os;
+    }
+
     // Overload for ShaderImpl
     std::ostream& operator<<(std::ostream& os, const ShaderImpl& shader)
     {
@@ -128,10 +149,10 @@ namespace Lumina
         }
 
         os << "\nVertexMain:\n";
-        os << shader.vertexMain.body << "\n";
+        os << shader.vertexPipelinePass;
 
         os << "\nFragmentMain:\n";
-        os << shader.fragmentMain.body << "\n";
+        os << shader.fragmentPipelinePass;
 
         return os;
     }
