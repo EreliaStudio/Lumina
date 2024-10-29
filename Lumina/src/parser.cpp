@@ -5,36 +5,6 @@
 
 namespace Lumina
 {
-	Parser::Parser()
-	{
-		_availibleTypes = {
-			{ "void", {} },
-			{ "bool", {} },
-			{ "int", {} },
-			{ "uint", {} },
-			{ "float", {} },
-			{ "Texture", {}},
-			{ "Matrix2x2", {}},
-			{ "Matrix3x3", {}},
-			{ "Matrix4x4", {}}
-		};
-
-		std::vector<Lumina::Token> predefinedTokens = Lumina::Tokenizer::tokenize("predefined_header/lumina_header.lum");
-
-		Lexer::Product lexerProduct = Lexer::lex(predefinedTokens);
-
-		if (lexerProduct.errors.size() != 0)
-		{
-			for (const auto& error : lexerProduct.errors)
-			{
-				_product.errors.push_back(error);
-			}
-			return;
-		}
-
-		_parse(lexerProduct.value);
-	}
-
 	Parser::Product Parser::parse(const Lexer::Output& p_input)
 	{
 		Parser parser;
@@ -388,8 +358,13 @@ namespace Lumina
 		std::vector<FunctionImpl> methods = _composeMethods(p_blockInfo);
 		std::vector<FunctionImpl> operators = _composeOperators(p_blockInfo);
 
+		_availibleFunctions.insert(_product.value.functions.end(), constructors.begin(), constructors.end());
 		_product.value.functions.insert(_product.value.functions.end(), constructors.begin(), constructors.end());
+
+		_availibleFunctions.insert(_product.value.functions.end(), methods.begin(), methods.end());
 		_product.value.functions.insert(_product.value.functions.end(), methods.begin(), methods.end());
+
+		_availibleFunctions.insert(_product.value.functions.end(), operators.begin(), operators.end());
 		_product.value.functions.insert(_product.value.functions.end(), operators.begin(), operators.end());
 	}
 	
@@ -428,7 +403,10 @@ namespace Lumina
 		{
 			try
 			{
-				_product.value.functions.push_back(_composeFunction(function));
+				FunctionImpl newFunction = _composeFunction(function);
+
+				_availibleFunctions.push_back(newFunction);
+				_product.value.functions.push_back(newFunction);
 			}
 			catch (const Lumina::TokenBasedError& e)
 			{

@@ -15,7 +15,9 @@ namespace Lumina
 	private:
 		Product _product;
 
-		Compiler() = default;
+		std::map<std::string, std::string> _standardTypes;
+
+		Compiler();
 
 		Product _compile(const Parser::Output& p_input);
 

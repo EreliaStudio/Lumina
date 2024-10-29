@@ -23,7 +23,9 @@ namespace Lumina
 		Product _product;
 
 		std::vector<std::string> _nspaces;
+
 		std::set<TypeImpl> _availibleTypes;
+		std::vector<FunctionImpl> _availibleFunctions;
 
 		TypeImpl _getType(const std::string& p_relativeName);
 		TypeImpl _getType(const TypeInfo& p_typeName);
