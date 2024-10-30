@@ -1,6 +1,8 @@
 #include "lexer.hpp"
 #include "token.hpp"
 
+#include "utils.hpp"
+
 namespace Lumina
 {
     int Lexer::computeOperatorPriority(const Token& token)
@@ -27,7 +29,7 @@ namespace Lumina
     {
         SymbolBodyInfo result;
 
-        expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start symbol body.");
+        expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start symbol body." + DEBUG_INFORMATION);
 
         while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
         {
@@ -53,7 +55,7 @@ namespace Lumina
             }
         }
 
-        expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' to end symbol body.");
+        expect(Lumina::Token::Type::CloseCurlyBracket, "Expected '}' to end symbol body." + DEBUG_INFORMATION);
 
         return result;
     }
@@ -158,7 +160,7 @@ namespace Lumina
             result.initializer = parseExpressionInfo();
         }
 
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after variable declaration.");
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after variable declaration." + DEBUG_INFORMATION);
 
         return result;
     }
@@ -167,7 +169,7 @@ namespace Lumina
     {
         ExpressionStatementInfo result;
         result.expression = parseExpressionInfo();
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after expression statement.");
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after expression statement." + DEBUG_INFORMATION);
         return result;
     }
 
@@ -176,11 +178,11 @@ namespace Lumina
         AssignmentStatementInfo result;
         result.target = parseExpressionInfo();
 
-        result.operatorToken = expect(Lumina::Token::Type::Assignator, "Expected '=' token.");
+        result.operatorToken = expect(Lumina::Token::Type::Assignator, "Expected '=' token." + DEBUG_INFORMATION);
 
         result.value = parseExpressionInfo();
 
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after assignment statement.");
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after assignment statement." + DEBUG_INFORMATION);
 
         return result;
     }
@@ -188,14 +190,14 @@ namespace Lumina
     ReturnStatementInfo Lexer::parseReturnStatementInfo()
     {
         ReturnStatementInfo result;
-        expect(Lumina::Token::Type::Return, "Expected 'return' keyword.");
+        expect(Lumina::Token::Type::Return, "Expected 'return' keyword." + DEBUG_INFORMATION);
 
         if (currentToken().type != Lumina::Token::Type::EndOfSentence)
         {
             result.expression = parseExpressionInfo();
         }
 
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after return statement.");
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after return statement." + DEBUG_INFORMATION);
 
         return result;
     }
@@ -203,19 +205,19 @@ namespace Lumina
     DiscardStatementInfo Lexer::parseDiscardStatementInfo()
     {
         DiscardStatementInfo result;
-        expect(Lumina::Token::Type::Discard, "Expected 'discard' keyword.");
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after discard statement.");
+        expect(Lumina::Token::Type::Discard, "Expected 'discard' keyword." + DEBUG_INFORMATION);
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after discard statement." + DEBUG_INFORMATION);
         return result;
     }
 
     IfStatementInfo Lexer::parseIfStatementInfo()
     {
         IfStatementInfo result;
-        expect(Lumina::Token::Type::IfStatement, "Expected 'if' keyword.");
+        expect(Lumina::Token::Type::IfStatement, "Expected 'if' keyword." + DEBUG_INFORMATION);
 
-        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'if'.");
+        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'if'." + DEBUG_INFORMATION);
         auto condition = parseExpressionInfo();
-        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
+        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition." + DEBUG_INFORMATION);
 
         ConditionalBranch branch;
         branch.condition = condition;
@@ -228,9 +230,9 @@ namespace Lumina
             if (currentToken().type == Lumina::Token::Type::IfStatement)
             {
                 advance();
-                expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'else if'.");
+                expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'else if'." + DEBUG_INFORMATION);
                 auto elseIfCondition = parseExpressionInfo();
-                expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
+                expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition." + DEBUG_INFORMATION);
 
                 ConditionalBranch elseIfBranch;
                 elseIfBranch.condition = elseIfCondition;
@@ -250,10 +252,10 @@ namespace Lumina
     WhileStatementInfo Lexer::parseWhileStatementInfo()
     {
         WhileStatementInfo result;
-        expect(Lumina::Token::Type::WhileStatement, "Expected 'while' keyword.");
-        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'while'.");
+        expect(Lumina::Token::Type::WhileStatement, "Expected 'while' keyword." + DEBUG_INFORMATION);
+        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'while'." + DEBUG_INFORMATION);
         auto condition = parseExpressionInfo();
-        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition.");
+        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after condition." + DEBUG_INFORMATION);
 
         ConditionalBranch loop;
         loop.condition = condition;
@@ -266,8 +268,8 @@ namespace Lumina
     ForStatementInfo Lexer::parseForStatementInfo()
     {
         ForStatementInfo result;
-        expect(Lumina::Token::Type::ForStatement, "Expected 'for' keyword.");
-        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'for'.");
+        expect(Lumina::Token::Type::ForStatement, "Expected 'for' keyword." + DEBUG_INFORMATION);
+        expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after 'for'." + DEBUG_INFORMATION);
 
         if (currentToken().type != Lumina::Token::Type::EndOfSentence)
         {
@@ -285,13 +287,13 @@ namespace Lumina
         {
             result.condition = parseExpressionInfo();
         }
-        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after loop condition.");
+        expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after loop condition." + DEBUG_INFORMATION);
 
         if (currentToken().type != Lumina::Token::Type::CloseParenthesis)
         {
             result.increment = parseExpressionInfo();
         }
-        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after for loop control.");
+        expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after for loop control." + DEBUG_INFORMATION);
 
         result.body = parseSymbolBodyInfo();
 
@@ -364,7 +366,7 @@ namespace Lumina
     std::shared_ptr<ExpressionInfo> Lexer::parseUnaryExpressionInfo()
     {
         if (currentToken().type == Lumina::Token::Type::Operator &&
-            (currentToken().content == "-" || currentToken().content == "+" || currentToken().content == "!" || currentToken().content == "~"))
+            (currentToken().content == "-" || currentToken().content == "+"))
         {
             Token opToken = currentToken();
             advance();
@@ -388,17 +390,39 @@ namespace Lumina
             if (currentToken().type == Lumina::Token::Type::Accessor)
             {
                 advance();
-                Token memberName = expect(Lumina::Token::Type::Identifier, "Expected member name after '.'.");
-                MemberAccessExpressionInfo memberExpr;
-                memberExpr.object = expr;
-                memberExpr.memberName = memberName;
-                expr = std::make_shared<ExpressionInfo>(memberExpr);
+                if (tokenAtOffset(1).type == Lumina::Token::Type::OpenParenthesis)
+                {
+                    MethodCallExpressionInfo methodExpr;
+                    methodExpr.object = expr;
+                    methodExpr.name = expect(Lumina::Token::Type::Identifier, "Expected method name after '.'." + DEBUG_INFORMATION);
+
+                    expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' after method name." + DEBUG_INFORMATION);
+                    while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
+                    {
+                        if (methodExpr.arguments.size() != 0)
+                        {
+                            expect(Lumina::Token::Type::Comma, "Expected ',' between arguments." + DEBUG_INFORMATION);
+                        }
+                        methodExpr.arguments.push_back(parseExpressionInfo());
+                    }
+                    expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after method name." + DEBUG_INFORMATION);
+
+                    expr = std::make_shared<ExpressionInfo>(methodExpr);
+                }
+                else
+                {
+                    MemberAccessExpressionInfo memberExpr;
+                    memberExpr.object = expr;
+                    memberExpr.memberName = expect(Lumina::Token::Type::Identifier, "Expected member name after '.'." + DEBUG_INFORMATION);
+                    expr = std::make_shared<ExpressionInfo>(memberExpr);
+                }
+                
             }
             else if (currentToken().type == Lumina::Token::Type::OpenBracket)
             {
                 advance();
                 auto indexExpr = parseExpressionInfo();
-                expect(Lumina::Token::Type::CloseBracket, "Expected ']' after array index.");
+                expect(Lumina::Token::Type::CloseBracket, "Expected ']' after array index." + DEBUG_INFORMATION);
                 ArrayAccessExpressionInfo arrayAccessExpr;
                 arrayAccessExpr.array = expr;
                 arrayAccessExpr.index = indexExpr;
@@ -444,12 +468,12 @@ namespace Lumina
         {
             advance();
             auto expr = parseExpressionInfo();
-            expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after expression.");
+            expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after expression." + DEBUG_INFORMATION);
             return expr;
         }
         else
         {
-            throw TokenBasedError("Unexpected token in expression.", currentToken());
+            throw TokenBasedError("Unexpected token in expression." + DEBUG_INFORMATION, currentToken());
         }
     }
 
@@ -457,7 +481,7 @@ namespace Lumina
     {
         NamespaceDesignation nspace = parseNamespaceDesignation();
 
-        Token nameToken = expect({ Lumina::Token::Type::Identifier, Lumina::Token::Type::ThisKeyword }, "Expected identifier.");
+        Token nameToken = expect({ Lumina::Token::Type::Identifier, Lumina::Token::Type::ThisKeyword }, "Expected identifier." + DEBUG_INFORMATION);
 
         if (currentToken().type == Lumina::Token::Type::OpenParenthesis)
         {
@@ -472,12 +496,12 @@ namespace Lumina
             {
                 if (funcCallExpr.arguments.size() != 0)
                 {
-                    expect(Lumina::Token::Type::Comma, "Expected ',' between arguments.");
+                    expect(Lumina::Token::Type::Comma, "Expected ',' between arguments." + DEBUG_INFORMATION);
                 }
                 funcCallExpr.arguments.push_back(parseExpressionInfo());
             }
 
-            expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after function arguments.");
+            expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after function arguments." + DEBUG_INFORMATION);
 
             return std::make_shared<ExpressionInfo>(funcCallExpr);
         }

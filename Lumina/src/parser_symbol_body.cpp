@@ -181,9 +181,11 @@ namespace Lumina
         case 5:
             return (_composeFunctionCallExpression(p_variables, std::get<5>(expr)));
         case 6:
-            return (_composeMemberAccessExpression(p_variables, std::get<6>(expr)));
+            return (_composeMethodCallExpression(p_variables, std::get<6>(expr)));
         case 7:
-            return (_composeArrayAccessExpression(p_variables, std::get<7>(expr)));
+            return (_composeMemberAccessExpression(p_variables, std::get<7>(expr)));
+        case 8:
+            return (_composeArrayAccessExpression(p_variables, std::get<8>(expr)));
         default:
             throw Lumina::TokenBasedError("Unknown expression type.", Token());
         }
@@ -288,6 +290,15 @@ namespace Lumina
         }
 
         return name + "(" + args + ")";
+    }
+    
+    std::string Parser::_composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e)
+    {
+        std::string object = _composeExpression(p_variables, *e.object);
+
+        std::cout << "Objet : " << object << std::endl;
+
+        return ("ToBeDefined");
     }
 
     std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e)

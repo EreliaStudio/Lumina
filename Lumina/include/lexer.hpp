@@ -62,6 +62,7 @@ namespace Lumina
 		// Helper methods
 		bool isVariableDeclaration();
 		bool isAssignmentStatement();
+		bool isMethodCall();
 		int computeOperatorPriority(const Token& token);
 
 		ShaderInfo parseShaderInfo();

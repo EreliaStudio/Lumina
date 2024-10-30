@@ -64,6 +64,7 @@ namespace Lumina
     struct UnaryExpressionInfo;
     struct PostfixExpressionInfo;
     struct FunctionCallExpressionInfo;
+    struct MethodCallExpressionInfo;
     struct MemberAccessExpressionInfo;
     struct ArrayAccessExpressionInfo;
 
@@ -74,6 +75,7 @@ namespace Lumina
         UnaryExpressionInfo,
         PostfixExpressionInfo,
         FunctionCallExpressionInfo,
+        MethodCallExpressionInfo,
         MemberAccessExpressionInfo,
         ArrayAccessExpressionInfo
     >;
@@ -121,6 +123,13 @@ namespace Lumina
     {
         std::shared_ptr<ExpressionInfo> object;
         Token memberName;
+    };
+    
+    struct MethodCallExpressionInfo
+    {
+        std::shared_ptr<ExpressionInfo> object;
+        Token name;
+        std::vector<std::shared_ptr<ExpressionInfo>> arguments;
     };
 
     struct ArrayAccessExpressionInfo

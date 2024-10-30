@@ -62,6 +62,7 @@ namespace Lumina
         std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e);
         std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e);
 		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e);
+		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e);
 		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
 		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
 

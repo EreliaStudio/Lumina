@@ -1,34 +1,37 @@
+Input -> VertexPass : Vector2 modelPosition;
+Input -> VertexPass : Vector2 modelUVs;
+VertexPass -> FragmentPass : Vector2 fragmentUVs;
+
+Texture myTexture;
 
 struct Test
 {
-int value;
-
-Test()
+Vector2 value;
+void method()
 {
-    value = 42;
 }
+};
 
-Test operator += (int tmpValue)
+struct Test2
 {
-    value += tmpValue;
-    return (this);
-}
-
-Test operator + (int tmpValue)
-{
-    value += tmpValue;
-}
+	Test test;
 };
 
 // Define the vertex shader stage
 VertexPass()
 {
-    Test test;
+	pixelPosition = Vector4(modelPosition, 0, 1);
+	fragmentUVs = modelUVs;
 
-    test += 14;
+	Test2 value;
+
+	value.test.method();
+
+	value.test.value = Vector2(15, 15);
 }
 
 // Define the fragment shader stage
 FragmentPass()
 {
+	pixelColor = myTexture.getPixel(fragmentUVs);
 }

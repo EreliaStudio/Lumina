@@ -351,5 +351,8 @@ namespace Lumina
 
 			_availibleFunctions.insert(toAdd);
 		}
+
+		_vertexVariables.insert({ _getType("Vector4"),  "pixelPosition", {} });
+		_fragmentVariables.insert({ _getType("Color"),  "pixelColor", {} });
 	}
 }

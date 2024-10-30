@@ -113,6 +113,8 @@ namespace Lumina
 		result.name = _composeName(p_textureInfo.name);
 		result.arraySizes = _composeArraySizes(p_textureInfo.arraySizes);
 
+		_globalVariables.insert(result);
+
 		return (result);
 	}
 
