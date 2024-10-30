@@ -1,115 +1,34 @@
-// Include predefined and user-provided files
 
-// Define the pipeline flow
-Input -> VertexPass: Vector3 vertexPosition;
-Input -> VertexPass: Vector3 vertexNormal;
-Input -> VertexPass: Vector2 vertexUV;
-VertexPass -> FragmentPass: Vector3 fragPosition;
-VertexPass -> FragmentPass: Vector3 fragNormal;
-VertexPass -> FragmentPass: Vector2 fragUV;
-
-// Define custom structures
-struct Material
+struct Test
 {
-    Vector3 diffuseColor;
-    Vector3 specularColor;
-    float shininess;
-};
+int value;
 
-// Define a texture
-Texture diffuseTexture;
-
-// Define attribute blocks
-AttributeBlock modelAttributes
+Test()
 {
-    Matrix4x4 modelMatrix;
-    Matrix4x4 normalMatrix;
-};
-
-// Define constant blocks
-ConstantBlock lightingConstants
-{
-    Vector3 lightPosition;
-    Vector3 lightColor;
-    float ambientIntensity;
-};
-
-// Create namespaces
-namespace Lighting
-{
-    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor)
-    {
-        float diff = max(dot(normal, lightDir), 0.0);
-        return diff * lightColor;
-    }
-
-    Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor)
-    {
-        Vector3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-        return spec * lightColor;
-    }
+    value = 42;
 }
 
-/*
-Pipeline Description:
-This pipeline is designed to render a 3D object by processing its vertex data and applying lighting calculations.
+Test operator += (int tmpValue)
+{
+    value += tmpValue;
+    return (this);
+}
 
-Vertex Shader (VertexPass):
-- Transforms the input vertex positions using a model matrix to position the object correctly in the world space.
-- Transforms the normals using the normal matrix for accurate lighting calculations.
-- Passes UV coordinates, transformed positions, and normals to the fragment shader.
-
-Fragment Shader (FragmentPass):
-- Performs lighting calculations using ambient, diffuse, and specular components.
-- Combines these lighting components with a texture sampled from the UV coordinates.
-- Discards fragments where the texture's alpha value is zero.
-- Sets the final pixel color based on the combined lighting and texture information.
-
-The vertex and fragment shaders work together to accurately render the 3D object with realistic lighting and texturing.
-*/
+Test operator + (int tmpValue)
+{
+    value += tmpValue;
+}
+};
 
 // Define the vertex shader stage
 VertexPass()
 {
-    Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
-    fragPosition = worldPosition.xyz;
-    fragNormal = mat3(modelAttributes.normalMatrix) * vertexNormal;
-    fragUV = vertexUV;
+    Test test;
 
-    Vector4 clipSpacePosition = worldPosition;
-    pixelPosition = clipSpacePosition;
+    test += 14;
 }
 
 // Define the fragment shader stage
 FragmentPass()
 {
-    // Error handling example
-    if (lightingConstants.ambientIntensity < 0.0 || lightingConstants.ambientIntensity > 1.0)
-    {
-        raiseException("Ambient intensity must be between 0 and 1. Current value: %d", lightingConstants.ambientIntensity);
-    }
-
-    Vector3 normal = normalize(fragNormal);
-    Vector3 lightDir = normalize(lightingConstants.lightPosition - fragPosition);
-    Vector3 viewDir = normalize(-fragPosition);
-
-    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor;
-
-    Vector3 diffuse = Lighting::calculateDiffuse(normal, lightDir, lightingConstants.lightColor);
-
-    Material material;
-    Vector3 specular = Lighting::calculateSpecular(normal, lightDir, viewDir, material.shininess, lightingConstants.lightColor);
-
-    Vector3 finalColor = ambient + diffuse * material.diffuseColor + specular * material.specularColor;
-
-    Vector4 textureColor = getPixel(diffuseTexture, fragUV);
-    finalColor *= textureColor.rgb;
-
-    if (textureColor.a == 0)
-    {
-        discard;
-    }
-
-    pixelColor = Vector4(finalColor, textureColor.a);
 }

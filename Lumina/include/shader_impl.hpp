@@ -24,6 +24,11 @@ namespace Lumina
 		TypeImpl type;
 		std::string name;
 		std::vector<size_t> arraySizes;
+
+		bool operator < (const VariableImpl& p_other) const
+		{
+			return (name < p_other.name);
+		}
 	};
 
 	struct PipelineFlowImpl
@@ -41,7 +46,7 @@ namespace Lumina
 	struct ExpressionTypeImpl
 	{
 		TypeImpl type;
-		std::vector<size_t> arraySize;
+		std::vector<size_t> arraySizes;
 	};
 
 	struct ParameterImpl
@@ -49,7 +54,24 @@ namespace Lumina
 		TypeImpl type;
 		bool isReference;
 		std::string name;
-		std::vector<size_t> arraySize;
+		std::vector<size_t> arraySizes;
+
+		bool operator<(const ParameterImpl& other) const
+		{
+			if (type < other.type) return true;
+			if (other.type < type) return false;
+
+			if (arraySizes.size() < other.arraySizes.size()) return true;
+			if (arraySizes.size() > other.arraySizes.size()) return false;
+
+			for (size_t i = 0; i < arraySizes.size(); ++i)
+			{
+				if (arraySizes[i] < other.arraySizes[i]) return true;
+				if (arraySizes[i] > other.arraySizes[i]) return false;
+			}
+
+			return false;
+		}
 	};
 
 	struct SymbolBodyImpl
@@ -65,6 +87,23 @@ namespace Lumina
 		std::vector<ParameterImpl> parameters;
 
 		SymbolBodyImpl body;
+
+		bool operator<(const FunctionImpl& other) const
+		{
+			if (name < other.name) return true;
+			if (other.name < name) return false;
+
+			if (parameters.size() < other.parameters.size()) return true;
+			if (parameters.size() > other.parameters.size()) return false;
+
+			for (size_t i = 0; i < parameters.size(); ++i)
+			{
+				if (parameters[i] < other.parameters[i]) return true;
+				if (other.parameters[i] < parameters[i]) return false;
+			}
+
+			return false;
+		}
 	};
 
 	struct PipelinePassImpl

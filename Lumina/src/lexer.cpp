@@ -15,7 +15,7 @@ namespace Lumina
 
 		while (peekNext().type == Lumina::Token::Type::NamespaceSeparator)
 		{
-			result.push_back(expect(Lumina::Token::Type::Identifier, "Expected namespace identifier."));
+			result.push_back(expect(Lumina::Token::Type::Identifier, "Expected namespace identifier." + DEBUG_INFORMATION));
 			advance();
 		}
 
@@ -27,7 +27,7 @@ namespace Lumina
 		TypeInfo result;
 
 		result.nspace = parseNamespaceDesignation();
-		result.value = expect(Lumina::Token::Type::Identifier, "Expected type identifier.");
+		result.value = expect(Lumina::Token::Type::Identifier, "Expected type identifier." + DEBUG_INFORMATION);
 
 		return result;
 	}
@@ -35,7 +35,7 @@ namespace Lumina
 	NameInfo Lexer::parseNameInfo()
 	{
 		NameInfo result;
-		result.value = expect(Lumina::Token::Type::Identifier, "Expected variable name.");
+		result.value = expect(Lumina::Token::Type::Identifier, "Expected variable name." + DEBUG_INFORMATION);
 		return result;
 	}
 
@@ -45,9 +45,9 @@ namespace Lumina
 
 		while (currentToken().type == Lumina::Token::Type::OpenBracket)
 		{
-			expect(Lumina::Token::Type::OpenBracket, "Expected closing bracket '['.");
-			result.dims.push_back(expect(Lumina::Token::Type::Number, "Expected an array size token."));
-			expect(Lumina::Token::Type::CloseBracket, "Expected closing bracket ']'.");
+			expect(Lumina::Token::Type::OpenBracket, "Expected closing bracket '['." + DEBUG_INFORMATION);
+			result.dims.push_back(expect(Lumina::Token::Type::Number, "Expected an array size token." + DEBUG_INFORMATION));
+			expect(Lumina::Token::Type::CloseBracket, "Expected closing bracket ']'." + DEBUG_INFORMATION);
 		}
 
 		return result;
@@ -88,13 +88,13 @@ namespace Lumina
 	{
 		TextureInfo result;
 
-		expect(Lumina::Token::Type::Texture, "Expected 'Texture' token.");
+		expect(Lumina::Token::Type::Texture, "Expected 'Texture' token." + DEBUG_INFORMATION);
 
 		result.name = parseNameInfo();
 
 		result.arraySizes = parseArraySizeInfo();
 
-		expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after texture declaration.");
+		expect(Lumina::Token::Type::EndOfSentence, "Expected ';' after texture declaration." + DEBUG_INFORMATION);
 
 		return result;
 	}
@@ -107,17 +107,17 @@ namespace Lumina
 
 		result.name = parseNameInfo();
 
-		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters.");
+		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters." + DEBUG_INFORMATION);
 		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
 		{
 			if (result.parameters.size() != 0)
 			{
-				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters.");
+				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters." + DEBUG_INFORMATION);
 			}
 
 			result.parameters.push_back(parseParameterInfo());
 		}
-		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
+		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters." + DEBUG_INFORMATION);
 
 		if (currentToken().type != Token::Type::EndOfSentence)
 		{
@@ -128,7 +128,7 @@ namespace Lumina
 		{
 			result.isPrototype = true;
 			result.body = SymbolBodyInfo();
-			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end function prototype.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end function prototype." + DEBUG_INFORMATION);
 		}
 
 		return result;
@@ -138,18 +138,18 @@ namespace Lumina
 	{
 		ConstructorInfo result;
 
-		expect(Lumina::Token::Type::Identifier, "Expected a valid identifier.");
-		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters.");
+		expect(Lumina::Token::Type::Identifier, "Expected a valid identifier." + DEBUG_INFORMATION);
+		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for function parameters." + DEBUG_INFORMATION);
 		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
 		{
 			if (result.parameters.size() != 0)
 			{
-				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters.");
+				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters." + DEBUG_INFORMATION);
 			}
 
 			result.parameters.push_back(parseParameterInfo());
 		}
-		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
+		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters." + DEBUG_INFORMATION);
 
 		if (currentToken().type != Token::Type::EndOfSentence)
 		{
@@ -160,7 +160,7 @@ namespace Lumina
 		{
 			result.isPrototype = true;
 			result.body = SymbolBodyInfo();
-			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end constructor prototype.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end constructor prototype." + DEBUG_INFORMATION);
 		}
 
 		return result;
@@ -173,20 +173,20 @@ namespace Lumina
 
 		result.returnType.type = parseTypeInfo();
 
-		expect(Lumina::Token::Type::OperatorKeyword, "Expected 'operator' keyword.");
-		result.opeType = expect(Lumina::Token::Type::Operator, "Expected an operator token.");
+		expect(Lumina::Token::Type::OperatorKeyword, "Expected 'operator' keyword." + DEBUG_INFORMATION);
+		result.opeType = expect({ Lumina::Token::Type::Operator, Lumina::Token::Type::Assignator }, "Expected an operator token." + DEBUG_INFORMATION);
 
-		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for operator parameters.");
+		expect(Lumina::Token::Type::OpenParenthesis, "Expected '(' for operator parameters." + DEBUG_INFORMATION);
 		while (currentToken().type != Lumina::Token::Type::CloseParenthesis)
 		{
 			if (result.parameters.size() != 0)
 			{
-				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters.");
+				expect(Lumina::Token::Type::Comma, "Expected ',' between function parameters." + DEBUG_INFORMATION);
 			}
 
 			result.parameters.push_back(parseParameterInfo());
 		}
-		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters.");
+		expect(Lumina::Token::Type::CloseParenthesis, "Expected closing parenthesis ')' for parameters." + DEBUG_INFORMATION);
 
 		if (currentToken().type != Token::Type::EndOfSentence)
 		{
@@ -197,7 +197,7 @@ namespace Lumina
 		{
 			result.isPrototype = true;
 			result.body = SymbolBodyInfo();
-			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end operator prototype.");
+			expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end operator prototype." + DEBUG_INFORMATION);
 		}
 
 		return result;
@@ -281,8 +281,10 @@ namespace Lumina
 		offset++;
 
 		const Lumina::Token& operatorDesignationToken = tokenAtOffset(offset);
-		if (operatorDesignationToken.type != Lumina::Token::Type::Operator)
+		if (operatorDesignationToken.type != Lumina::Token::Type::Operator &&
+			operatorDesignationToken.type != Lumina::Token::Type::Assignator)
 		{
+
 			return false;
 		}
 		offset++;
@@ -331,7 +333,7 @@ namespace Lumina
 		expect({Lumina::Token::Type::StructureBlock, Lumina::Token::Type:: AttributeBlock, Lumina::Token::Type::ConstantBlock}, "Expected a valid block definition token.");
 		result.name = parseNameInfo();
 		
-		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start block.");
+		expect(Lumina::Token::Type::OpenCurlyBracket, "Expected '{' to start block." + DEBUG_INFORMATION);
 		while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
 		{
 			try
@@ -354,11 +356,11 @@ namespace Lumina
 				else if (describeVariableInfo())
 				{
 					result.attributes.push_back(parseVariableInfo());
-					expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end block attribute definition.");
+					expect(Lumina::Token::Type::EndOfSentence, "Expected ';' to end block attribute definition." + DEBUG_INFORMATION);
 				}
 				else
 				{
-					throw TokenBasedError("Unexpected token inside block.", currentToken());
+					throw TokenBasedError("Unexpected token inside block." + DEBUG_INFORMATION, currentToken());
 				}
 			}
 			catch (TokenBasedError& e)
@@ -559,10 +561,13 @@ namespace Lumina
 		_index = 0;
 		_product = Product();
 
-		_emptyToken = Lumina::Token();
-		_emptyToken.context.originFile = p_tokens.at(0).context.originFile;
+		if (p_tokens.size() != 0)
+		{
+			_emptyToken = Lumina::Token();
+			_emptyToken.context.originFile = p_tokens.at(0).context.originFile;
 
-		_product.value = parseShaderInfo();
+			_product.value = parseShaderInfo();
+		}
 
 		return _product;
 	}

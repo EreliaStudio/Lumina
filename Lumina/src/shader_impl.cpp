@@ -30,7 +30,7 @@ namespace Lumina
     std::ostream& operator<<(std::ostream& os, const ParameterImpl& parameter)
     {
         os << parameter.type.name;
-        printArraySizes(os, parameter.arraySize);
+        printArraySizes(os, parameter.arraySizes);
         os << " " << (parameter.isReference ? "in " : "") << parameter.name;
         return os;
     }
@@ -39,7 +39,7 @@ namespace Lumina
     std::ostream& operator<<(std::ostream& os, const ExpressionTypeImpl& exprType)
     {
         os << exprType.type.name;
-        printArraySizes(os, exprType.arraySize);
+        printArraySizes(os, exprType.arraySizes);
         return os;
     }
 
@@ -98,7 +98,7 @@ namespace Lumina
     std::ostream& operator<<(std::ostream& os, const PipelinePassImpl& pipelineFlow)
     {
         os << "{\n";
-        os << pipelineFlow.body << "\n";
+        os << pipelineFlow.body;
         os << "}";
         return os;
     }

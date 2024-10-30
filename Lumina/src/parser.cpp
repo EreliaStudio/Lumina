@@ -25,7 +25,7 @@ namespace Lumina
 		std::string namespaceName = "";
 		for (const auto& ns : _nspaces)
 		{
-			namespaceName += ns + "::";
+			namespaceName += ns + "_";
 
 			it = _availibleTypes.find({ namespaceName + p_relativeName, {} });
 			if (it != _availibleTypes.end())
@@ -43,7 +43,7 @@ namespace Lumina
 
 		for (const auto& ns : p_typeInfo.nspace)
 		{
-			fullTypeName += ns.content;
+			fullTypeName += ns.content + "_";
 		}
 		fullTypeName += p_typeInfo.value.content;
 
@@ -88,7 +88,7 @@ namespace Lumina
 		ExpressionTypeImpl result;
 
 		result.type = _getType(p_expressionTypeInfo.type);
-		result.arraySize = _composeArraySizes(p_expressionTypeInfo.arraySizes);
+		result.arraySizes = _composeArraySizes(p_expressionTypeInfo.arraySizes);
 
 		return (result);
 	}
@@ -100,14 +100,7 @@ namespace Lumina
 		result.type = _getType(p_parameterInfo.type);
 		result.isReference = p_parameterInfo.isReference;
 		result.name = _composeName(p_parameterInfo.name);
-		result.arraySize = _composeArraySizes(p_parameterInfo.arraySizes);
-
-		return (result);
-	}
-
-	SymbolBodyImpl Parser::_composeSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo)
-	{
-		SymbolBodyImpl result;
+		result.arraySizes = _composeArraySizes(p_parameterInfo.arraySizes);
 
 		return (result);
 	}
@@ -125,6 +118,7 @@ namespace Lumina
 
 	FunctionImpl Parser::_composeFunction(const FunctionInfo& p_functionInfo)
 	{
+		std::set<VariableImpl> functionVariables = _globalVariables;
 		FunctionImpl result;
 
 		result.returnType = _composeExpressionTypeImpl(p_functionInfo.returnType);
@@ -132,9 +126,13 @@ namespace Lumina
 		result.isPrototype = p_functionInfo.isPrototype;
 		for (const auto& param : p_functionInfo.parameters)
 		{
-			result.parameters.push_back(_composeParameter(param));
+			ParameterImpl paramImpl = _composeParameter(param);
+
+			result.parameters.push_back(paramImpl);
+			functionVariables.insert({.type = paramImpl.type, .name = paramImpl.name, .arraySizes = paramImpl.arraySizes});
 		}
-		result.body = _composeSymbolBody(p_functionInfo.body);
+
+		result.body = _composeSymbolBody(functionVariables, p_functionInfo.body);
 
 		return (result);
 	}
@@ -160,6 +158,7 @@ namespace Lumina
 
 		for (const auto& constructorInfo : p_blockInfo.constructorInfos)
 		{
+			std::set<VariableImpl> constructionVariables = _globalVariables;
 			FunctionImpl newConstructor = {
 				.isPrototype = constructorInfo.isPrototype,
 				.returnType = {originator, {}},
@@ -169,12 +168,21 @@ namespace Lumina
 			};
 
 			newConstructor.parameters.push_back({ originator, true, "this", {} });
+			constructionVariables.insert({ originator, "this", {} });
+
 			for (const auto& param : constructorInfo.parameters)
 			{
-				newConstructor.parameters.push_back(_composeParameter(param));
+				ParameterImpl paramImpl = _composeParameter(param);
+
+				newConstructor.parameters.push_back(paramImpl);
+				constructionVariables.insert({
+					.type = paramImpl.type,
+					.name = paramImpl.name,
+					.arraySizes = paramImpl.arraySizes
+					});
 			}
 
-			newConstructor.body = _composeSymbolBody(constructorInfo.body);
+			newConstructor.body = _composeSymbolBody(constructionVariables, constructorInfo.body);
 
 			result.push_back(newConstructor);
 		}
@@ -192,6 +200,7 @@ namespace Lumina
 		{
 			for (const auto& methodInfo : methodInfoArray)
 			{
+				std::set<VariableImpl> methodVariables = _globalVariables;
 				FunctionImpl newMethod = {
 					.isPrototype = methodInfo.isPrototype,
 					.returnType = {originator, {}},
@@ -201,12 +210,21 @@ namespace Lumina
 				};
 
 				newMethod.parameters.push_back({ originator, true, "this", {} });
+				methodVariables.insert({ originator, "this", {} });
+
 				for (const auto& param : methodInfo.parameters)
 				{
-					newMethod.parameters.push_back(_composeParameter(param));
+					ParameterImpl paramImpl = _composeParameter(param);
+
+					newMethod.parameters.push_back(paramImpl);
+					methodVariables.insert({
+						.type = paramImpl.type,
+						.name = paramImpl.name,
+						.arraySizes = paramImpl.arraySizes
+						});
 				}
 
-				newMethod.body = _composeSymbolBody(methodInfo.body);
+				newMethod.body = _composeSymbolBody(methodVariables, methodInfo.body);
 
 				result.push_back(newMethod);
 			}
@@ -217,33 +235,7 @@ namespace Lumina
 	
 	std::vector<FunctionImpl> Parser::_composeOperators(const BlockInfo& p_blockInfo)
 	{
-		const static std::map<std::string, std::string> _operatorNames = {
-			{"+", "Plus"},
-			{"-", "Minus"},
-			{"*", "Multiply"},
-			{"/", "Divide"},
-			{"%", "Modulo"},
-
-			{"=", "Assign"},
-			{"+=", "AddAssign"},
-			{"-=", "SubtractAssign"},
-			{"*=", "MultiplyAssign"},
-			{"/=", "DivideAssign"},
-			{"%=", "ModuloAssign"},
-
-			{"==", "Equal"},
-			{"!=", "NEqual"},
-			{"<", "Less"},
-			{">", "Greater"},
-			{"<=", "LEqual"},
-			{">=", "GEqual"},
-
-			{"&&", "And"},
-			{"||", "Or"},
-
-			{"++", "Increment"},
-			{"--", "Decrement"},
-		};
+		
 		std::vector<FunctionImpl> result;
 
 		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
@@ -252,6 +244,7 @@ namespace Lumina
 		{
 			for (const auto& operatorInfo : operatorInfoArray)
 			{
+				std::set<VariableImpl> operatorVariables = _globalVariables;
 				FunctionImpl newOperator = {
 					.isPrototype = operatorInfo.isPrototype,
 					.returnType = {originator, {}},
@@ -261,12 +254,21 @@ namespace Lumina
 				};
 
 				newOperator.parameters.push_back({ originator, true, "this", {} });
+				operatorVariables.insert({ originator, "this", {} });
+
 				for (const auto& param : operatorInfo.parameters)
 				{
-					newOperator.parameters.push_back(_composeParameter(param));
+					ParameterImpl paramImpl = _composeParameter(param);
+
+					newOperator.parameters.push_back(paramImpl);
+					operatorVariables.insert({
+						.type = paramImpl.type,
+						.name = paramImpl.name,
+						.arraySizes = paramImpl.arraySizes
+						});
 				}
 
-				newOperator.body = _composeSymbolBody(operatorInfo.body);
+				newOperator.body = _composeSymbolBody(operatorVariables, operatorInfo.body);
 
 				result.push_back(newOperator);
 			}
@@ -280,7 +282,19 @@ namespace Lumina
 		PipelinePassImpl result;
 
 		result.isDefined = true;
-		result.body = _composeSymbolBody(p_pipelinePassInfo.body);
+
+		std::set<VariableImpl> variables = _globalVariables;
+
+		if (p_pipelinePassInfo.name == "VertexPass")
+		{
+			variables.insert(_vertexVariables.begin(), _vertexVariables.end());
+		}
+		else
+		{
+			variables.insert(_fragmentVariables.begin(), _fragmentVariables.end());
+		}
+
+		result.body = _composeSymbolBody(variables, p_pipelinePassInfo.body);
 
 		return (result);
 	}
@@ -291,6 +305,8 @@ namespace Lumina
 
 		if (p_pipelineFlow.input == "Input" && p_pipelineFlow.output == "VertexPass")
 		{
+			_vertexVariables.insert(pipelineVariable);
+
 			_product.value.vertexPipelineFlows.push_back({
 					.direction = PipelineFlowImpl::Direction::In,
 					.variable = pipelineVariable
@@ -298,6 +314,9 @@ namespace Lumina
 		}
 		else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
 		{
+			_vertexVariables.insert(pipelineVariable);
+			_fragmentVariables.insert(pipelineVariable);
+
 			_product.value.vertexPipelineFlows.push_back({
 					.direction = PipelineFlowImpl::Direction::Out,
 					.variable = pipelineVariable
@@ -310,6 +329,8 @@ namespace Lumina
 		}
 		else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
 		{
+			_fragmentVariables.insert(pipelineVariable);
+
 			_product.value.fragmentPipelineFlows.push_back({
 					.direction = PipelineFlowImpl::Direction::Out,
 					.variable = pipelineVariable
@@ -358,14 +379,23 @@ namespace Lumina
 		std::vector<FunctionImpl> methods = _composeMethods(p_blockInfo);
 		std::vector<FunctionImpl> operators = _composeOperators(p_blockInfo);
 
-		_availibleFunctions.insert(_product.value.functions.end(), constructors.begin(), constructors.end());
-		_product.value.functions.insert(_product.value.functions.end(), constructors.begin(), constructors.end());
+		for (const auto& function : constructors)
+		{
+			_availibleFunctions.insert(function);
+			_product.value.functions.push_back(function);
+		}
 
-		_availibleFunctions.insert(_product.value.functions.end(), methods.begin(), methods.end());
-		_product.value.functions.insert(_product.value.functions.end(), methods.begin(), methods.end());
+		for (const auto& function : methods)
+		{
+			_availibleFunctions.insert(function);
+			_product.value.functions.push_back(function);
+		}
 
-		_availibleFunctions.insert(_product.value.functions.end(), operators.begin(), operators.end());
-		_product.value.functions.insert(_product.value.functions.end(), operators.begin(), operators.end());
+		for (const auto& function : operators)
+		{
+			_availibleFunctions.insert(function);
+			_product.value.functions.push_back(function);
+		}
 	}
 	
 	void Parser::_parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination)
@@ -405,7 +435,7 @@ namespace Lumina
 			{
 				FunctionImpl newFunction = _composeFunction(function);
 
-				_availibleFunctions.push_back(newFunction);
+				_availibleFunctions.insert(newFunction);
 				_product.value.functions.push_back(newFunction);
 			}
 			catch (const Lumina::TokenBasedError& e)
@@ -471,6 +501,8 @@ namespace Lumina
 			}
 		}
 
+		_parseNamespace(p_input.anonymNamespace);
+
 		for (const auto& pipelinePass : p_input.pipelinePasses)
 		{
 			try
@@ -482,7 +514,5 @@ namespace Lumina
 				_product.errors.push_back(e);
 			}
 		}
-
-		_parseNamespace(p_input.anonymNamespace);
 	}
 }

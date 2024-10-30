@@ -18,6 +18,8 @@ namespace Lumina
 		using Product = Lumina::Expected<Output>;
 
 	private:
+		const static std::map<std::string, std::string> _operatorNames;
+
 		Parser();
 
 		Product _product;
@@ -25,7 +27,11 @@ namespace Lumina
 		std::vector<std::string> _nspaces;
 
 		std::set<TypeImpl> _availibleTypes;
-		std::vector<FunctionImpl> _availibleFunctions;
+		std::set<FunctionImpl> _availibleFunctions;
+
+		std::set<VariableImpl> _vertexVariables;
+		std::set<VariableImpl> _fragmentVariables;
+		std::set<VariableImpl> _globalVariables;
 
 		TypeImpl _getType(const std::string& p_relativeName);
 		TypeImpl _getType(const TypeInfo& p_typeName);
@@ -39,7 +45,31 @@ namespace Lumina
 		ExpressionTypeImpl _composeExpressionTypeImpl(const ExpressionTypeInfo& p_expressionTypeInfo);
 
 		ParameterImpl _composeParameter(const ParameterInfo& p_parameterInfo);
-		SymbolBodyImpl _composeSymbolBody(const SymbolBodyInfo& p_symbolBodyInfo);
+
+        std::string _composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo);
+        std::string _composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& stmt);
+        std::string _composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& stmt);
+        std::string _composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& stmt);
+        std::string _composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& stmt);
+        std::string _composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& stmt);
+        std::string _composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& stmt);
+        std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& stmt);
+        std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& stmt);
+        std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
+		std::string _composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& e);
+		std::string _composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& e);
+        std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);
+        std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e);
+        std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e);
+		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e);
+		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
+		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
+
+
+        std::string _findOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& lhs, const std::string& op, const std::string& rhs, bool isAssignment = false);
+        std::string _findUnaryOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const std::string& operand);
+        std::string _findPostfixOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const std::string& operand);
+		SymbolBodyImpl _composeSymbolBody(std::set<VariableImpl>& p_variables, const SymbolBodyInfo& p_symbolBodyInfo);
 
 		VariableImpl _composeTexture(const TextureInfo& p_textureInfo);
 

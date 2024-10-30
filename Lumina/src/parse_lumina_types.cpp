@@ -5,6 +5,34 @@
 
 namespace Lumina
 {
+	const std::map<std::string, std::string> Parser::_operatorNames = {
+			{"+", "Plus"},
+			{"-", "Minus"},
+			{"*", "Multiply"},
+			{"/", "Divide"},
+			{"%", "Modulo"},
+
+			{"=", "Assign"},
+			{"+=", "AddAssign"},
+			{"-=", "SubtractAssign"},
+			{"*=", "MultiplyAssign"},
+			{"/=", "DivideAssign"},
+			{"%=", "ModuloAssign"},
+
+			{"==", "Equal"},
+			{"!=", "NEqual"},
+			{"<", "Less"},
+			{">", "Greater"},
+			{"<=", "LEqual"},
+			{">=", "GEqual"},
+
+			{"&&", "And"},
+			{"||", "Or"},
+
+			{"++", "Increment"},
+			{"--", "Decrement"},
+	};
+
 	Parser::Parser()
 	{
 		_availibleTypes = {
@@ -70,6 +98,7 @@ namespace Lumina
 					{{ "uint", {}}, "w", {} }
 				}
 			},
+			{ "Color", {}},
 			{ "Texture", {} }
 		};
 
@@ -88,7 +117,7 @@ namespace Lumina
 
 		_parse(lexerProduct.value);
 
-		_availibleFunctions.push_back({
+		FunctionImpl getPixelFunction = {
 				.isPrototype = false,
 				.returnType = {_getType("Color"), {}},
 				.name = "Texture_getPixel",
@@ -97,87 +126,230 @@ namespace Lumina
 						.type = _getType("Texture"),
 						.isReference = false,
 						.name = "this",
-						.arraySize = {}
+						.arraySizes = {}
 					},
 					{
 						.type = _getType("Vector2"),
 						.isReference = false,
 						.name = "UVs",
-						.arraySize = {}
+						.arraySizes = {}
 					}
 				},
 				.body = {
-					.code = "return (texture(this, UVs));"
+					.code = "return (texture(this, UVs));\n"
 				}
-			});
+		};
 
-		_availibleFunctions.push_back({
+		_availibleFunctions.insert(getPixelFunction);
+		_product.value.functions.push_back(getPixelFunction);
+		
+		std::vector<std::tuple<std::string, std::string, std::string, std::string>> operatorToAdd = {
+			{"Matrix2x2", "*", "Vector2", "Vector2"},
+			{"Matrix3x3", "*", "Vector3", "Vector3"},
+			{"Matrix4x4", "*", "Vector4", "Vector4"}
+		};
+
+		std::vector<std::tuple<std::string, std::string>> unaryOperatorsToAdd = {
+			{"int", "++"},
+			{"int", "--"},
+			{"int", "+"},
+			{"int", "-"},
+			{"uint", "++"},
+			{"uint", "--"},
+			{"float", "+"},
+			{"float", "-"},
+		};
+
+		struct Descriptor
+		{
+			std::string name;
+			std::vector<std::string> targets;
+		};
+
+		using Operation = std::tuple<std::vector<Descriptor>, std::vector<std::string>, std::vector<std::string>>;
+
+		std::vector<Operation> operations = {
+			{
+				{ {"void", {"void"}} },
+				{},
+				{}
+			},
+			{
+				{ {"bool", {"bool"}} },
+				{"=", "==", "!="},
+				{}
+			},
+			{
+				{
+					{"float",{
+					 "float", "uint", "int"
+					}},
+					{"Vector2", {
+					 "Vector2", "Vector2UInt", "Vector2Int"
+					}},
+					{"Vector3", {
+					 "Vector3", "Vector3UInt", "Vector3Int"
+					}},
+					{"Vector4", {
+					 "Vector4", "Vector4UInt", "Vector4Int"
+					}}
+				},
+				{"=", "==", "!=", "+", "-", "*", "/", "+=", "-=", "*=", "/="},
+				{"-", "+"}
+			},
+			{
+				{
+					{"uint",{
+					 "float", "uint", "int"
+					}},
+					{"Vector2UInt", {
+					 "Vector2", "Vector2UInt", "Vector2Int"
+					}},
+					{"Vector3UInt", {
+					 "Vector3", "Vector3UInt", "Vector3Int"
+					}},
+					{"Vector4UInt", {
+					 "Vector4", "Vector4UInt", "Vector4Int"
+					}}
+				},
+				{"=", "==", "!=", "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%="},
+				{}
+			},
+			{
+				{
+					{"int",{
+					 "float", "uint", "int"
+					}},
+					{"Vector2Int", {
+					 "Vector2", "Vector2UInt", "Vector2Int"
+					}},
+					{"Vector3Int", {
+					 "Vector3", "Vector3UInt", "Vector3Int"
+					}},
+					{"Vector4Int", {
+					 "Vector4", "Vector4UInt", "Vector4Int"
+					}}
+				},
+				{"=", "==", "!=", "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%="},
+				{"-", "+"}
+			},
+			{
+				{
+					{"Matrix2x2", {
+					 "Matrix2x2"
+					}},
+					{"Matrix3x3", {
+					 "Matrix3x3"
+					}},
+					{"Matrix4x4", {
+					 "Matrix4x4"
+					}}
+				},
+				{"=", "+", "*", "+=", "*="},
+				{}
+			}
+		};
+
+		for (const auto& operation : operations)
+		{
+			const auto& descriptors = std::get<0>(operation);
+			const auto& operators = std::get<1>(operation);
+
+			for (const auto& descriptor : descriptors)
+			{
+				const std::string& lhsType = descriptor.name;
+				const auto& targets = descriptor.targets;
+
+				for (const auto& targetType : targets)
+				{
+					for (const auto& op : operators)
+					{
+						std::string returnType;
+
+						if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=")
+						{
+							returnType = "bool";
+						}
+						else if (op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%=")
+						{
+							returnType = lhsType;
+						}
+						else if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%")
+						{
+							if (lhsType == targetType)
+							{
+								returnType = lhsType;
+							}
+							else if ((lhsType == "float" && (targetType == "int" || targetType == "uint")) ||
+								((lhsType == "int" || lhsType == "uint") && targetType == "float"))
+							{
+								returnType = "float";
+							}
+							else
+							{
+								returnType = lhsType;
+							}
+						}
+						else
+						{
+							returnType = lhsType;
+						}
+
+						operatorToAdd.push_back(std::make_tuple(lhsType, op, targetType, returnType));
+					}
+				}
+			}
+		}
+
+		
+		for (const auto& tuple : operatorToAdd)
+		{
+			FunctionImpl toAdd = {
 				.isPrototype = false,
-				.returnType = {_getType("Vector4"), {}},
-				.name = "Matrix4x4_OperatorMultiplyVector4",
+				.returnType = {_getType(std::get<3>(tuple)), {}},
+				.name = std::get<0>(tuple) + "_Operator" + _operatorNames.at(std::get<1>(tuple)),
 				.parameters = {
 					{
-						.type = _getType("Matrix4x4"),
+						.type = _getType(std::get<0>(tuple)),
 						.isReference = false,
-						.name = "matrix",
-						.arraySize = {}
+						.name = "lhs",
+						.arraySizes = {}
 					},
 					{
-						.type = _getType("Vector4"),
+						.type = _getType(std::get<2>(tuple)),
 						.isReference = false,
-						.name = "vector",
-						.arraySize = {}
+						.name = "rhs",
+						.arraySizes = {}
 					}
 				},
 				.body = {
 					.code = ""
 				}
-			});
+			};
 
-		_availibleFunctions.push_back({
+			_availibleFunctions.insert(toAdd);
+		}
+
+		for (const auto& tuple : unaryOperatorsToAdd)
+		{
+			FunctionImpl toAdd = {
 				.isPrototype = false,
-				.returnType = {_getType("Matrix4x4"), {}},
-				.name = "Matrix4x4_OperatorMultiplyMatrix4x4",
+				.returnType = {_getType(std::get<0>(tuple)), {}},
+				.name = std::get<0>(tuple) + "_Operator" + _operatorNames.at(std::get<1>(tuple)),
 				.parameters = {
 					{
-						.type = _getType("Matrix4x4"),
-						.isReference = false,
-						.name = "matrix",
-						.arraySize = {}
-					},
-					{
-						.type = _getType("Matrix4x4"),
-						.isReference = false,
-						.name = "other",
-						.arraySize = {}
+						.type = _getType(std::get<0>(tuple)),
+						.isReference = true, // Usually true for unary operators that modify the operand
+						.name = "value",
+						.arraySizes = {}
 					}
 				},
 				.body = {
 					.code = ""
 				}
-			});
+			};
 
-		_availibleFunctions.push_back({
-				.isPrototype = false,
-				.returnType = {_getType("Matrix4x4"), {}},
-				.name = "Matrix4x4_OperatorPlusMatrix4x4",
-				.parameters = {
-					{
-						.type = _getType("Matrix4x4"),
-						.isReference = false,
-						.name = "matrix",
-						.arraySize = {}
-					},
-					{
-						.type = _getType("Matrix4x4"),
-						.isReference = false,
-						.name = "other",
-						.arraySize = {}
-					}
-				},
-				.body = {
-					.code = ""
-				}
-			});
+			_availibleFunctions.insert(toAdd);
+		}
 	}
 }
