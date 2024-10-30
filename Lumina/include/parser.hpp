@@ -56,6 +56,18 @@ namespace Lumina
         std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& stmt);
         std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& stmt);
         std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
+		
+		ExpressionTypeImpl _deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& expr);
+		ExpressionTypeImpl _deduceVariableExpressionType(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& expr);
+		ExpressionTypeImpl _deduceBinaryExpressionType(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);
+		ExpressionTypeImpl _deduceUnaryExpressionType(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e);
+		ExpressionTypeImpl _deducePostfixExpressionType(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e);
+		ExpressionTypeImpl _deduceFunctionCallExpressionType(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e);
+		ExpressionTypeImpl _deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e);
+		ExpressionTypeImpl _deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
+		ExpressionTypeImpl _deduceArrayAccessExpressionType(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
+		ExpressionTypeImpl _deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
+
 		std::string _composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& e);
 		std::string _composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& e);
         std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);

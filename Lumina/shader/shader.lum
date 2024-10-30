@@ -7,8 +7,14 @@ Texture myTexture;
 struct Test
 {
 Vector2 value;
-void method()
+void method(int newValue)
 {
+	value = newValue;
+}
+
+int getValue()
+{
+	return (value);
 }
 };
 
@@ -17,17 +23,20 @@ struct Test2
 	Test test;
 };
 
+struct Test3
+{
+	Test2 test;
+};
+
 // Define the vertex shader stage
 VertexPass()
 {
 	pixelPosition = Vector4(modelPosition, 0, 1);
 	fragmentUVs = modelUVs;
 
-	Test2 value;
+	Test3 value;
 
-	value.test.method();
-
-	value.test.value = Vector2(15, 15);
+	value.test.test.method(value.test.test.getValue());
 }
 
 // Define the fragment shader stage
