@@ -11,7 +11,7 @@ namespace Lumina
 	struct TypeImpl
 	{
 		std::string name = "UnknownTypeName";
-		std::vector<VariableImpl> attributes;
+		std::set<VariableImpl> attributes;
 
 		bool operator < (const TypeImpl& p_other) const
 		{

@@ -69,6 +69,8 @@ namespace Lumina
             code += " = " + _composeExpression(p_variables, *stmt.initializer);
         }
 
+        p_variables.insert(var);
+
         return code;
     }
 
@@ -188,19 +190,29 @@ namespace Lumina
         return ("");
     }
     
-    std::string Parser::_composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& e)
+    std::string Parser::_composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& expr)
     {
-        return e.value.content;
+        return expr.value.content;
     }
 
-    std::string Parser::_composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& e)
+    std::string Parser::_composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& expr)
     {
         std::string name;
-        for (const auto& ns : e.namespacePath)
+        for (const auto& ns : expr.namespacePath)
         {
-            name += ns.content + "::";
+            name += ns.content + "_";
         }
-        name += e.variableName.content;
+        name += expr.variableName.content;
+
+        if (p_variables.contains({ {}, name, {} }) == false)
+        {
+            if (p_variables.contains({ {}, "this", {} }) == false ||
+                (p_variables.find({ {}, "this", {} }))->type.attributes.contains({ {}, name, {} }) == false)
+            {
+                throw (TokenBasedError("No variable named [" + name + "] declared in this scope", expr.variableName));
+            }
+            return ("this." + name);
+        }
         return name;
     }
 

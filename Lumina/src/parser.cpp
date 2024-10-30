@@ -144,7 +144,7 @@ namespace Lumina
 		result.name = _composeName(p_blockInfo.name);
 		for (const auto& element : p_blockInfo.attributes)
 		{
-			result.attributes.push_back(_composeVariable(element));
+			result.attributes.insert(_composeVariable(element));
 		}
 
 		return (result);
