@@ -82,9 +82,8 @@ namespace Lumina
 
 
 		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
-		std::string _findOperatorFunctionName(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
-        std::string _findUnaryOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
-        std::string _findPostfixOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
+		FunctionImpl _findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
+		FunctionImpl _findPostfixOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
 		SymbolBodyImpl _composeSymbolBody(std::set<VariableImpl>& p_variables, const SymbolBodyInfo& p_symbolBodyInfo);
 
 		VariableImpl _composeTexture(const TextureInfo& p_textureInfo);

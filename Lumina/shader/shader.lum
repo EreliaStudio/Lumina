@@ -9,6 +9,10 @@ VertexPass()
 {
 	pixelPosition = Vector4(modelPosition, 0, 1);
 	fragmentUVs = modelUVs + Vector2(5, 5);
+
+	int value = 45.5f;
+	value++;
+	fragmentUVs++;
 }
 
 // Define the fragment shader stage

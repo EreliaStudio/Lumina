@@ -80,7 +80,7 @@ namespace Lumina
 
         if (operatorFunction.name.size() == 0)
         {
-            throw TokenBasedError("No operator [" + op + "] for type [" + leftExpressionType.type.name + "] with parameter [" + rightExpressionType.type.name + "]" + DEBUG_INFORMATION, e.operatorToken);
+            throw TokenBasedError("No operator [" + op + "] for type [" + leftExpressionType.type.name + "] with parameter [" + rightExpressionType.type.name + "]" + DEBUG_INFORMATION, getExpressionToken(e));
         }
 
         if (operatorFunction.body.code == "")
@@ -94,37 +94,56 @@ namespace Lumina
     std::string Parser::_composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e)
     {
         ExpressionTypeImpl operandExpressionType = _deduceExpressionType(p_variables, *e.operand);
+
         std::string operand = _composeExpression(p_variables, *e.operand);
         std::string op = e.operatorToken.content;
 
-        std::string operatorFunctionName = _findUnaryOperatorFunctionName(p_variables, op, operandExpressionType);
+        if (operandExpressionType.arraySizes.size() != 0)
+        {
+            throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + "] object" + DEBUG_INFORMATION, getExpressionToken(*e.operand));
+        }
 
-        if (!operatorFunctionName.empty())
+        FunctionImpl operatorFunction = _findUnaryOperatorFunction(p_variables, op, operandExpressionType);
+
+        if (operatorFunction.name.size() == 0)
         {
-            return operatorFunctionName + "(" + operand + ")";
+            throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + "]" + DEBUG_INFORMATION, getExpressionToken(e));
         }
-        else
+
+        if (operatorFunction.body.code == "")
         {
-            return "(" + op + operand + ")";
+            return (op + operand);
         }
+
+        return operatorFunction.name + "(" + operand + ")";
     }
 
     std::string Parser::_composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e)
     {
+
         ExpressionTypeImpl operandExpressionType = _deduceExpressionType(p_variables, *e.operand);
+
         std::string operand = _composeExpression(p_variables, *e.operand);
         std::string op = e.operatorToken.content;
 
-        std::string operatorFunctionName = _findPostfixOperatorFunctionName(p_variables, op, operandExpressionType);
+        if (operandExpressionType.arraySizes.size() != 0)
+        {
+            throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + "] object" + DEBUG_INFORMATION, getExpressionToken(*e.operand));
+        }
 
-        if (!operatorFunctionName.empty())
+        FunctionImpl operatorFunction = _findPostfixOperatorFunction(p_variables, op, operandExpressionType);
+
+        if (operatorFunction.name.size() == 0)
         {
-            return operatorFunctionName + "(" + operand + ")";
+            throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + "]" + DEBUG_INFORMATION, getExpressionToken(e));
         }
-        else
+
+        if (operatorFunction.body.code == "")
         {
-            return "(" + operand + op + ")";
+            return (operand + op);
         }
+
+        return operatorFunction.name + "(" + operand + ")";
     }
 
     std::string Parser::_composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e)

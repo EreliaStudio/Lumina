@@ -87,10 +87,10 @@ namespace Lumina
         std::string value = _composeExpression(p_variables, *stmt.value);
         std::string op = stmt.operatorToken.content;
 
-        std::string operatorFunctionName = _findOperatorFunctionName(p_variables, targetExpressionType, op, valueExpressionType, true);
-        if (!operatorFunctionName.empty())
+        FunctionImpl operatorFunction = _findOperatorFunction(p_variables, targetExpressionType, op, valueExpressionType, true);
+        if (!operatorFunction.name.empty())
         {
-            return operatorFunctionName + "(" + target + ", " + value + ")";
+            return operatorFunction.name + "(" + target + ", " + value + ")";
         }
         else
         {
@@ -192,43 +192,30 @@ namespace Lumina
         return FunctionImpl();
     }
 
-    // Helper functions to find operator function names
-    std::string Parser::_findOperatorFunctionName(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment)
+    FunctionImpl Parser::_findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand)
     {
-        return _findOperatorFunction(p_variables, lhs, op, rhs, isAssignment).name;
-    }
+        std::string operatorName = _operatorNames.find(op)->second;
 
-    std::string Parser::_findUnaryOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand)
-    {
-        // Get the operator name from the operator token
-        auto it = _operatorNames.find(op);
-        if (it == _operatorNames.end())
-            return "";
-
-        std::string operatorName = it->second;
-
-        // Construct the function name
         std::string functionName = operand.type.name + "_Operator" + operatorName;
 
-        // Search for the function in _availibleFunctions
         FunctionImpl searchFunction;
         searchFunction.name = functionName;
+        searchFunction.parameters.push_back({
+                .type = operand.type,
+                .arraySizes = operand.arraySizes
+            });
 
         auto funcIt = _availibleFunctions.find(searchFunction);
         if (funcIt != _availibleFunctions.end())
         {
-            // Check if the function has a non-empty body
-            if (!funcIt->body.code.empty())
-            {
-                return functionName;
-            }
+            return (*funcIt);
         }
 
-        return "";
+        return FunctionImpl();
     }
-
-    std::string Parser::_findPostfixOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand)
+    
+    FunctionImpl Parser::_findPostfixOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand)
     {
-        return _findUnaryOperatorFunctionName(p_variables, op, operand);
+        return _findUnaryOperatorFunction(p_variables, op, operand);
     }
 }
