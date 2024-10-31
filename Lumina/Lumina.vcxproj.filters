@@ -61,7 +61,6 @@
   <ItemGroup>
     <None Include="shader\test.lum" />
     <None Include="shader\shader.lum" />
-    <None Include="predefined_header\lumina_header.lum" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\token.hpp">

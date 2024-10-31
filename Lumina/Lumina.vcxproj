@@ -163,7 +163,6 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="predefined_header\lumina_header.lum" />
     <None Include="shader\shader.lum" />
     <None Include="shader\test.lum" />
   </ItemGroup>

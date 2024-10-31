@@ -290,21 +290,6 @@ namespace Lumina
 			}
 		}
 
-		std::vector<Lumina::Token> predefinedTokens = Lumina::Tokenizer::tokenize("predefined_header/lumina_header.lum");
-
-		Lexer::Product lexerProduct = Lexer::lex(predefinedTokens);
-
-		if (lexerProduct.errors.size() != 0)
-		{
-			for (const auto& error : lexerProduct.errors)
-			{
-				_product.errors.push_back(error);
-			}
-			return;
-		}
-
-		_parse(lexerProduct.value);
-
 		FunctionImpl getPixelFunction = {
 				.isPrototype = false,
 				.returnType = {_getType("Color"), {}},
@@ -543,5 +528,246 @@ namespace Lumina
 
 		_vertexVariables.insert({ _getType("Vector4"),  "pixelPosition", {} });
 		_fragmentVariables.insert({ _getType("Color"),  "pixelColor", {} });
+
+		struct MethodDescriptor {
+			std::string methodName;
+			std::string glslFunction;
+			std::string returnType;
+			std::vector<std::string> parameterTypes; // Parameter types excluding 'this'
+		};
+
+		// Map of type name to list of methods
+		std::map<std::string, std::vector<MethodDescriptor>> methodsPerType = {
+			{ "Vector2", {
+				{ "length", "length", "float", {} },
+				{ "normalize", "normalize", "Vector2", {} },
+				{ "dot", "dot", "float", { "Vector2" } },
+				{ "abs", "abs", "Vector2", {} },
+				{ "floor", "floor", "Vector2", {} },
+				{ "ceil", "ceil", "Vector2", {} },
+				{ "mod", "mod", "Vector2", { "float" } },
+				{ "min", "min", "Vector2", { "Vector2" } },
+				{ "max", "max", "Vector2", { "Vector2" } },
+				{ "clamp", "clamp", "Vector2", { "Vector2", "Vector2" } },
+				{ "step", "step", "Vector2", { "Vector2" } },
+				{ "smoothstep", "smoothstep", "Vector2", { "Vector2", "Vector2" } },
+				{ "pow", "pow", "Vector2", { "Vector2" } },
+				{ "exp", "exp", "Vector2", {} },
+				{ "log", "log", "Vector2", {} },
+				{ "exp2", "exp2", "Vector2", {} },
+				{ "log2", "log2", "Vector2", {} },
+				{ "sqrt", "sqrt", "Vector2", {} },
+				{ "inversesqrt", "inversesqrt", "Vector2", {} },
+				{ "sin", "sin", "Vector2", {} },
+				{ "cos", "cos", "Vector2", {} },
+				{ "tan", "tan", "Vector2", {} },
+				{ "asin", "asin", "Vector2", {} },
+				{ "acos", "acos", "Vector2", {} },
+				{ "atan", "atan", "Vector2", {} },
+				{ "lerp", "mix", "Vector2", { "Vector2", "float" } }
+			}},
+			{ "Vector3", {
+				{ "length", "length", "float", {} },
+				{ "normalize", "normalize", "Vector3", {} },
+				{ "dot", "dot", "float", { "Vector3" } },
+				{ "cross", "cross", "Vector3", { "Vector3" } },
+				{ "abs", "abs", "Vector3", {} },
+				{ "floor", "floor", "Vector3", {} },
+				{ "ceil", "ceil", "Vector3", {} },
+				{ "mod", "mod", "Vector3", { "float" } },
+				{ "min", "min", "Vector3", { "Vector3" } },
+				{ "max", "max", "Vector3", { "Vector3" } },
+				{ "clamp", "clamp", "Vector3", { "Vector3", "Vector3" } },
+				{ "step", "step", "Vector3", { "Vector3" } },
+				{ "smoothstep", "smoothstep", "Vector3", { "Vector3", "Vector3" } },
+				{ "pow", "pow", "Vector3", { "Vector3" } },
+				{ "exp", "exp", "Vector3", {} },
+				{ "log", "log", "Vector3", {} },
+				{ "exp2", "exp2", "Vector3", {} },
+				{ "log2", "log2", "Vector3", {} },
+				{ "sqrt", "sqrt", "Vector3", {} },
+				{ "inversesqrt", "inversesqrt", "Vector3", {} },
+				{ "sin", "sin", "Vector3", {} },
+				{ "cos", "cos", "Vector3", {} },
+				{ "tan", "tan", "Vector3", {} },
+				{ "asin", "asin", "Vector3", {} },
+				{ "acos", "acos", "Vector3", {} },
+				{ "atan", "atan", "Vector3", {} },
+				{ "lerp", "mix", "Vector3", { "Vector3", "float" } }
+			}},
+			{ "Vector4", {
+				{ "length", "length", "float", {} },
+				{ "normalize", "normalize", "Vector4", {} },
+				{ "dot", "dot", "float", { "Vector4" } },
+				{ "abs", "abs", "Vector4", {} },
+				{ "floor", "floor", "Vector4", {} },
+				{ "ceil", "ceil", "Vector4", {} },
+				{ "mod", "mod", "Vector4", { "float" } },
+				{ "min", "min", "Vector4", { "Vector4" } },
+				{ "max", "max", "Vector4", { "Vector4" } },
+				{ "clamp", "clamp", "Vector4", { "Vector4", "Vector4" } },
+				{ "step", "step", "Vector4", { "Vector4" } },
+				{ "smoothstep", "smoothstep", "Vector4", { "Vector4", "Vector4" } },
+				{ "pow", "pow", "Vector4", { "Vector4" } },
+				{ "exp", "exp", "Vector4", {} },
+				{ "log", "log", "Vector4", {} },
+				{ "exp2", "exp2", "Vector4", {} },
+				{ "log2", "log2", "Vector4", {} },
+				{ "sqrt", "sqrt", "Vector4", {} },
+				{ "inversesqrt", "inversesqrt", "Vector4", {} },
+				{ "sin", "sin", "Vector4", {} },
+				{ "cos", "cos", "Vector4", {} },
+				{ "tan", "tan", "Vector4", {} },
+				{ "asin", "asin", "Vector4", {} },
+				{ "acos", "acos", "Vector4", {} },
+				{ "atan", "atan", "Vector4", {} },
+				{ "lerp", "mix", "Vector4", { "Vector4", "float" } }
+			}}
+		};
+
+		for (const auto& typeMethodsPair : methodsPerType) {
+			const std::string& typeName = typeMethodsPair.first;
+			const std::vector<MethodDescriptor>& methods = typeMethodsPair.second;
+
+			for (const auto& method : methods) {
+				// Determine return type
+				ExpressionTypeImpl returnType = { _getType(method.returnType), {} };
+
+				// Create the method function
+				FunctionImpl methodFunction;
+				methodFunction.isPrototype = false;
+				methodFunction.returnType = returnType;
+				methodFunction.name = typeName + "_" + method.methodName;
+
+				// Parameters: 'this' and any additional parameters
+				methodFunction.parameters.push_back({
+					.type = _getType(typeName),
+					.isReference = false,
+					.name = "this",
+					.arraySizes = {}
+					});
+
+				// Add additional parameters
+				for (const auto& paramTypeName : method.parameterTypes) {
+					ExpressionTypeImpl paramType = { _getType(paramTypeName), {} };
+					methodFunction.parameters.push_back({
+						.type = paramType.type,
+						.isReference = false,
+						.name = "param" + std::to_string(methodFunction.parameters.size()),
+						.arraySizes = {}
+						});
+				}
+
+				// Build the method body
+				std::string args = "this";
+				for (size_t i = 1; i < methodFunction.parameters.size(); ++i) {
+					args += ", " + methodFunction.parameters[i].name;
+				}
+				methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");";
+
+				// Insert the method into available functions
+				_availibleFunctions.insert(methodFunction);
+
+				// Optionally, add the method to the product's functions
+				_product.value.functions.push_back(methodFunction);
+			}
+		}
+
+		struct FunctionDescriptor {
+			std::string functionName;                      // Name of the function in your language
+			std::string glslFunction;                      // Corresponding GLSL function
+			ExpressionTypeImpl returnType;                 // Return type of the function
+			std::vector<ExpressionTypeImpl> parameterTypes; // Parameter types
+		};
+
+		// Create a map of functions per type
+		std::map<std::string, std::vector<FunctionDescriptor>> functionsPerType = {
+			// Functions for float type
+			{ "float", {
+				// Trigonometric Functions
+				{ "sin", "sin", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "cos", "cos", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "tan", "tan", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "asin", "asin", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "acos", "acos", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "atan", "atan", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				// Mathematical Functions
+				{ "min", "min", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
+				{ "max", "max", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
+				{ "clamp", "clamp", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
+				{ "lerp", "mix", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
+				// Exponential Functions
+				{ "pow", "pow", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
+				{ "exp", "exp", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "log", "log", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "exp2", "exp2", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "log2", "log2", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "sqrt", "sqrt", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "inversesqrt", "inversesqrt", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				// Other Functions
+				{ "abs", "abs", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "mod", "mod", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
+				{ "floor", "floor", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "ceil", "ceil", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "fract", "fract", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "sign", "sign", { _getType("float"), {} }, { { _getType("float"), {} } } }
+			}},
+			// Functions for int type
+			{ "int", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} } } },
+				{ "max", "max", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} } } },
+				{ "clamp", "clamp", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} }, { _getType("int"), {} } } },
+				{ "abs", "abs", { _getType("int"), {} }, { { _getType("int"), {} } } },
+				{ "mod", "mod", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} } } },
+				// Other Functions
+				{ "sign", "sign", { _getType("int"), {} }, { { _getType("int"), {} } } }
+				// Note: Trigonometric functions are not applicable to int
+				// 'lerp' can be defined if desired
+			}},
+			// Functions for uint type
+			{ "uint", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } },
+				{ "max", "max", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } },
+				{ "clamp", "clamp", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} }, { _getType("uint"), {} } } },
+				{ "abs", "abs", { _getType("uint"), {} }, { { _getType("uint"), {} } } },
+				{ "mod", "mod", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } }
+				// Note: 'sign' may not be meaningful for uint
+				// Trigonometric functions are not applicable to uint
+			}},
+		};
+
+		// Function to add functions from the map to _availibleFunctions
+		for (const auto& [typeName, functions] : functionsPerType) {
+			for (const auto& func : functions) {
+				FunctionImpl functionImpl;
+				functionImpl.isPrototype = false;
+				functionImpl.returnType = func.returnType;
+				functionImpl.name = func.functionName;
+				functionImpl.parameters.clear();
+
+				// Add parameters
+				for (size_t i = 0; i < func.parameterTypes.size(); ++i) {
+					functionImpl.parameters.push_back({
+						.type = func.parameterTypes[i].type,
+						.isReference = false,
+						.name = "param" + std::to_string(i),
+						.arraySizes = {}
+						});
+				}
+
+				// Build the function body
+				std::string args;
+				for (size_t i = 0; i < functionImpl.parameters.size(); ++i) {
+					if (i > 0) args += ", ";
+					args += functionImpl.parameters[i].name;
+				}
+				functionImpl.body.code = "";
+
+				// Insert the function into available functions
+				_availibleFunctions.insert(functionImpl);
+			}
+		}
 	}
 }
