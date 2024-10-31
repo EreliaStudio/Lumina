@@ -152,6 +152,8 @@
     <ClCompile Include="src\lexer_symbol_body.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser.cpp" />
+    <ClCompile Include="src\parser_compose_expression.cpp" />
+    <ClCompile Include="src\parser_deduce_types.cpp" />
     <ClCompile Include="src\parser_symbol_body.cpp" />
     <ClCompile Include="src\parse_lumina_types.cpp" />
     <ClCompile Include="src\printer.cpp" />

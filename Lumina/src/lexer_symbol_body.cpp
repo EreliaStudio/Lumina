@@ -498,7 +498,9 @@ namespace Lumina
                 {
                     expect(Lumina::Token::Type::Comma, "Expected ',' between arguments." + DEBUG_INFORMATION);
                 }
-                funcCallExpr.arguments.push_back(parseExpressionInfo());
+                std::shared_ptr<ExpressionInfo> expression = parseExpressionInfo();
+
+                funcCallExpr.arguments.push_back(expression);
             }
 
             expect(Lumina::Token::Type::CloseParenthesis, "Expected ')' after function arguments." + DEBUG_INFORMATION);

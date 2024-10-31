@@ -57,6 +57,8 @@ namespace Lumina
         std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& stmt);
         std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
 		
+        Token getExpressionToken(const ExpressionInfo& expr);
+
 		ExpressionTypeImpl _deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& expr);
 		ExpressionTypeImpl _deduceVariableExpressionType(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& expr);
 		ExpressionTypeImpl _deduceBinaryExpressionType(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);
@@ -79,9 +81,10 @@ namespace Lumina
 		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
 
 
-        std::string _findOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& lhs, const std::string& op, const std::string& rhs, bool isAssignment = false);
-        std::string _findUnaryOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const std::string& operand);
-        std::string _findPostfixOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const std::string& operand);
+		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
+		std::string _findOperatorFunctionName(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
+        std::string _findUnaryOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
+        std::string _findPostfixOperatorFunctionName(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
 		SymbolBodyImpl _composeSymbolBody(std::set<VariableImpl>& p_variables, const SymbolBodyInfo& p_symbolBodyInfo);
 
 		VariableImpl _composeTexture(const TextureInfo& p_textureInfo);

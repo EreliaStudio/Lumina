@@ -164,7 +164,7 @@ namespace Lumina
 			FunctionImpl newConstructor = {
 				.isPrototype = constructorInfo.isPrototype,
 				.returnType = {originator, {}},
-				.name = originator.name + "_Constructor",
+				.name = originator.name,
 				.parameters = {},
 				.body = {}
 			};

@@ -17,6 +17,16 @@ namespace Lumina
 		{
 			return (name < p_other.name);
 		}
+
+		bool operator == (const TypeImpl& p_other) const
+		{
+			return (name == p_other.name);
+		}
+
+		bool operator != (const TypeImpl& p_other) const
+		{
+			return (!(this->operator==(p_other)));
+		}
 	};
 
 	struct VariableImpl
@@ -47,6 +57,27 @@ namespace Lumina
 	{
 		TypeImpl type;
 		std::vector<size_t> arraySizes;
+
+		bool operator == (const ExpressionTypeImpl& p_other) const
+		{
+			if (type != p_other.type)
+				return (false);
+
+			if (arraySizes.size() != p_other.arraySizes.size())
+				return (false);
+
+			for (size_t i = 0; i < arraySizes.size(); i++)
+			{
+				if (arraySizes[i] != p_other.arraySizes[i])
+					return (false);
+			}
+			return (true);
+		}
+
+		bool operator != (const ExpressionTypeImpl& p_other) const
+		{
+			return (!(this->operator==(p_other)));
+		}
 	};
 
 	struct ParameterImpl

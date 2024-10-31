@@ -108,6 +108,9 @@ namespace Lumina
 	}
 	void Token::append(const Lumina::Token& p_toAdd)
 	{
+		if (type == Type::Unknow)
+			type = p_toAdd.type;
+
 		if (context.inputLine == "")
 		{
 			content = p_toAdd.content;
@@ -147,7 +150,6 @@ namespace Lumina
 
 		ss << "In file [" << p_token.context.originFile.string() << "] : " << std::endl;
 
-		// Check for invalid token (type == Unknow)
 		if (p_token.type == Token::Type::Unknow)
 		{
 			ss << "    " << p_message << std::endl;
