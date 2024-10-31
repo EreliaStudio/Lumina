@@ -240,8 +240,6 @@ namespace Lumina
                 .arraySizes = lhs.arraySizes
             });
 
-        std::cout << "Looking for function " << functionName << " accepting type " << rhs.type.name << std::endl;
-
         for (const auto& convertedType : _convertionTable[rhs.type])
         {
             FunctionImpl toTest = searchFunction;
@@ -250,13 +248,6 @@ namespace Lumina
                     .type = convertedType,
                     .arraySizes = rhs.arraySizes
                 });
-
-            std::cout << "Searching for function " << toTest.name << "(";
-            for (const auto& parameter : toTest.parameters)
-            {
-                std::cout << "[" << parameter.type.name << "]";
-            }
-            std::cout << ")" << std::endl;
 
             auto funcIt = _availibleFunctions.find(toTest);
             if (funcIt != _availibleFunctions.end())

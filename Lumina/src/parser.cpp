@@ -202,11 +202,19 @@ namespace Lumina
 		{
 			for (const auto& methodInfo : methodInfoArray)
 			{
+				std::string methodName = _composeName(methodInfo.name);
+
+				if (originator.attributes.size() != 0 &&
+					originator.attributes.find({ methodName, {} }) != originator.attributes.end())
+				{
+					throw TokenBasedError("The method [" + methodName + "] conflict with one attribute name.", methodInfo.name.value);
+				}
+
 				std::set<VariableImpl> methodVariables = _globalVariables;
 				FunctionImpl newMethod = {
 					.isPrototype = methodInfo.isPrototype,
 					.returnType = {originator, {}},
-					.name = originator.name + "_" + _composeName(methodInfo.name),
+					.name = originator.name + "_" + methodName,
 					.parameters = {},
 					.body = {}
 				};

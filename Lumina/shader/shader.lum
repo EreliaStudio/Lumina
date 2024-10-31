@@ -4,13 +4,23 @@ VertexPass -> FragmentPass : Vector2 fragmentUVs;
 
 Texture myTexture;
 
+struct Incrementor
+{
+	void increment()
+	{
+	
+	}
+};
+
 struct Test
 {
+	Incrementor incremente;
 	int value;
 
 	void increment(int offset)
 	{
 		value += offset;
+		incremente.increment();
 	}
 };
 
