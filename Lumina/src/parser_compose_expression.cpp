@@ -120,7 +120,6 @@ namespace Lumina
 
     std::string Parser::_composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e)
     {
-
         ExpressionTypeImpl operandExpressionType = _deduceExpressionType(p_variables, *e.operand);
 
         std::string operand = _composeExpression(p_variables, *e.operand);
@@ -151,77 +150,230 @@ namespace Lumina
         std::string name;
         for (const auto& ns : e.namespacePath)
         {
-            name += ns.content + "::";
+            name += ns.content + "_";
         }
         name += e.functionName.content;
 
-        std::vector<ParameterImpl> parameterTypes;
-
-        std::string args;
-        for (size_t i = 0; i < e.arguments.size(); ++i)
+        std::vector<ExpressionTypeImpl> argumentTypes;
+        std::vector<std::string> argumentCodes;
+        for (const auto& argExpr : e.arguments)
         {
-            ExpressionTypeImpl expressionType = _deduceExpressionType(p_variables, *e.arguments[i]);
+            ExpressionTypeImpl exprType = _deduceExpressionType(p_variables, *argExpr);
+            argumentTypes.push_back(exprType);
 
-            parameterTypes.push_back({
-                    .type = expressionType.type,
-                    .isReference = false,
-                    .name = "",
-                    .arraySizes = expressionType.arraySizes
-                });
-
-            args += _composeExpression(p_variables, *e.arguments[i]);
-            if (i < e.arguments.size() - 1)
-            {
-                args += ", ";
-            }
+            std::string argCode = _composeExpression(p_variables, *argExpr);
+            argumentCodes.push_back(argCode);
         }
 
-        FunctionImpl expectedFunction = {
-            .isPrototype = false,
-            .returnType = {},
-            .name = name,
-            .parameters = parameterTypes,
-            .body = {}
-        };
+        FunctionImpl* matchingFunction = _findFunctionWithConversions(name, argumentTypes);
 
-        if (_availibleFunctions.contains(expectedFunction) == false)
+        if (!matchingFunction)
         {
-            std::string parameterString = "";
-
-            for (const auto& parameter : parameterTypes)
+            std::string parameterString;
+            for (size_t i = 0; i < argumentTypes.size(); ++i)
             {
-                if (parameterString.size() != 0)
-                    parameterString += ", ";
-
-                parameterString += parameter.type.name;
-                for (const auto& size : parameter.arraySizes)
+                if (i > 0) parameterString += ", ";
+                parameterString += argumentTypes[i].type.name;
+                for (const auto& size : argumentTypes[i].arraySizes)
                 {
                     parameterString += "[" + std::to_string(size) + "]";
                 }
             }
 
-            throw TokenBasedError("No function [" + e.functionName.content + "] detected with following parameters [" + parameterString + "]" + DEBUG_INFORMATION, e.functionName);
+            throw TokenBasedError(
+                "No function [" + e.functionName.content + "] detected with parameters [" + parameterString + "]",
+                e.functionName
+            );
         }
 
-        return "(" + name + "(" + args + "))";
+        std::string args;
+        for (size_t i = 0; i < argumentCodes.size(); ++i)
+        {
+            const ExpressionTypeImpl& argType = argumentTypes[i];
+            const ParameterImpl& param = matchingFunction->parameters[i];
+
+            std::string argCode = argumentCodes[i];
+
+            if (argType.type.name != param.type.name)
+            {
+                argCode = "(" + param.type.name + ")(" + argCode + ")";
+            }
+
+            if (i > 0) args += ", ";
+            args += argCode;
+        }
+
+        return name + "(" + args + ")";
     }
 
+    FunctionImpl* Parser::_findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& argumentTypes)
+    {
+        // Create a FunctionImpl object representing the function we are searching for
+        FunctionImpl searchFunction;
+        searchFunction.name = name;
+        searchFunction.parameters.resize(argumentTypes.size());
+
+        for (size_t i = 0; i < argumentTypes.size(); ++i)
+        {
+            searchFunction.parameters[i].type = argumentTypes[i].type;
+            searchFunction.parameters[i].arraySizes = argumentTypes[i].arraySizes;
+            searchFunction.parameters[i].isReference = false; // Assuming isReference is not relevant here
+            searchFunction.parameters[i].name = ""; // Name is not relevant for matching
+        }
+
+        // Assuming _availibleFunctions is a std::set<FunctionImpl>
+        auto it = _availibleFunctions.find(searchFunction);
+        if (it != _availibleFunctions.end())
+        {
+            // Exact match found
+            return const_cast<FunctionImpl*>(&(*it));
+        }
+
+        // If no exact match, attempt to find a function with type conversions
+        FunctionImpl* bestMatch = nullptr;
+        int lowestConversionCost = INT_MAX;
+        bool ambiguous = false;
+
+        for (const auto& func : _availibleFunctions)
+        {
+            if (func.name != name)
+                continue; // Function name does not match
+
+            if (func.parameters.size() != argumentTypes.size())
+                continue; // Parameter count does not match
+
+            int totalConversionCost = 0;
+            bool match = true;
+
+            for (size_t i = 0; i < argumentTypes.size(); ++i)
+            {
+                const ExpressionTypeImpl& argType = argumentTypes[i];
+                const ParameterImpl& param = func.parameters[i];
+
+                if (argType.type == param.type && argType.arraySizes == param.arraySizes)
+                {
+                    // Exact type match, no conversion needed
+                    continue;
+                }
+                else
+                {
+                    // Check if a conversion is available from argType to param.type
+                    auto convIt = _convertionTable.find(argType.type);
+                    if (convIt != _convertionTable.end() && convIt->second.count(param.type) > 0)
+                    {
+                        // Conversion is allowed; increment conversion cost
+                        totalConversionCost += 1;
+                    }
+                    else
+                    {
+                        // No conversion available; this function is not a match
+                        match = false;
+                        break;
+                    }
+                }
+            }
+
+            if (match)
+            {
+                if (totalConversionCost < lowestConversionCost)
+                {
+                    bestMatch = const_cast<FunctionImpl*>(&func);
+                    lowestConversionCost = totalConversionCost;
+                    ambiguous = false;
+                }
+                else if (totalConversionCost == lowestConversionCost)
+                {
+                    // Ambiguous match found
+                    ambiguous = true;
+                }
+            }
+        }
+
+        if (ambiguous)
+        {
+            // Handle ambiguity (could throw an error or return nullptr)
+            return nullptr;
+        }
+
+        return bestMatch; // Returns the best matching function or nullptr if none found
+    }
     std::string Parser::_composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e)
     {
         std::string objectExpression = _composeExpression(p_variables, *e.object);
-
         ExpressionTypeImpl objectType = _deduceExpressionType(p_variables, *e.object);
+
         std::string methodName = objectType.type.name + "_" + e.name.content;
 
-        std::string parameters = objectExpression;
+        std::vector<ExpressionTypeImpl> argumentTypes;
+        std::vector<std::string> argumentExpressions;
 
-        for (size_t i = 0; i < e.arguments.size(); ++i)
+        argumentTypes.push_back(objectType);
+        argumentExpressions.push_back(objectExpression);
+
+        for (const auto& argExpr : e.arguments)
         {
-            std::string argExpression = _composeExpression(p_variables, *e.arguments[i]);
-            parameters += ", " + argExpression;
+            ExpressionTypeImpl argType = _deduceExpressionType(p_variables, *argExpr);
+            argumentTypes.push_back(argType);
+
+            std::string argExpression = _composeExpression(p_variables, *argExpr);
+            argumentExpressions.push_back(argExpression);
         }
 
-        return "(" + methodName + "(" + parameters + "))";
+        FunctionImpl* matchingMethod = _findFunctionWithConversions(methodName, argumentTypes);
+
+        if (!matchingMethod)
+        {
+            std::string parameterString;
+            for (size_t i = 1; i < argumentTypes.size(); ++i)
+            {
+                if (!parameterString.empty())
+                    parameterString += ", ";
+
+                parameterString += argumentTypes[i].type.name;
+                for (const auto& size : argumentTypes[i].arraySizes)
+                {
+                    parameterString += "[" + std::to_string(size) + "]";
+                }
+            }
+
+            Token errorToken = getExpressionToken(*e.object) + e.name + getExpressionToken(*e.arguments.front());
+
+            throw TokenBasedError(
+                "No method [" + e.name.content + "] for type [" + objectType.type.name + "] with parameters [" + parameterString + "]",
+                errorToken
+            );
+        }
+
+        std::string parameters;
+        for (size_t i = 0; i < argumentExpressions.size(); ++i)
+        {
+            const ExpressionTypeImpl& argType = argumentTypes[i];
+            const ParameterImpl& param = matchingMethod->parameters[i];
+            std::string argExpression = argumentExpressions[i];
+
+            if (argType.type != param.type)
+            {
+                if (_convertionTable[argType.type].contains(param.type) == true)
+                {
+                    argExpression = "(" + param.type.name + ")(" + argExpression + ")";
+                }
+                else
+                {
+                    Token errorToken = getExpressionToken(*e.object);
+                    throw TokenBasedError(
+                        "Cannot convert type [" + argType.type.name + "] to [" + param.type.name + "] for parameter " + std::to_string(i),
+                        errorToken
+                    );
+                }
+            }
+
+            if (i > 0)
+                parameters += ", ";
+
+            parameters += argExpression;
+        }
+
+        return methodName + "(" + parameters + ")";
     }
 
     std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e)

@@ -75,10 +75,73 @@ namespace Lumina
     ExpressionTypeImpl Parser::_deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& expr)
     {
         const Token& token = expr.value;
-        // Assuming Token has a 'type' member to identify the token type
+
         if (token.type == Token::Type::Number)
         {
-            return { _getType("float"), {} };
+            const std::string& content = token.content;
+            std::string numberContent = content;
+            bool isUnsigned = false;
+            bool isFloat = false;
+            bool isNegative = false;
+
+            // Check for 'u' or 'U' suffix for unsigned integers
+            if (!numberContent.empty() && (numberContent.back() == 'u' || numberContent.back() == 'U'))
+            {
+                isUnsigned = true;
+                numberContent.pop_back(); // Remove the 'u' suffix
+            }
+
+            // Check for 'f' or 'F' suffix for floats
+            if (!numberContent.empty() && (numberContent.back() == 'f' || numberContent.back() == 'F'))
+            {
+                isFloat = true;
+                numberContent.pop_back(); // Remove the 'f' suffix
+            }
+
+            // Check for negative sign at the beginning
+            if (!numberContent.empty() && numberContent.front() == '-')
+            {
+                isNegative = true;
+                numberContent.erase(0, 1); // Remove the '-' sign
+            }
+
+            // Check for decimal point or exponent for floats
+            if (numberContent.find('.') != std::string::npos || numberContent.find('e') != std::string::npos || numberContent.find('E') != std::string::npos)
+            {
+                isFloat = true;
+            }
+
+            // Now attempt to parse the number
+            try
+            {
+                if (isFloat)
+                {
+                    // Attempt to parse as float
+                    std::stof(numberContent); // Throws exception if invalid
+                    return { _getType("float"), {} };
+                }
+                else
+                {
+                    if (isUnsigned)
+                    {
+                        if (isNegative)
+                        {
+                            throw Lumina::TokenBasedError("Unsigned integer cannot be negative.", token);
+                        }
+                        std::stoul(numberContent); // Attempt to parse as unsigned long
+                        return { _getType("uint"), {} };
+                    }
+                    else
+                    {
+                        std::stol(numberContent); // Attempt to parse as long (signed integer)
+                        return { _getType("int"), {} };
+                    }
+                }
+            }
+            catch (const std::exception&)
+            {
+                throw Lumina::TokenBasedError("Invalid numeric literal.", token);
+            }
         }
         else
         {
@@ -194,7 +257,7 @@ namespace Lumina
                 bool match = true;
                 for (size_t i = 0; i < argTypes.size(); ++i)
                 {
-                    if (func.parameters[i].type.name != argTypes[i].type.name)
+                    if (_convertionTable[func.parameters[i].type].contains(argTypes[i].type) == false)
                     {
                         match = false;
                         break;
@@ -207,7 +270,7 @@ namespace Lumina
             }
         }
 
-        throw Lumina::TokenBasedError("Function not found or argument types do not match", e.functionName);
+        throw Lumina::TokenBasedError("Function not found or argument types do not match" + DEBUG_INFORMATION, e.functionName);
     }
 
     ExpressionTypeImpl Parser::_deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e)

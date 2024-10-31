@@ -40,34 +40,64 @@ namespace Lumina
 		std::string parseNumber(const std::string& code, size_t& index)
 		{
 			size_t start = index;
+			bool isFloatingPoint = false;
+			bool hasSign = false;
 
-			while (index < code.size() &&
-				(isDigit(code[index]) ||
-					code[index] == '.' ||
-					code[index] == '-' ||
-					code[index] == '+')
-				)
+			if (code[index] == '+' || code[index] == '-')
+			{
+				hasSign = true;
+				index++;
+			}
+
+			while (index < code.size() && isDigit(code[index]))
 			{
 				index++;
 			}
-			if (index < code.size() && (code[index] == 'e' || code[index] == 'E'))
+
+			if (index < code.size() && code[index] == '.')
 			{
+				isFloatingPoint = true;
 				index++;
-				if (code[index] == '+' || code[index] == '-')
-				{
-					index++;
-				}
+
 				while (index < code.size() && isDigit(code[index]))
 				{
 					index++;
 				}
 			}
-			if (index < code.size() && code[index] == 'f')
+
+			if (index < code.size() && (code[index] == 'e' || code[index] == 'E'))
 			{
+				isFloatingPoint = true;
+				index++;
+
+				if (index < code.size() && (code[index] == '+' || code[index] == '-'))
+				{
+					index++;
+				}
+
+				while (index < code.size() && isDigit(code[index]))
+				{
+					index++;
+				}
+			}
+
+			if (index < code.size() && (code[index] == 'f' || code[index] == 'F'))
+			{
+				isFloatingPoint = true;
 				index++;
 			}
+
+			if (!isFloatingPoint && !hasSign)
+			{
+				if (index < code.size() && (code[index] == 'u' || code[index] == 'U'))
+				{
+					index++;
+				}
+			}
+
 			return code.substr(start, index - start);
 		}
+
 
 		std::string parseStringLiteral(const std::string& code, size_t& index)
 		{

@@ -61,14 +61,75 @@ namespace Lumina
 
     std::string Parser::_composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& stmt)
     {
+        // Compose the variable (extract type and name)
         VariableImpl var = _composeVariable(stmt.variable);
+
+        // Start composing the declaration code
         std::string code = var.type.name + " " + var.name;
 
         if (stmt.initializer)
         {
-            code += " = " + _composeExpression(p_variables, *stmt.initializer);
+            // Deduce the type of the variable being declared
+            ExpressionTypeImpl variableType = { var.type, var.arraySizes };
+
+            // Deduce the type of the initializer expression
+            ExpressionTypeImpl initializerType = _deduceExpressionType(p_variables, *stmt.initializer);
+
+            // Check for type conversion
+            bool conversionAvailable = false;
+
+            if (variableType.type == initializerType.type && variableType.arraySizes == initializerType.arraySizes)
+            {
+                // Types are the same, no conversion needed
+                conversionAvailable = true;
+            }
+            else
+            {
+                // Check if a conversion is available from initializerType to variableType
+                auto convIt = _convertionTable.find(initializerType.type);
+                if (convIt != _convertionTable.end() && convIt->second.count(variableType.type) > 0)
+                {
+                    conversionAvailable = true;
+                }
+            }
+
+            // Compose the initializer expression
+            std::string initializerCode = _composeExpression(p_variables, *stmt.initializer);
+
+            if (conversionAvailable)
+            {
+                // Apply conversion if types are different
+                if (initializerType.type != variableType.type)
+                {
+                    initializerCode = "(" + variableType.type.name + ")(" + initializerCode + ")";
+                }
+                code += " = " + initializerCode;
+            }
+            else
+            {
+                // No conversion available, attempt to find operator overload
+                std::string op = "=";
+
+                FunctionImpl operatorFunction = _findOperatorFunction(p_variables, variableType, op, initializerType, true);
+
+                if (operatorFunction.name.size() != 0)
+                {
+                    // Use the operator function to perform the assignment
+                    code += " = " + operatorFunction.name + "(" + var.name + ", " + initializerCode + ")";
+                }
+                else
+                {
+                    // No operator function or conversion available, throw an error
+                    Token errorToken = getExpressionToken(*stmt.initializer);
+                    throw TokenBasedError(
+                        "Cannot assign type [" + initializerType.type.name + "] to variable of type [" + variableType.type.name + "]",
+                        errorToken
+                    );
+                }
+            }
         }
 
+        // Insert the variable into the set of variables
         p_variables.insert(var);
 
         return code;
@@ -178,15 +239,30 @@ namespace Lumina
                 .type = lhs.type,
                 .arraySizes = lhs.arraySizes
             });
-        searchFunction.parameters.push_back({
-                .type = rhs.type,
-                .arraySizes = rhs.arraySizes
-            });
 
-        auto funcIt = _availibleFunctions.find(searchFunction);
-        if (funcIt != _availibleFunctions.end())
+        std::cout << "Looking for function " << functionName << " accepting type " << rhs.type.name << std::endl;
+
+        for (const auto& convertedType : _convertionTable[rhs.type])
         {
-            return (*funcIt);
+            FunctionImpl toTest = searchFunction;
+
+            toTest.parameters.push_back({
+                    .type = convertedType,
+                    .arraySizes = rhs.arraySizes
+                });
+
+            std::cout << "Searching for function " << toTest.name << "(";
+            for (const auto& parameter : toTest.parameters)
+            {
+                std::cout << "[" << parameter.type.name << "]";
+            }
+            std::cout << ")" << std::endl;
+
+            auto funcIt = _availibleFunctions.find(toTest);
+            if (funcIt != _availibleFunctions.end())
+            {
+                return (*funcIt);
+            }
         }
 
         return FunctionImpl();

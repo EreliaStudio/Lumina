@@ -102,6 +102,194 @@ namespace Lumina
 			{ "Texture", {} }
 		};
 
+		_convertionTable = {
+			{
+				_getType("int"),
+				{_getType("int"), _getType("uint"), _getType("float")}
+			},
+			{
+				_getType("float"),
+				{_getType("float"), _getType("int"), _getType("uint")}
+			},
+			{
+				_getType("uint"),
+				{_getType("uint"), _getType("int"), _getType("float")}
+			},
+			{
+				_getType("Vector2"),
+				{_getType("Vector2"), _getType("Vector2Int"), _getType("Vector2UInt")}
+			},
+			{
+				_getType("Vector2Int"),
+				{_getType("Vector2Int"), _getType("Vector2"), _getType("Vector2UInt")}
+			},
+			{
+				_getType("Vector2UInt"),
+				{_getType("Vector2UInt"), _getType("Vector2Int"), _getType("Vector2")}
+			},
+			{
+				_getType("Vector3"),
+				{_getType("Vector3"), _getType("Vector3Int"), _getType("Vector3UInt")}
+			},
+			{
+				_getType("Vector3Int"),
+				{_getType("Vector3Int"), _getType("Vector3"), _getType("Vector3UInt")}
+			},
+			{
+				_getType("Vector3UInt"),
+				{_getType("Vector3UInt"), _getType("Vector3Int"), _getType("Vector3")}
+			},
+			{
+				_getType("Vector4"),
+				{_getType("Vector4"), _getType("Vector4Int"), _getType("Vector4UInt")}
+			},
+			{
+				_getType("Vector4Int"),
+				{_getType("Vector4Int"), _getType("Vector4"), _getType("Vector4UInt")}
+			},
+			{
+				_getType("Vector4UInt"),
+				{_getType("Vector4UInt"), _getType("Vector4Int"), _getType("Vector4")}
+			}
+		};
+
+		std::map<std::string, std::vector<std::vector<std::string>>> constructorDescriptors = {
+			{
+				"bool",
+				{
+					{},
+					{"int"},
+					{"bool"},
+				}
+			},
+			{
+				"int",
+				{
+					{},
+					{"int"},
+					{"uint"},
+					{"float"},
+				}
+			},
+			{
+				"uint",
+				{
+					{},
+					{"int"},
+					{"uint"},
+					{"float"},
+				}
+			},
+			{
+				"float",
+				{
+					{},
+					{"int"},
+					{"uint"},
+					{"float"},
+				}
+			},
+			{
+				"Vector2",
+				{
+					{},
+					{"float", "float"}
+				}
+			},
+			{
+				"Vector2Int",
+				{
+					{},
+					{"int", "int"}
+				}
+			},
+			{
+				"Vector2UInt",
+				{
+					{},
+					{"uint", "uint"}
+				}
+			},
+			{
+				"Vector3",
+				{
+					{},
+					{"float", "float", "float"},
+					{"Vector2", "float"}
+				}
+			},
+			{
+				"Vector3Int",
+				{
+					{},
+					{"int", "int", "int"},
+					{"Vector2Int", "int"}
+				}
+			},
+			{
+				"Vector3UInt",
+				{
+					{},
+					{"uint", "uint", "uint"},
+					{"Vector2UInt", "uint"}
+				}
+			},
+			{
+				"Vector4",
+				{
+					{},
+					{"float", "float", "float", "float"},
+					{"Vector2", "float", "float"},
+					{"Vector3", "float"}
+				}
+			},
+			{
+				"Vector4Int",
+				{
+					{},
+					{"int", "int", "int", "int"},
+					{"Vector2Int", "int", "int"},
+					{"Vector3Int", "int"}
+				}
+			},
+			{
+				"Vector4UInt",
+				{
+					{},
+					{"uint", "uint", "uint", "uint"},
+					{"Vector2UInt", "uint", "uint"},
+					{"Vector3UInt", "uint"}
+				}
+			}
+		};
+
+		for (const auto& [key, constructorArray] : constructorDescriptors)
+		{
+			for (const auto& parameterList : constructorArray)
+			{
+				FunctionImpl toAdd = {
+					.isPrototype = false,
+					.returnType = {_getType(key), {}},
+					.name = key,
+					.parameters = {
+					},
+					.body = {}
+				};
+
+				for (const auto& parameter : parameterList)
+				{
+					toAdd.parameters.push_back({
+							.type = _getType(parameter),
+							.isReference = false,
+							.name = "",
+							.arraySizes = {}
+						});
+				}
+
+				_availibleFunctions.insert(toAdd);
+			}
+		}
+
 		std::vector<Lumina::Token> predefinedTokens = Lumina::Tokenizer::tokenize("predefined_header/lumina_header.lum");
 
 		Lexer::Product lexerProduct = Lexer::lex(predefinedTokens);
@@ -351,143 +539,6 @@ namespace Lumina
 			};
 
 			_availibleFunctions.insert(toAdd);
-		}
-
-		std::map<std::string, std::vector<std::vector<std::string>>> constructorDescriptors = {
-			{
-				"bool",
-				{
-					{},
-					{"int"},
-					{"bool"},
-				}
-			},
-			{
-				"int",
-				{
-					{},
-					{"int"},
-					{"uint"},
-					{"float"},
-				}
-			},
-			{
-				"uint",
-				{
-					{},
-					{"int"},
-					{"uint"},
-					{"float"},
-				}
-			},
-			{
-				"float",
-				{
-					{},
-					{"int"},
-					{"uint"},
-					{"float"},
-				}
-			},
-			{
-				"Vector2",
-				{
-					{},
-					{"float", "float"}
-				}
-			},
-			{
-				"Vector2Int",
-				{
-					{},
-					{"int", "int"}
-				}
-			},
-			{
-				"Vector2UInt",
-				{
-					{},
-					{"uint", "uint"}
-				}
-			},
-			{
-				"Vector3",
-				{
-					{},
-					{"float", "float", "float"},
-					{"Vector2", "float"}
-				}
-			},
-			{
-				"Vector3Int",
-				{
-					{},
-					{"int", "int", "int"},
-					{"Vector2Int", "int"}
-				}
-			},
-			{
-				"Vector3UInt",
-				{
-					{},
-					{"uint", "uint", "uint"},
-					{"Vector2UInt", "uint"}
-				}
-			},
-			{
-				"Vector4",
-				{
-					{},
-					{"float", "float", "float", "float"},
-					{"Vector2", "float", "float"},
-					{"Vector3", "float"}
-				}
-			},
-			{
-				"Vector4Int",
-				{
-					{},
-					{"int", "int", "int", "int"},
-					{"Vector2Int", "int", "int"},
-					{"Vector3Int", "int"}
-				}
-			},
-			{
-				"Vector4UInt",
-				{
-					{},
-					{"uint", "uint", "uint", "uint"},
-					{"Vector2UInt", "uint", "uint"},
-					{"Vector3UInt", "uint"}
-				}
-			}
-		};
-
-		for (const auto& [key, constructorArray] : constructorDescriptors)
-		{
-			for (const auto& parameterList : constructorArray)
-			{
-				FunctionImpl toAdd = {
-					.isPrototype = false,
-					.returnType = {_getType(key), {}},
-					.name = key,
-					.parameters = {
-					},
-					.body = {}
-				};
-
-				for (const auto& parameter : parameterList)
-				{
-					toAdd.parameters.push_back({
-							.type = _getType(parameter),
-							.isReference = false,
-							.name = "",
-							.arraySizes = {}
-						});
-				}
-
-				_availibleFunctions.insert(toAdd);
-			}
 		}
 
 		_vertexVariables.insert({ _getType("Vector4"),  "pixelPosition", {} });

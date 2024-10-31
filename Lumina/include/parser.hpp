@@ -27,6 +27,7 @@ namespace Lumina
 		std::vector<std::string> _nspaces;
 
 		std::set<TypeImpl> _availibleTypes;
+		std::map<TypeImpl, std::set<TypeImpl>> _convertionTable;
 		std::set<FunctionImpl> _availibleFunctions;
 
 		std::set<VariableImpl> _vertexVariables;
@@ -80,7 +81,7 @@ namespace Lumina
 		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
 		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
 
-
+		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& argumentTypes);
 		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
 		FunctionImpl _findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
 		FunctionImpl _findPostfixOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);

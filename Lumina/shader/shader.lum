@@ -4,15 +4,23 @@ VertexPass -> FragmentPass : Vector2 fragmentUVs;
 
 Texture myTexture;
 
+struct Test
+{
+	int value;
+
+	void increment(int offset)
+	{
+		value += offset;
+	}
+};
+
 // Define the vertex shader stage
 VertexPass()
 {
-	pixelPosition = Vector4(modelPosition, 0, 1);
-	fragmentUVs = modelUVs + Vector2(5, 5);
+	uint value = 15;
+	Test test;
 
-	int value = 45.5f;
-	value++;
-	fragmentUVs++;
+	test.increment(value);
 }
 
 // Define the fragment shader stage

@@ -375,6 +375,7 @@ namespace Lumina
 		TypeImpl newType = _composeTypeImpl(p_blockInfo);
 
 		_availibleTypes.insert(newType);
+		_convertionTable[newType] = {_getType(newType.name)};
 		p_destination.push_back(newType);
 
 		std::vector<FunctionImpl> constructors = _composeConstructors(p_blockInfo);
