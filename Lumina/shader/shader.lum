@@ -1,40 +1,113 @@
-Input -> VertexPass : Vector2 modelPosition;
-Input -> VertexPass : Vector2 modelUVs;
-VertexPass -> FragmentPass : Vector2 fragmentUVs;
+// Define the pipeline flow
+Input -> VertexPass: Vector3 vertexPosition;
+Input -> VertexPass: Vector3 vertexNormal;
+Input -> VertexPass: Vector2 vertexUV;
+VertexPass -> FragmentPass: Vector3 fragPosition;
+VertexPass -> FragmentPass: Vector3 fragNormal;
+VertexPass -> FragmentPass: Vector2 fragUV;
 
-Texture myTexture;
-
-struct Incrementor
+// Define custom structures
+struct Material
 {
-	void increment()
-	{
-	
-	}
+    Vector3 diffuseColor;
+    Vector3 specularColor;
+    float shininess;
 };
 
-struct Test
-{
-	Incrementor incremente;
-	int value;
+// Define a texture
+Texture diffuseTexture;
 
-	void increment(int offset)
-	{
-		value += offset;
-		incremente.increment();
-	}
+// Define attribute blocks
+AttributeBlock modelAttributes
+{
+    Matrix4x4 modelMatrix;
+    Matrix4x4 normalMatrix;
 };
+
+// Define constant blocks
+ConstantBlock lightingConstants
+{
+    Vector3 lightPosition;
+    Vector3 lightColor;
+    float ambientIntensity;
+};
+
+// Create namespaces
+namespace Lighting
+{
+    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor)
+    {
+        float diff = max(normal.dot(lightDir), 0.0);
+        return diff * lightColor;
+    }
+
+    Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor)
+    {
+        Vector3 reflectDir = -lightDir.reflect(normal);
+        float spec = pow(max(viewDir.dot(reflectDir), 0.0), shininess);
+        return spec * lightColor;
+    }
+}
+
+/*
+Pipeline Description:
+This pipeline is designed to render a 3D object by processing its vertex data and applying lighting calculations.
+
+Vertex Shader (VertexPass):
+- Transforms the input vertex positions using a model matrix to position the object correctly in the world space.
+- Transforms the normals using the normal matrix for accurate lighting calculations.
+- Passes UV coordinates, transformed positions, and normals to the fragment shader.
+
+Fragment Shader (FragmentPass):
+- Performs lighting calculations using ambient, diffuse, and specular components.
+- Combines these lighting components with a texture sampled from the UV coordinates.
+- Discards fragments where the texture's alpha value is zero.
+- Sets the final pixel color based on the combined lighting and texture information.
+
+The vertex and fragment shaders work together to accurately render the 3D object with realistic lighting and texturing.
+*/
 
 // Define the vertex shader stage
 VertexPass()
 {
-	uint value = 15;
-	Test test;
+    Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
+    fragPosition = worldPosition.xyz;
+    fragNormal = mat3(modelAttributes.normalMatrix) * vertexNormal;
+    fragUV = vertexUV;
 
-	test.increment(value);
+    Vector4 clipSpacePosition = worldPosition;
+    pixelPosition = clipSpacePosition;
 }
 
 // Define the fragment shader stage
 FragmentPass()
 {
-	pixelColor = myTexture.getPixel(fragmentUVs);
+    // Error handling example
+    if (lightingConstants.ambientIntensity < 0.0 || lightingConstants.ambientIntensity > 1.0)
+    {
+        raiseException("Ambient intensity must be between 0 and 1. Current value: %d", lightingConstants.ambientIntensity);
+    }
+
+    Vector3 normal = fragNormal.normalize();
+    Vector3 lightDir = (lightingConstants.lightPosition - fragPosition).normalize();
+    Vector3 viewDir = -fragPosition.normalize();
+
+    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor;
+
+    Vector3 diffuse = Lighting::calculateDiffuse(normal, lightDir, lightingConstants.lightColor);
+
+    Material material;
+    Vector3 specular = Lighting::calculateSpecular(normal, lightDir, viewDir, material.shininess, lightingConstants.lightColor);
+
+    Vector3 finalColor = ambient + diffuse * material.diffuseColor + specular * material.specularColor;
+
+    Vector4 textureColor = diffuseTexture.getPixel(fragUV);
+    finalColor *= textureColor.rgb;
+
+    if (textureColor.a == 0)
+    {
+        discard;
+    }
+
+    pixelColor = Vector4(finalColor, textureColor.a);
 }

@@ -248,7 +248,9 @@ namespace Lumina
 	{
 		std::string operatorName = _operatorNames.find(p_op)->second;
 
-		std::string functionName = p_operand.type.name + "_Operator" + operatorName;
+		std::string functionName = p_operand.type.name + "_UnaryOperator" + operatorName;
+
+		std::cout << "FunctionName : " << functionName << std::endl;
 
 		FunctionImpl searchFunction;
 		searchFunction.name = functionName;

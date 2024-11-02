@@ -101,8 +101,8 @@ namespace Lumina
 
 		void _parsePipelineFlow(const PipelineFlowInfo& p_pipelineFlow);
 		void _parsePipelinePass(const PipelinePassInfo& p_pipelinePass);
-		void _parseBlockInfo(const BlockInfo& p_blockInfo, std::vector<TypeImpl>& p_destination);
-		void _parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination);
+		void _parseBlockInfo(const BlockInfo& p_blockInfo, std::vector<TypeImpl>& p_destination, bool p_needInstanciation);
+		void _parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination, bool p_needInstanciation);
 		void _parseTextures(const std::vector<TextureInfo>& p_textureInfos);
 		void _parseFunctions(const std::vector<FunctionInfo>& p_functionInfos);
 		void _parseFunctionMap(const std::map<std::string, std::vector<FunctionInfo>>& p_functionInfosMap);

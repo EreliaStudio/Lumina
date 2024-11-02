@@ -358,13 +358,13 @@ namespace Lumina
 					 "float", "uint", "int"
 					}},
 					{"Vector2", {
-					 "Vector2", "Vector2UInt", "Vector2Int"
+					 "Vector2", "Vector2UInt", "Vector2Int", "float"
 					}},
 					{"Vector3", {
-					 "Vector3", "Vector3UInt", "Vector3Int"
+					 "Vector3", "Vector3UInt", "Vector3Int", "float"
 					}},
 					{"Vector4", {
-					 "Vector4", "Vector4UInt", "Vector4Int"
+					 "Vector4", "Vector4UInt", "Vector4Int", "float"
 					}}
 				},
 				{"=", "==", "!=", "+", "-", "*", "/", "+=", "-=", "*=", "/="},
@@ -376,13 +376,13 @@ namespace Lumina
 					 "float", "uint", "int"
 					}},
 					{"Vector2UInt", {
-					 "Vector2", "Vector2UInt", "Vector2Int"
+					 "Vector2", "Vector2UInt", "Vector2Int", "uint"
 					}},
 					{"Vector3UInt", {
-					 "Vector3", "Vector3UInt", "Vector3Int"
+					 "Vector3", "Vector3UInt", "Vector3Int", "uint"
 					}},
 					{"Vector4UInt", {
-					 "Vector4", "Vector4UInt", "Vector4Int"
+					 "Vector4", "Vector4UInt", "Vector4Int", "uint"
 					}}
 				},
 				{"=", "==", "!=", "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%="},
@@ -394,13 +394,13 @@ namespace Lumina
 					 "float", "uint", "int"
 					}},
 					{"Vector2Int", {
-					 "Vector2", "Vector2UInt", "Vector2Int"
+					 "Vector2", "Vector2UInt", "Vector2Int", "int"
 					}},
 					{"Vector3Int", {
-					 "Vector3", "Vector3UInt", "Vector3Int"
+					 "Vector3", "Vector3UInt", "Vector3Int", "int"
 					}},
 					{"Vector4Int", {
-					 "Vector4", "Vector4UInt", "Vector4Int"
+					 "Vector4", "Vector4UInt", "Vector4Int", "int"
 					}}
 				},
 				{"=", "==", "!=", "+", "-", "*", "/", "%", "+=", "-=", "*=", "/=", "%="},
@@ -427,6 +427,7 @@ namespace Lumina
 		{
 			const auto& descriptors = std::get<0>(operation);
 			const auto& operators = std::get<1>(operation);
+			const auto& unaryOperators = std::get<2>(operation);
 
 			for (const auto& descriptor : descriptors)
 			{
@@ -469,6 +470,15 @@ namespace Lumina
 						}
 
 						operatorToAdd.push_back(std::make_tuple(lhsType, op, targetType, returnType));
+						if (op != "=")
+						{
+							operatorToAdd.push_back(std::make_tuple(targetType, op, lhsType, returnType));
+						}
+					}
+
+					for (const auto& op : unaryOperators)
+					{
+						unaryOperatorsToAdd.push_back(std::make_tuple(lhsType, op));
 					}
 				}
 			}
@@ -508,7 +518,7 @@ namespace Lumina
 			FunctionImpl toAdd = {
 				.isPrototype = false,
 				.returnType = {_getType(std::get<0>(tuple)), {}},
-				.name = std::get<0>(tuple) + "_Operator" + _operatorNames.at(std::get<1>(tuple)),
+				.name = std::get<0>(tuple) + "_UnaryOperator" + _operatorNames.at(std::get<1>(tuple)),
 				.parameters = {
 					{
 						.type = _getType(std::get<0>(tuple)),
@@ -539,6 +549,7 @@ namespace Lumina
 			{ "Vector2", {
 				{ "length", "length", "float", {} },
 				{ "normalize", "normalize", "Vector2", {} },
+				{ "reflect", "reflect", "Vector2", {"Vector2"} },
 				{ "dot", "dot", "float", { "Vector2" } },
 				{ "abs", "abs", "Vector2", {} },
 				{ "floor", "floor", "Vector2", {} },
@@ -567,6 +578,7 @@ namespace Lumina
 			{ "Vector3", {
 				{ "length", "length", "float", {} },
 				{ "normalize", "normalize", "Vector3", {} },
+				{ "reflect", "reflect", "Vector3", {"Vector3"} },
 				{ "dot", "dot", "float", { "Vector3" } },
 				{ "cross", "cross", "Vector3", { "Vector3" } },
 				{ "abs", "abs", "Vector3", {} },
@@ -596,6 +608,7 @@ namespace Lumina
 			{ "Vector4", {
 				{ "length", "length", "float", {} },
 				{ "normalize", "normalize", "Vector4", {} },
+				{ "reflect", "reflect", "Vector4", {"Vector4"} },
 				{ "dot", "dot", "float", { "Vector4" } },
 				{ "abs", "abs", "Vector4", {} },
 				{ "floor", "floor", "Vector4", {} },

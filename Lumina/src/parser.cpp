@@ -378,9 +378,22 @@ namespace Lumina
 		}
 	}
 
-	void Parser::_parseBlockInfo(const BlockInfo& p_blockInfo, std::vector<TypeImpl>& p_destination)
+	void Parser::_parseBlockInfo(const BlockInfo& p_blockInfo, std::vector<TypeImpl>& p_destination, bool p_needInstanciation)
 	{
 		TypeImpl newType = _composeTypeImpl(p_blockInfo);
+
+		if (p_needInstanciation == true)
+		{
+			VariableImpl instance = {
+				.type = newType,
+				.name = newType.name,
+				.arraySizes = {}
+			};
+
+			_globalVariables.insert(instance);
+
+			newType.name += "_Type";
+		}
 
 		_availibleTypes.insert(newType);
 		_convertionTable[newType] = {_getType(newType.name)};
@@ -409,13 +422,13 @@ namespace Lumina
 		}
 	}
 	
-	void Parser::_parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination)
+	void Parser::_parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination, bool p_needInstanciation)
 	{
 		for (const auto& structure : p_blockInfos)
 		{
 			try
 			{
-				_parseBlockInfo(structure, p_destination);
+				_parseBlockInfo(structure, p_destination, p_needInstanciation);
 			}
 			catch (const Lumina::TokenBasedError& e)
 			{
@@ -473,9 +486,9 @@ namespace Lumina
 
 	void Parser::_parseNamespace(const NamespaceInfo& p_namespaceInfo)
 	{
-		_parseBlockArray(p_namespaceInfo.structureBlocks, _product.value.structures);
-		_parseBlockArray(p_namespaceInfo.attributeBlocks, _product.value.attributes);
-		_parseBlockArray(p_namespaceInfo.constantBlocks, _product.value.constants);
+		_parseBlockArray(p_namespaceInfo.structureBlocks, _product.value.structures, false);
+		_parseBlockArray(p_namespaceInfo.attributeBlocks, _product.value.attributes, true);
+		_parseBlockArray(p_namespaceInfo.constantBlocks, _product.value.constants, true);
 
 		_parseTextures(p_namespaceInfo.textureInfos);
 
