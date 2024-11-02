@@ -20,7 +20,7 @@ namespace Lumina
 		inputFile.close();
 
 		std::string tab = "\t";
-		std::string spaces = "    "; // 4 spaces
+		std::string spaces = "	";
 		size_t pos = 0;
 
 		while ((pos = result.find(tab, pos)) != std::string::npos)
@@ -32,7 +32,7 @@ namespace Lumina
 		return (result);
 	}
 
-	std::filesystem::path composeFilePath(const std::string& fileName, const std::vector<std::filesystem::path>& additionnalPaths)
+	std::filesystem::path composeFilePath(const std::string& p_fileName, const std::vector<std::filesystem::path>& p_additionnalPaths)
 	{
 		std::string pathStr;
 
@@ -71,29 +71,26 @@ namespace Lumina
 			paths.push_back(path);
 		}
 
-		// Check in system PATH directories
 		for (const auto& dir : paths)
 		{
-			std::filesystem::path filePath = dir / fileName;
+			std::filesystem::path filePath = dir / p_fileName;
 			if (std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath))
 			{
 				return filePath;
 			}
 		}
 
-		// Check in additional paths
-		for (const auto& dir : additionnalPaths)
+		for (const auto& dir : p_additionnalPaths)
 		{
-			std::filesystem::path filePath = dir / fileName;
+			std::filesystem::path filePath = dir / p_fileName;
 			if (std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath))
 			{
 				return filePath;
 			}
 		}
 
-		// Check in the current directory
 		std::filesystem::path currentDir = std::filesystem::current_path();
-		std::filesystem::path filePath = currentDir / fileName;
+		std::filesystem::path filePath = currentDir / p_fileName;
 		if (std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath))
 		{
 			return filePath;

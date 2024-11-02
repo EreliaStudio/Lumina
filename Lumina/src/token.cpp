@@ -152,14 +152,14 @@ namespace Lumina
 
 		if (p_token.type == Token::Type::Unknow)
 		{
-			ss << "    " << p_message << std::endl;
+			ss << "	" << p_message << std::endl;
 		}
 		else
 		{
-			ss << "    Error on line[" << std::setw(5) << (p_token.context.line) << "] : " << p_message << std::endl;
+			ss << "	Error on line[" << std::setw(5) << (p_token.context.line) << "] : " << p_message << std::endl;
 			if (p_token.context.line == -1 || tokenSize == 0)
 			{
-				// Do nothing, no additional error information
+
 			}
 			else if (tokenSize == 1)
 			{

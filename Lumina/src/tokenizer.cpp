@@ -102,29 +102,28 @@ namespace Lumina
 		std::string parseStringLiteral(const std::string& code, size_t& index)
 		{
 			size_t start = index;
-			index++; // Skip initial quote
+			index++;
 			while (index < code.size() && (code[index] != '\"' || (index > 0 && code[index - 1] == '\\')))
 			{
 				index++;
 			}
-			index++; // Skip closing quote
+			index++;
 			return code.substr(start, index - start);
 		}
 
 		std::string parseIncludeLiterals(const std::string& code, size_t& index)
 		{
 			size_t start = index;
-			index++; // Skip initial '<'
+			index++;
 			while (index < code.size() && code[index] != '>')
 			{
 				if (std::isspace(code[index]))
 				{
-					// If we encounter a space, this is not a valid input literal
 					return "";
 				}
 				index++;
 			}
-			index++; // Skip closing '>'
+			index++;
 			return code.substr(start, index - start);
 		}
 
@@ -337,7 +336,6 @@ namespace Lumina
 			}
 			else
 			{
-				// Handle operators and other tokens
 				std::string operators[] = { "==", "!=", "<=", ">=" };
 				bool foundOperator = false;
 				for (const std::string& op : operators)
@@ -460,19 +458,16 @@ namespace Lumina
 				}
 			}
 
-			// Calculate the line and column numbers
 			for (char ch : tokenStr)
 			{
 				if (ch == '\n')
 				{
 					lineNumber++;
 					columnNumber = 0;
-					//currentLine.clear();
 				}
 				else
 				{
 					columnNumber++;
-					//currentLine += ch;
 				}
 			}
 

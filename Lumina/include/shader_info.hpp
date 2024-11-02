@@ -33,11 +33,11 @@ namespace Lumina
 		ArraySizeInfo arraySizes;
 	};
 
-    struct ExpressionTypeInfo
-    {
-        TypeInfo type;
-        ArraySizeInfo arraySizes;
-    };
+	struct ExpressionTypeInfo
+	{
+		TypeInfo type;
+		ArraySizeInfo arraySizes;
+	};
 
 	struct TextureInfo
 	{
@@ -53,186 +53,175 @@ namespace Lumina
 		ArraySizeInfo arraySizes;
 	};
 
-	//
-	// ---------------------
-	//
+	struct LiteralExpressionInfo;
+	struct VariableExpressionInfo;
+	struct BinaryExpressionInfo;
+	struct UnaryExpressionInfo;
+	struct PostfixExpressionInfo;
+	struct FunctionCallExpressionInfo;
+	struct MethodCallExpressionInfo;
+	struct MemberAccessExpressionInfo;
+	struct ArrayAccessExpressionInfo;
 
-    // Forward declarations of expression structs
-    struct LiteralExpressionInfo;
-    struct VariableExpressionInfo;
-    struct BinaryExpressionInfo;
-    struct UnaryExpressionInfo;
-    struct PostfixExpressionInfo;
-    struct FunctionCallExpressionInfo;
-    struct MethodCallExpressionInfo;
-    struct MemberAccessExpressionInfo;
-    struct ArrayAccessExpressionInfo;
+	using ExpressionInfo = std::variant<
+		LiteralExpressionInfo,
+		VariableExpressionInfo,
+		BinaryExpressionInfo,
+		UnaryExpressionInfo,
+		PostfixExpressionInfo,
+		FunctionCallExpressionInfo,
+		MethodCallExpressionInfo,
+		MemberAccessExpressionInfo,
+		ArrayAccessExpressionInfo
+	>;
 
-    using ExpressionInfo = std::variant<
-        LiteralExpressionInfo,
-        VariableExpressionInfo,
-        BinaryExpressionInfo,
-        UnaryExpressionInfo,
-        PostfixExpressionInfo,
-        FunctionCallExpressionInfo,
-        MethodCallExpressionInfo,
-        MemberAccessExpressionInfo,
-        ArrayAccessExpressionInfo
-    >;
+	struct LiteralExpressionInfo
+	{
+		Token value;
+	};
 
-    // Expression structs
+	struct VariableExpressionInfo
+	{
+		NamespaceDesignation namespacePath;
+		Token variableName;
+	};
 
-    struct LiteralExpressionInfo
-    {
-        Token value;
-    };
+	struct BinaryExpressionInfo
+	{
+		std::shared_ptr<ExpressionInfo> left;
+		Token operatorToken;
+		std::shared_ptr<ExpressionInfo> right;
+	};
 
-    struct VariableExpressionInfo
-    {
-        NamespaceDesignation namespacePath;
-        Token variableName;
-    };
+	struct UnaryExpressionInfo
+	{
+		Token operatorToken;
+		std::shared_ptr<ExpressionInfo> operand;
+	};
 
-    struct BinaryExpressionInfo
-    {
-        std::shared_ptr<ExpressionInfo> left;
-        Token operatorToken;
-        std::shared_ptr<ExpressionInfo> right;
-    };
+	struct PostfixExpressionInfo
+	{
+		std::shared_ptr<ExpressionInfo> operand;
+		Token operatorToken;
+	};
 
-    struct UnaryExpressionInfo
-    {
-        Token operatorToken;
-        std::shared_ptr<ExpressionInfo> operand;
-    };
+	struct FunctionCallExpressionInfo
+	{
+		NamespaceDesignation namespacePath;
+		Token functionName;
+		std::vector<std::shared_ptr<ExpressionInfo>> arguments;
+	};
 
-    struct PostfixExpressionInfo
-    {
-        std::shared_ptr<ExpressionInfo> operand;
-        Token operatorToken;
-    };
+	struct MemberAccessExpressionInfo
+	{
+		std::shared_ptr<ExpressionInfo> object;
+		Token memberName;
+	};
+	
+	struct MethodCallExpressionInfo
+	{
+		std::shared_ptr<ExpressionInfo> object;
+		Token name;
+		std::vector<std::shared_ptr<ExpressionInfo>> arguments;
+	};
 
-    struct FunctionCallExpressionInfo
-    {
-        NamespaceDesignation namespacePath;
-        Token functionName;
-        std::vector<std::shared_ptr<ExpressionInfo>> arguments;
-    };
+	struct ArrayAccessExpressionInfo
+	{
+		std::shared_ptr<ExpressionInfo> array;
+		std::shared_ptr<ExpressionInfo> index;
+	};
 
-    struct MemberAccessExpressionInfo
-    {
-        std::shared_ptr<ExpressionInfo> object;
-        Token memberName;
-    };
-    
-    struct MethodCallExpressionInfo
-    {
-        std::shared_ptr<ExpressionInfo> object;
-        Token name;
-        std::vector<std::shared_ptr<ExpressionInfo>> arguments;
-    };
+	struct VariableDeclarationStatementInfo;
+	struct ExpressionStatementInfo;
+	struct AssignmentStatementInfo;
+	struct ReturnStatementInfo;
+	struct DiscardStatementInfo;
+	struct ConditionalBranch;
+	struct IfStatementInfo;
+	struct WhileStatementInfo;
+	struct ForStatementInfo;
+	struct RaiseExceptionStatementInfo;
+	struct CompoundStatementInfo;
 
-    struct ArrayAccessExpressionInfo
-    {
-        std::shared_ptr<ExpressionInfo> array;
-        std::shared_ptr<ExpressionInfo> index;
-    };
+	using StatementInfo = std::variant<
+		VariableDeclarationStatementInfo,
+		ExpressionStatementInfo,
+		AssignmentStatementInfo,
+		ReturnStatementInfo,
+		DiscardStatementInfo,
+		IfStatementInfo,
+		WhileStatementInfo,
+		ForStatementInfo,
+		RaiseExceptionStatementInfo,
+		CompoundStatementInfo
+	>;
 
-    struct VariableDeclarationStatementInfo;
-    struct ExpressionStatementInfo;
-    struct AssignmentStatementInfo;
-    struct ReturnStatementInfo;
-    struct DiscardStatementInfo;
-    struct ConditionalBranch;
-    struct IfStatementInfo;
-    struct WhileStatementInfo;
-    struct ForStatementInfo;
-    struct RaiseExceptionStatementInfo;
-    struct CompoundStatementInfo;
+	struct SymbolBodyInfo
+	{
+		std::vector<StatementInfo> statements;
+	};
 
-    using StatementInfo = std::variant<
-        VariableDeclarationStatementInfo,
-        ExpressionStatementInfo,
-        AssignmentStatementInfo,
-        ReturnStatementInfo,
-        DiscardStatementInfo,
-        IfStatementInfo,
-        WhileStatementInfo,
-        ForStatementInfo,
-        RaiseExceptionStatementInfo,
-        CompoundStatementInfo
-    >;
+	struct VariableDeclarationStatementInfo
+	{
+		VariableInfo variable;
+		std::shared_ptr<ExpressionInfo> initializer;
+	};
 
-    struct SymbolBodyInfo
-    {
-        std::vector<StatementInfo> statements;
-    };
+	struct ExpressionStatementInfo
+	{
+		std::shared_ptr<ExpressionInfo> expression;
+	};
 
-    struct VariableDeclarationStatementInfo
-    {
-        VariableInfo variable;
-        std::shared_ptr<ExpressionInfo> initializer;
-    };
+	struct AssignmentStatementInfo
+	{
+		std::shared_ptr<ExpressionInfo> target;
+		Token operatorToken;
+		std::shared_ptr<ExpressionInfo> value;
+	};
 
-    struct ExpressionStatementInfo
-    {
-        std::shared_ptr<ExpressionInfo> expression;
-    };
+	struct ReturnStatementInfo
+	{
+		std::shared_ptr<ExpressionInfo> expression;
+	};
 
-    struct AssignmentStatementInfo
-    {
-        std::shared_ptr<ExpressionInfo> target;
-        Token operatorToken;
-        std::shared_ptr<ExpressionInfo> value;
-    };
+	struct DiscardStatementInfo
+	{
+	};
 
-    struct ReturnStatementInfo
-    {
-        std::shared_ptr<ExpressionInfo> expression;
-    };
+	struct ConditionalBranch
+	{
+		std::shared_ptr<ExpressionInfo> condition;
+		SymbolBodyInfo body;
+	};
 
-    struct DiscardStatementInfo
-    {
-    };
+	struct IfStatementInfo
+	{
+		std::vector<ConditionalBranch> branches;
+		SymbolBodyInfo elseBody;
+	};
 
-    struct ConditionalBranch
-    {
-        std::shared_ptr<ExpressionInfo> condition;
-        SymbolBodyInfo body;
-    };
+	struct WhileStatementInfo
+	{
+		ConditionalBranch loop;
+	};
 
-    struct IfStatementInfo
-    {
-        std::vector<ConditionalBranch> branches;
-        SymbolBodyInfo elseBody;
-    };
+	struct ForStatementInfo
+	{
+		std::shared_ptr<StatementInfo> initializer;
+		std::shared_ptr<ExpressionInfo> condition;
+		std::shared_ptr<ExpressionInfo> increment;
+		SymbolBodyInfo body;
+	};
 
-    struct WhileStatementInfo
-    {
-        ConditionalBranch loop;
-    };
+	struct RaiseExceptionStatementInfo
+	{
+		std::shared_ptr<FunctionCallExpressionInfo> functionCall;
+	};
 
-    struct ForStatementInfo
-    {
-        std::shared_ptr<StatementInfo> initializer;
-        std::shared_ptr<ExpressionInfo> condition;
-        std::shared_ptr<ExpressionInfo> increment;
-        SymbolBodyInfo body;
-    };
-
-    struct RaiseExceptionStatementInfo
-    {
-        std::shared_ptr<FunctionCallExpressionInfo> functionCall;
-    };
-
-    struct CompoundStatementInfo
-    {
-        SymbolBodyInfo body;
-    };
-
-	//
-	// ---------------------
-	//
+	struct CompoundStatementInfo
+	{
+		SymbolBodyInfo body;
+	};
 
 	struct FunctionInfo
 	{
@@ -252,25 +241,25 @@ namespace Lumina
 		SymbolBodyInfo body;
 	};
 
-    struct ConstructorInfo
-    {
+	struct ConstructorInfo
+	{
 		bool isPrototype;
-        std::vector<ParameterInfo> parameters;
-        SymbolBodyInfo body;
-    };
+		std::vector<ParameterInfo> parameters;
+		SymbolBodyInfo body;
+	};
 
 	struct BlockInfo
 	{
-        NameInfo name;
+		NameInfo name;
 		std::vector<VariableInfo> attributes;
-        std::vector<ConstructorInfo> constructorInfos;
-        std::map<std::string, std::vector<FunctionInfo>> methodInfos;
+		std::vector<ConstructorInfo> constructorInfos;
+		std::map<std::string, std::vector<FunctionInfo>> methodInfos;
 		std::map<std::string, std::vector<OperatorInfo>> operatorInfos;
 	};
 
 	struct NamespaceInfo
 	{
-        NameInfo name;
+		NameInfo name;
 		std::vector<BlockInfo> structureBlocks;
 		std::vector<BlockInfo> attributeBlocks;
 		std::vector<BlockInfo> constantBlocks;

@@ -40,8 +40,6 @@ int main(int argc, char** argv)
 		return (-1);
 	}
 
-    // Lumina::Printer::print(lexerProduct.value);
-
 	Lumina::Parser::Product parserProduct = Lumina::Parser::parse(lexerProduct.value);
 
 	if (parserProduct.errors.size() != 0)
@@ -57,7 +55,7 @@ int main(int argc, char** argv)
 
 	Lumina::Compiler::Product compilerProduct = Lumina::Compiler::compile(parserProduct.value);
 
-	//std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
+	std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
 
 	return (0);
 }

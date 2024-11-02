@@ -37,7 +37,6 @@ namespace Lumina
 		PipelineFlowInfo parsePipelineFlowInfo();
 		NamespaceInfo parseNamespaceInfo();
 
-		// Parsing methods for statements
 		SymbolBodyInfo parseSymbolBodyInfo();
 		StatementInfo parseStatementInfo();
 		VariableDeclarationStatementInfo parseVariableDeclarationStatementInfo();
@@ -50,20 +49,17 @@ namespace Lumina
 		ForStatementInfo parseForStatementInfo();
 		CompoundStatementInfo parseCompoundStatementInfo();
 
-		// Parsing methods for expressions
 		std::shared_ptr<ExpressionInfo> parseExpressionInfo();
 		std::shared_ptr<ExpressionInfo> parseAssignmentExpressionInfo();
-		std::shared_ptr<ExpressionInfo> parseBinaryExpressionInfo(int minPrecedence);
+		std::shared_ptr<ExpressionInfo> parseBinaryExpressionInfo(int p_minPrecedence);
 		std::shared_ptr<ExpressionInfo> parseUnaryExpressionInfo();
 		std::shared_ptr<ExpressionInfo> parsePostfixExpressionInfo();
 		std::shared_ptr<ExpressionInfo> parsePrimaryExpressionInfo();
 		std::shared_ptr<ExpressionInfo> parseVariableOrFunctionCallExpressionInfo();
 
-		// Helper methods
 		bool isVariableDeclaration();
 		bool isAssignmentStatement();
-		bool isMethodCall();
-		int computeOperatorPriority(const Token& token);
+		int computeOperatorPriority(const Token& p_token);
 
 		ShaderInfo parseShaderInfo();
 

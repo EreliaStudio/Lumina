@@ -37,6 +37,8 @@ namespace Lumina
 		TypeImpl _getType(const std::string& p_relativeName);
 		TypeImpl _getType(const TypeInfo& p_typeName);
 
+		Token _getExpressionToken(const ExpressionInfo& expr);
+
 		std::string _composeName(const NameInfo& p_nameInfo);
 		std::vector<size_t> _composeArraySizes(const ArraySizeInfo& p_arraySize);
 
@@ -47,44 +49,42 @@ namespace Lumina
 
 		ParameterImpl _composeParameter(const ParameterInfo& p_parameterInfo);
 
-        std::string _composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo);
-        std::string _composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& stmt);
-        std::string _composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& stmt);
-        std::string _composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& stmt);
-        std::string _composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& stmt);
-        std::string _composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& stmt);
-        std::string _composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& stmt);
-        std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& stmt);
-        std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& stmt);
-        std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
-		
-        Token getExpressionToken(const ExpressionInfo& expr);
+		std::string _composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo);
+		std::string _composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& p_statement);
+		std::string _composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& p_statement);
+		std::string _composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& p_statement);
+		std::string _composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& p_statement);
+		std::string _composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& p_statement);
+		std::string _composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& p_statement);
+		std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& p_statement);
+		std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& p_statement);
 
-		ExpressionTypeImpl _deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& expr);
-		ExpressionTypeImpl _deduceVariableExpressionType(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& expr);
-		ExpressionTypeImpl _deduceBinaryExpressionType(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);
-		ExpressionTypeImpl _deduceUnaryExpressionType(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e);
-		ExpressionTypeImpl _deducePostfixExpressionType(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e);
-		ExpressionTypeImpl _deduceFunctionCallExpressionType(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e);
-		ExpressionTypeImpl _deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e);
-		ExpressionTypeImpl _deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
-		ExpressionTypeImpl _deduceArrayAccessExpressionType(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
-		ExpressionTypeImpl _deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& expr);
+		ExpressionTypeImpl _deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceVariableExpressionType(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceBinaryExpressionType(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceUnaryExpressionType(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expression);
+		ExpressionTypeImpl _deducePostfixExpressionType(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceFunctionCallExpressionType(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceArrayAccessExpressionType(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression);
 
-		std::string _composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& e);
-		std::string _composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& e);
-        std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& e);
-        std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& e);
-        std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& e);
-		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& e);
-		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& e);
-		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& e);
-		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& e);
+		std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression);
+		std::string _composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expression);
+		std::string _composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expression);
+		std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expression);
+		std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expression);
+		std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expression);
+		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expression);
+		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression);
+		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression);
+		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression);
 
-		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& argumentTypes);
-		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& lhs, const std::string& op, const ExpressionTypeImpl& rhs, bool isAssignment = false);
-		FunctionImpl _findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
-		FunctionImpl _findPostfixOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& op, const ExpressionTypeImpl& operand);
+		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& p_argumentTypes);
+		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& p_lhs, const std::string& p_op, const ExpressionTypeImpl& p_rhs, bool p_isAssignment = false);
+		FunctionImpl _findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& p_op, const ExpressionTypeImpl& p_operand);
+		FunctionImpl _findPostfixOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& p_op, const ExpressionTypeImpl& p_operand);
 		SymbolBodyImpl _composeSymbolBody(std::set<VariableImpl>& p_variables, const SymbolBodyInfo& p_symbolBodyInfo);
 
 		VariableImpl _composeTexture(const TextureInfo& p_textureInfo);

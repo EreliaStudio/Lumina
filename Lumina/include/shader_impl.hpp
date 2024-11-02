@@ -87,18 +87,18 @@ namespace Lumina
 		std::string name;
 		std::vector<size_t> arraySizes;
 
-		bool operator<(const ParameterImpl& other) const
+		bool operator<(const ParameterImpl& p_other) const
 		{
-			if (type < other.type) return true;
-			if (other.type < type) return false;
+			if (type < p_other.type) return true;
+			if (p_other.type < type) return false;
 
-			if (arraySizes.size() < other.arraySizes.size()) return true;
-			if (arraySizes.size() > other.arraySizes.size()) return false;
+			if (arraySizes.size() < p_other.arraySizes.size()) return true;
+			if (arraySizes.size() > p_other.arraySizes.size()) return false;
 
 			for (size_t i = 0; i < arraySizes.size(); ++i)
 			{
-				if (arraySizes[i] < other.arraySizes[i]) return true;
-				if (arraySizes[i] > other.arraySizes[i]) return false;
+				if (arraySizes[i] < p_other.arraySizes[i]) return true;
+				if (arraySizes[i] > p_other.arraySizes[i]) return false;
 			}
 
 			return false;
@@ -119,18 +119,18 @@ namespace Lumina
 
 		SymbolBodyImpl body;
 
-		bool operator<(const FunctionImpl& other) const
+		bool operator<(const FunctionImpl& p_other) const
 		{
-			if (name < other.name) return true;
-			if (other.name < name) return false;
+			if (name < p_other.name) return true;
+			if (p_other.name < name) return false;
 
-			if (parameters.size() < other.parameters.size()) return true;
-			if (parameters.size() > other.parameters.size()) return false;
+			if (parameters.size() < p_other.parameters.size()) return true;
+			if (parameters.size() > p_other.parameters.size()) return false;
 
 			for (size_t i = 0; i < parameters.size(); ++i)
 			{
-				if (parameters[i] < other.parameters[i]) return true;
-				if (other.parameters[i] < parameters[i]) return false;
+				if (parameters[i] < p_other.parameters[i]) return true;
+				if (p_other.parameters[i] < parameters[i]) return false;
 			}
 
 			return false;

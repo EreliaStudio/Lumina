@@ -501,7 +501,6 @@ namespace Lumina
 			};
 
 			_availibleFunctions.insert(toAdd);
-			//_product.value.functions.push_back(toAdd);
 		}
 
 		for (const auto& tuple : unaryOperatorsToAdd)
@@ -513,7 +512,7 @@ namespace Lumina
 				.parameters = {
 					{
 						.type = _getType(std::get<0>(tuple)),
-						.isReference = true, // Usually true for unary operators that modify the operand
+						.isReference = true,
 						.name = "value",
 						.arraySizes = {}
 					}
@@ -533,10 +532,9 @@ namespace Lumina
 			std::string methodName;
 			std::string glslFunction;
 			std::string returnType;
-			std::vector<std::string> parameterTypes; // Parameter types excluding 'this'
+			std::vector<std::string> parameterTypes;
 		};
 
-		// Map of type name to list of methods
 		std::map<std::string, std::vector<MethodDescriptor>> methodsPerType = {
 			{ "Vector2", {
 				{ "length", "length", "float", {} },
@@ -625,21 +623,20 @@ namespace Lumina
 			}}
 		};
 
-		for (const auto& typeMethodsPair : methodsPerType) {
+		for (const auto& typeMethodsPair : methodsPerType)
+		{
 			const std::string& typeName = typeMethodsPair.first;
 			const std::vector<MethodDescriptor>& methods = typeMethodsPair.second;
 
-			for (const auto& method : methods) {
-				// Determine return type
+			for (const auto& method : methods)
+			{
 				ExpressionTypeImpl returnType = { _getType(method.returnType), {} };
 
-				// Create the method function
 				FunctionImpl methodFunction;
 				methodFunction.isPrototype = false;
 				methodFunction.returnType = returnType;
 				methodFunction.name = typeName + "_" + method.methodName;
 
-				// Parameters: 'this' and any additional parameters
 				methodFunction.parameters.push_back({
 					.type = _getType(typeName),
 					.isReference = false,
@@ -647,8 +644,8 @@ namespace Lumina
 					.arraySizes = {}
 					});
 
-				// Add additional parameters
-				for (const auto& paramTypeName : method.parameterTypes) {
+				for (const auto& paramTypeName : method.parameterTypes)
+				{
 					ExpressionTypeImpl paramType = { _getType(paramTypeName), {} };
 					methodFunction.parameters.push_back({
 						.type = paramType.type,
@@ -658,31 +655,27 @@ namespace Lumina
 						});
 				}
 
-				// Build the method body
 				std::string args = "this";
-				for (size_t i = 1; i < methodFunction.parameters.size(); ++i) {
+				for (size_t i = 1; i < methodFunction.parameters.size(); ++i)
+				{
 					args += ", " + methodFunction.parameters[i].name;
 				}
 				methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");";
 
-				// Insert the method into available functions
 				_availibleFunctions.insert(methodFunction);
 
-				// Optionally, add the method to the product's functions
 				_product.value.functions.push_back(methodFunction);
 			}
 		}
 
 		struct FunctionDescriptor {
-			std::string functionName;                      // Name of the function in your language
-			std::string glslFunction;                      // Corresponding GLSL function
-			ExpressionTypeImpl returnType;                 // Return type of the function
-			std::vector<ExpressionTypeImpl> parameterTypes; // Parameter types
+			std::string functionName;
+			std::string glslFunction;
+			ExpressionTypeImpl returnType;
+			std::vector<ExpressionTypeImpl> parameterTypes;
 		};
 
-		// Create a map of functions per type
 		std::map<std::string, std::vector<FunctionDescriptor>> functionsPerType = {
-			// Functions for float type
 			{ "float", {
 				// Trigonometric Functions
 				{ "sin", "sin", { _getType("float"), {} }, { { _getType("float"), {} } } },
@@ -691,11 +684,13 @@ namespace Lumina
 				{ "asin", "asin", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "acos", "acos", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "atan", "atan", { _getType("float"), {} }, { { _getType("float"), {} } } },
+
 				// Mathematical Functions
 				{ "min", "min", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
 				{ "max", "max", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
 				{ "clamp", "clamp", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
 				{ "lerp", "mix", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
+
 				// Exponential Functions
 				{ "pow", "pow", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
 				{ "exp", "exp", { _getType("float"), {} }, { { _getType("float"), {} } } },
@@ -704,6 +699,7 @@ namespace Lumina
 				{ "log2", "log2", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "sqrt", "sqrt", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "inversesqrt", "inversesqrt", { _getType("float"), {} }, { { _getType("float"), {} } } },
+
 				// Other Functions
 				{ "abs", "abs", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "mod", "mod", { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} } } },
@@ -712,7 +708,7 @@ namespace Lumina
 				{ "fract", "fract", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "sign", "sign", { _getType("float"), {} }, { { _getType("float"), {} } } }
 			}},
-			// Functions for int type
+
 			{ "int", {
 				// Mathematical Functions
 				{ "min", "min", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} } } },
@@ -720,12 +716,11 @@ namespace Lumina
 				{ "clamp", "clamp", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} }, { _getType("int"), {} } } },
 				{ "abs", "abs", { _getType("int"), {} }, { { _getType("int"), {} } } },
 				{ "mod", "mod", { _getType("int"), {} }, { { _getType("int"), {} }, { _getType("int"), {} } } },
+
 				// Other Functions
 				{ "sign", "sign", { _getType("int"), {} }, { { _getType("int"), {} } } }
-				// Note: Trigonometric functions are not applicable to int
-				// 'lerp' can be defined if desired
 			}},
-			// Functions for uint type
+
 			{ "uint", {
 				// Mathematical Functions
 				{ "min", "min", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } },
@@ -733,12 +728,9 @@ namespace Lumina
 				{ "clamp", "clamp", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} }, { _getType("uint"), {} } } },
 				{ "abs", "abs", { _getType("uint"), {} }, { { _getType("uint"), {} } } },
 				{ "mod", "mod", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } }
-				// Note: 'sign' may not be meaningful for uint
-				// Trigonometric functions are not applicable to uint
 			}},
 		};
 
-		// Function to add functions from the map to _availibleFunctions
 		for (const auto& [typeName, functions] : functionsPerType) {
 			for (const auto& func : functions) {
 				FunctionImpl functionImpl;
@@ -747,7 +739,6 @@ namespace Lumina
 				functionImpl.name = func.functionName;
 				functionImpl.parameters.clear();
 
-				// Add parameters
 				for (size_t i = 0; i < func.parameterTypes.size(); ++i) {
 					functionImpl.parameters.push_back({
 						.type = func.parameterTypes[i].type,
@@ -757,7 +748,6 @@ namespace Lumina
 						});
 				}
 
-				// Build the function body
 				std::string args;
 				for (size_t i = 0; i < functionImpl.parameters.size(); ++i) {
 					if (i > 0) args += ", ";
@@ -765,7 +755,6 @@ namespace Lumina
 				}
 				functionImpl.body.code = "";
 
-				// Insert the function into available functions
 				_availibleFunctions.insert(functionImpl);
 			}
 		}
