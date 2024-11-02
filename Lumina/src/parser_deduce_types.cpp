@@ -249,7 +249,7 @@ namespace Lumina
 			}
 		}
 
-		throw Lumina::TokenBasedError("Function not found or argument types do not match" + DEBUG_INFORMATION, p_expr.functionName);
+		throw Lumina::TokenBasedError("Function [" + name + "] not found or argument types do not match" + DEBUG_INFORMATION, p_expr.functionName);
 	}
 
 	ExpressionTypeImpl Parser::_deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr)
@@ -290,7 +290,7 @@ namespace Lumina
 			}
 		}
 
-		throw Lumina::TokenBasedError("Method not found or argument types do not match", p_expr.name);
+		throw Lumina::TokenBasedError("Method [" + fullMethodName + "] not found or argument types do not match", p_expr.name);
 	}
 
 	ExpressionTypeImpl Parser::_deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr)

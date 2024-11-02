@@ -3,6 +3,7 @@
 #include <string>
 #include <set>
 #include <vector>
+#include <iostream>
 
 namespace Lumina
 {
@@ -78,6 +79,16 @@ namespace Lumina
 		{
 			return (!(this->operator==(p_other)));
 		}
+
+		friend std::ostream& operator << (std::ostream& p_os, const ExpressionTypeImpl& p_toPrint)
+		{
+			p_os << p_toPrint.type.name;
+			for (const auto& dim : p_toPrint.arraySizes)
+			{
+				p_os << "[" << dim << "]";
+			}
+			return (p_os);
+		}
 	};
 
 	struct ParameterImpl
@@ -103,11 +114,27 @@ namespace Lumina
 
 			return false;
 		}
+
+		friend std::ostream& operator << (std::ostream& p_os, const ParameterImpl& p_toPrint)
+		{
+			p_os << p_toPrint.type.name << (p_toPrint.isReference == true ? "&" : "") << " " << p_toPrint.name;
+			for (const auto& dim : p_toPrint.arraySizes)
+			{
+				p_os << "[" << dim << "]";
+			}
+			return (p_os);
+		}
 	};
 
 	struct SymbolBodyImpl
 	{
 		std::string code;
+
+		friend std::ostream& operator<<(std::ostream& os, const SymbolBodyImpl& functionBody)
+		{
+			os << functionBody.code;
+			return os;
+		}
 	}; 
 
 	struct FunctionImpl
@@ -134,6 +161,25 @@ namespace Lumina
 			}
 
 			return false;
+		}
+
+		friend std::ostream& operator << (std::ostream& p_os, const FunctionImpl& p_toPrint)
+		{
+			p_os << p_toPrint.returnType << " " << p_toPrint.name << "(";
+			for (size_t i = 0; i < p_toPrint.parameters.size(); i++)
+			{
+				if (i != 0)
+					p_os << ", ";
+				p_os << p_toPrint.parameters[i];
+			}
+			p_os << ")";
+			if (p_toPrint.isPrototype == false && p_toPrint.body.code.size() != 0)
+			{
+				p_os << " {\n";
+				p_os << p_toPrint.body;
+				p_os << "}\n";
+			}
+			return (p_os);
 		}
 	};
 

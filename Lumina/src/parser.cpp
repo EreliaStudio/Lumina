@@ -50,6 +50,18 @@ namespace Lumina
 		return (_getType(fullTypeName));
 	}
 
+	std::string Parser::_namespacePrefix()
+	{
+		std::string result;
+
+		for (const auto& nspace : _nspaces)
+		{
+			result += nspace + "_";
+		}
+
+		return (result);
+	}
+
 	std::string Parser::_composeName(const NameInfo& p_nameInfo)
 	{
 		return (p_nameInfo.value.content);
@@ -110,7 +122,7 @@ namespace Lumina
 		VariableImpl result;
 
 		result.type = _getType("Texture");
-		result.name = _composeName(p_textureInfo.name);
+		result.name = _namespacePrefix() + _composeName(p_textureInfo.name);
 		result.arraySizes = _composeArraySizes(p_textureInfo.arraySizes);
 
 		_globalVariables.insert(result);
@@ -124,7 +136,7 @@ namespace Lumina
 		FunctionImpl result;
 
 		result.returnType = _composeExpressionTypeImpl(p_functionInfo.returnType);
-		result.name = _composeName(p_functionInfo.name);
+		result.name = _namespacePrefix() + _composeName(p_functionInfo.name);
 		result.isPrototype = p_functionInfo.isPrototype;
 		for (const auto& param : p_functionInfo.parameters)
 		{
@@ -143,7 +155,7 @@ namespace Lumina
 	{
 		TypeImpl result;
 
-		result.name = _composeName(p_blockInfo.name);
+		result.name = _namespacePrefix() + _composeName(p_blockInfo.name);
 		for (const auto& element : p_blockInfo.attributes)
 		{
 			result.attributes.insert(_composeVariable(element));
@@ -384,15 +396,16 @@ namespace Lumina
 
 		if (p_needInstanciation == true)
 		{
+			std::string name = newType.name;
+			newType.name += "_Type";
+
 			VariableImpl instance = {
 				.type = newType,
-				.name = newType.name,
+				.name = name,
 				.arraySizes = {}
 			};
 
 			_globalVariables.insert(instance);
-
-			newType.name += "_Type";
 		}
 
 		_availibleTypes.insert(newType);

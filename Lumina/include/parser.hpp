@@ -39,6 +39,8 @@ namespace Lumina
 
 		Token _getExpressionToken(const ExpressionInfo& expr);
 
+		std::string _namespacePrefix();
+
 		std::string _composeName(const NameInfo& p_nameInfo);
 		std::vector<size_t> _composeArraySizes(const ArraySizeInfo& p_arraySize);
 

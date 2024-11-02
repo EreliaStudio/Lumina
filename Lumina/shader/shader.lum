@@ -71,8 +71,8 @@ The vertex and fragment shaders work together to accurately render the 3D object
 VertexPass()
 {
     Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
-    fragPosition = worldPosition.xyz;
-    fragNormal = mat3(modelAttributes.normalMatrix) * vertexNormal;
+    fragPosition = worldPosition.xyz();
+    fragNormal = modelAttributes.normalMatrix * vertexNormal;
     fragUV = vertexUV;
 
     Vector4 clipSpacePosition = worldPosition;
@@ -82,11 +82,12 @@ VertexPass()
 // Define the fragment shader stage
 FragmentPass()
 {
-    // Error handling example
+    /* Error handling example
     if (lightingConstants.ambientIntensity < 0.0 || lightingConstants.ambientIntensity > 1.0)
     {
         raiseException("Ambient intensity must be between 0 and 1. Current value: %d", lightingConstants.ambientIntensity);
     }
+	*/
 
     Vector3 normal = fragNormal.normalize();
     Vector3 lightDir = (lightingConstants.lightPosition - fragPosition).normalize();
@@ -101,13 +102,17 @@ FragmentPass()
 
     Vector3 finalColor = ambient + diffuse * material.diffuseColor + specular * material.specularColor;
 
-    Vector4 textureColor = diffuseTexture.getPixel(fragUV);
-    finalColor *= textureColor.rgb;
+    Color textureColor = diffuseTexture.getPixel(fragUV);
 
     if (textureColor.a == 0)
     {
         discard;
     }
 
-    pixelColor = Vector4(finalColor, textureColor.a);
+    pixelColor = Color(
+		textureColor.r * finalColor.x,
+		textureColor.g * finalColor.y,
+		textureColor.b * finalColor.z,
+		1.0f
+	);
 }

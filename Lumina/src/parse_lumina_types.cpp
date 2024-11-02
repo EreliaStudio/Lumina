@@ -98,11 +98,20 @@ namespace Lumina
 					{{ "uint", {}}, "w", {} }
 				}
 			},
-			{ "Color", {}},
+			{ "Color", {
+					{{ "float", {}}, "r", {} },
+					{{ "float", {}}, "g", {} },
+					{{ "float", {}}, "b", {} },
+					{{ "float", {}}, "a", {} }
+				}},
 			{ "Texture", {} }
 		};
 
 		_convertionTable = {
+			{
+				_getType("bool"),
+				{_getType("bool")}
+			},
 			{
 				_getType("int"),
 				{_getType("int"), _getType("uint"), _getType("float")}
@@ -260,6 +269,13 @@ namespace Lumina
 					{"Vector2UInt", "uint", "uint"},
 					{"Vector3UInt", "uint"}
 				}
+			},
+			{
+				"Color",
+				{
+					{},
+					{"float", "float", "float", "float"}
+				}
 			}
 		};
 
@@ -315,6 +331,72 @@ namespace Lumina
 
 		_availibleFunctions.insert(getPixelFunction);
 		_product.value.functions.push_back(getPixelFunction);
+
+		std::vector<std::tuple<std::string, std::string, std::string>> reductionDescriptions = {
+			{"Vector3", "Vector2", "xy"},
+
+			{"Vector3Int", "Vector2Int", "xy"},
+
+			{"Vector3UInt", "Vector2UInt", "xy"},
+
+			{"Vector4", "Vector2", "xy"},
+			{"Vector4", "Vector3", "xyz"},
+
+			{"Vector4Int", "Vector2Int", "xy"},
+			{"Vector4Int", "Vector3Int", "xyz"},
+
+			{"Vector4UInt", "Vector2UInt", "xy"},
+			{"Vector4UInt", "Vector3UInt", "xyz"}
+			};
+
+		for (const auto& reduction : reductionDescriptions)
+		{
+			FunctionImpl reductionFunction = {
+					.isPrototype = false,
+					.returnType = {_getType(std::get<1>(reduction)), {}},
+					.name = std::get<0>(reduction) + "_" + std::get<2>(reduction),
+					.parameters = {
+						{
+							.type = _getType(std::get<0>(reduction)),
+							.isReference = false,
+							.name = "this",
+							.arraySizes = {}
+						}
+					},
+					.body = {
+						.code = "return (this." + std::get<2>(reduction) + ");\n"
+					}
+			};
+
+			_availibleFunctions.insert(reductionFunction);
+			_product.value.functions.push_back(reductionFunction);
+		}
+
+		FunctionImpl matrix4multVector3 = {
+					.isPrototype = false,
+					.returnType = {_getType("Vector3"), {}},
+					.name = "Matrix4x4_OperatorMultiply",
+					.parameters = {
+						{
+							.type = _getType("Matrix4x4"),
+							.isReference = false,
+							.name = "this",
+							.arraySizes = {}
+						},
+						{
+							.type = _getType("Vector3"),
+							.isReference = false,
+							.name = "target",
+							.arraySizes = {}
+						}
+					},
+					.body = {
+						.code = "return ((this * Vector4(target, 0)).xyz);\n"
+					}
+		};
+
+		_availibleFunctions.insert(matrix4multVector3);
+		_product.value.functions.push_back(matrix4multVector3);
 		
 		std::vector<std::tuple<std::string, std::string, std::string, std::string>> operatorToAdd = {
 			{"Matrix2x2", "*", "Vector2", "Vector2"},
@@ -349,7 +431,22 @@ namespace Lumina
 			},
 			{
 				{ {"bool", {"bool"}} },
-				{"=", "==", "!="},
+				{"=", "==", "!=", "||", "&&"},
+				{}
+			},
+			{
+				{
+					{"float",{
+						 "float", "uint", "int"
+						}},
+					{"uint",{
+						 "float", "uint", "int"
+						}},
+					{"int",{
+						 "float", "uint", "int"
+						}}
+				},
+				{"<", ">", "<=", ">="},
 				{}
 			},
 			{
@@ -470,7 +567,7 @@ namespace Lumina
 						}
 
 						operatorToAdd.push_back(std::make_tuple(lhsType, op, targetType, returnType));
-						if (op != "=")
+						if (op != "=" && lhsType != targetType)
 						{
 							operatorToAdd.push_back(std::make_tuple(targetType, op, lhsType, returnType));
 						}
@@ -510,6 +607,7 @@ namespace Lumina
 				}
 			};
 
+			std::cout << "Adding operator : " << toAdd.name << std::endl;
 			_availibleFunctions.insert(toAdd);
 		}
 

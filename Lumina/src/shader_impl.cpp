@@ -25,46 +25,6 @@ namespace Lumina
 		return os;
 	}
 
-	std::ostream& operator<<(std::ostream& os, const ParameterImpl& parameter)
-	{
-		os << parameter.type.name;
-		printArraySizes(os, parameter.arraySizes);
-		os << " " << (parameter.isReference ? "in " : "") << parameter.name;
-		return os;
-	}
-
-	std::ostream& operator<<(std::ostream& os, const ExpressionTypeImpl& exprType)
-	{
-		os << exprType.type.name;
-		printArraySizes(os, exprType.arraySizes);
-		return os;
-	}
-
-	std::ostream& operator<<(std::ostream& os, const SymbolBodyImpl& functionBody)
-	{
-		os << functionBody.code;
-		return os;
-	}
-
-	std::ostream& operator<<(std::ostream& os, const FunctionImpl& function)
-	{
-		os << function.returnType << " " << function.name << "(";
-		for (size_t i = 0; i < function.parameters.size(); ++i)
-		{
-			if (i != 0)
-			{
-				os << ", ";
-			}
-			os << function.parameters[i];
-		}
-		os << ")";
-		os << " {\n";
-		os << function.body;
-		os << "}\n";
-
-		return os;
-	}
-
 	std::ostream& operator<<(std::ostream& os, const TypeImpl& type)
 	{
 		os << "Type: " << type.name << "\n";
