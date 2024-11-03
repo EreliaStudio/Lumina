@@ -41,7 +41,7 @@ namespace Lumina
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
 		{
-			name += ns.content + "_";
+			name += ns.content + "::";
 		}
 		name += p_expr.variableName.content;
 
@@ -150,7 +150,7 @@ namespace Lumina
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
 		{
-			name += ns.content + "_";
+			name += ns.content + "::";
 		}
 		name += p_expr.functionName.content;
 
@@ -374,6 +374,11 @@ namespace Lumina
 			}
 
 			parameters += argExpression;
+		}
+
+		if (matchingMethod->body.code == "")
+		{
+			return (p_expr.name.content + "(" + parameters + ")");
 		}
 
 		return methodName + "(" + parameters + ")";

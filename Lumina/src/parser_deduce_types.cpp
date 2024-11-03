@@ -136,7 +136,7 @@ namespace Lumina
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
 		{
-			name += ns.content + "_";
+			name += ns.content + "::";
 		}
 		name += p_expr.variableName.content;
 
@@ -219,7 +219,7 @@ namespace Lumina
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
 		{
-			name += ns.content + "_";
+			name += ns.content + "::";
 		}
 		name += p_expr.functionName.content;
 
@@ -290,7 +290,7 @@ namespace Lumina
 			}
 		}
 
-		throw Lumina::TokenBasedError("Method [" + fullMethodName + "] not found or argument types do not match", p_expr.name);
+		throw Lumina::TokenBasedError("Method [" + objectType.type.name + "::" + methodName + "] not found or argument types do not match", p_expr.name);
 	}
 
 	ExpressionTypeImpl Parser::_deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr)

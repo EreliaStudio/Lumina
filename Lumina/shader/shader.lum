@@ -46,7 +46,7 @@ namespace Lighting
 VertexPass()
 {
     Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
-    fragPosition = worldPosition.xyz();
+    fragPosition = worldPosition.xyz;
     fragNormal = modelAttributes.normalMatrix * vertexNormal;
     fragUV = vertexUV;
 

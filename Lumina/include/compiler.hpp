@@ -23,6 +23,7 @@ namespace Lumina
 
 		std::string _compileFunction(const FunctionImpl& p_functionImpl);
 		std::string _compileTypeImpl(const std::string& p_prefix, const TypeImpl& p_typeImpl);
+		std::string _compileUniformBlock(const TypeImpl& p_typeImpl);
 
 		Product _compile(const Parser::Output& p_input);
 

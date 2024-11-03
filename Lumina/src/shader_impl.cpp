@@ -41,13 +41,6 @@ namespace Lumina
 		return os;
 	}
 
-	std::ostream& operator<<(std::ostream& os, const PipelineFlowImpl& pipelineFlow)
-	{
-		os << (pipelineFlow.direction == PipelineFlowImpl::Direction::In ? "in " : "out ");
-		os << pipelineFlow.variable;
-		return os;
-	}
-
 	std::ostream& operator<<(std::ostream& os, const PipelinePassImpl& pipelineFlow)
 	{
 		os << "{\n";
@@ -78,6 +71,12 @@ namespace Lumina
 
 		os << "\nFragment Variables:\n";
 		for (const auto& var : shader.fragmentPipelineFlows)
+		{
+			os << "	" << var << "\n";
+		}
+
+		os << "\nOutput Variables:\n";
+		for (const auto& var : shader.outputPipelineFlows)
 		{
 			os << "	" << var << "\n";
 		}

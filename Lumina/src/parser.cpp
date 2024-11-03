@@ -25,7 +25,7 @@ namespace Lumina
 		std::string namespaceName = "";
 		for (const auto& ns : _nspaces)
 		{
-			namespaceName += ns + "_";
+			namespaceName += ns + "::";
 
 			it = _availibleTypes.find({ namespaceName + p_relativeName, {} });
 			if (it != _availibleTypes.end())
@@ -43,7 +43,7 @@ namespace Lumina
 
 		for (const auto& ns : p_typeInfo.nspace)
 		{
-			fullTypeName += ns.content + "_";
+			fullTypeName += ns.content + "::";
 		}
 		fullTypeName += p_typeInfo.value.content;
 
@@ -56,7 +56,7 @@ namespace Lumina
 
 		for (const auto& nspace : _nspaces)
 		{
-			result += nspace + "_";
+			result += nspace + "::";
 		}
 
 		return (result);
@@ -329,34 +329,20 @@ namespace Lumina
 		{
 			_vertexVariables.insert(pipelineVariable);
 
-			_product.value.vertexPipelineFlows.push_back({
-					.direction = PipelineFlowImpl::Direction::In,
-					.variable = pipelineVariable
-				});
+			_product.value.vertexPipelineFlows.push_back(pipelineVariable);
 		}
 		else if (p_pipelineFlow.input == "VertexPass" && p_pipelineFlow.output == "FragmentPass")
 		{
 			_vertexVariables.insert(pipelineVariable);
 			_fragmentVariables.insert(pipelineVariable);
 
-			_product.value.vertexPipelineFlows.push_back({
-					.direction = PipelineFlowImpl::Direction::Out,
-					.variable = pipelineVariable
-				});
-
-			_product.value.fragmentPipelineFlows.push_back({
-					.direction = PipelineFlowImpl::Direction::In,
-					.variable = pipelineVariable
-				});
+			_product.value.fragmentPipelineFlows.push_back(pipelineVariable);
 		}
 		else if (p_pipelineFlow.input == "FragmentPass" && p_pipelineFlow.output == "Output")
 		{
 			_fragmentVariables.insert(pipelineVariable);
 
-			_product.value.fragmentPipelineFlows.push_back({
-					.direction = PipelineFlowImpl::Direction::Out,
-					.variable = pipelineVariable
-				});
+			_product.value.outputPipelineFlows.push_back(pipelineVariable);
 		}
 		else
 		{

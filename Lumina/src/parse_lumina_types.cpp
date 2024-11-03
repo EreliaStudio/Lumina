@@ -62,40 +62,76 @@ namespace Lumina
 			{ "Vector3", {
 					{{ "float", {}}, "x", {} },
 					{{ "float", {}}, "y", {} },
-					{{ "float", {}}, "z", {} }
+					{{ "float", {}}, "z", {} },
+					{{ "Vector2", {}}, "xy", {} },
+					{{ "Vector2", {}}, "yz", {} },
+					{{ "Vector2", {}}, "xz", {} }
 				}
 			},
 			{ "Vector3Int", {
 					{{ "int", {}}, "x", {} },
 					{{ "int", {}}, "y", {} },
-					{{ "int", {}}, "z", {} }
+					{{ "int", {}}, "z", {} },
+					{{ "Vector2Int", {}}, "xy", {} },
+					{{ "Vector2Int", {}}, "yz", {} },
+					{{ "Vector2Int", {}}, "xz", {} }
 				}
 			},
 			{ "Vector3UInt", {
 					{{ "uint", {}}, "x", {} },
 					{{ "uint", {}}, "y", {} },
-					{{ "uint", {}}, "z", {} }
+					{{ "uint", {}}, "z", {} },
+					{{ "Vector2UInt", {}}, "xy", {} },
+					{{ "Vector2UInt", {}}, "yz", {} },
+					{{ "Vector2UInt", {}}, "xz", {} }
 				}
 			},
 			{ "Vector4", {
 					{{ "float", {}}, "x", {} },
 					{{ "float", {}}, "y", {} },
 					{{ "float", {}}, "z", {} },
-					{{ "float", {}}, "w", {} }
+					{{ "float", {}}, "w", {} },
+					{{ "Vector2", {}}, "xy", {} },
+					{{ "Vector2", {}}, "yz", {} },
+					{{ "Vector2", {}}, "zw", {} },
+					{{ "Vector2", {}}, "xz", {} },
+					{{ "Vector2", {}}, "xw", {} },
+					{{ "Vector2", {}}, "zw", {} },
+					{{ "Vector2", {}}, "yw", {} },
+					{{ "Vector3", {}}, "xyz", {} },
+					{{ "Vector3", {}}, "yzw", {} }
 				}
 			},
 			{ "Vector4Int", {
 					{{ "int", {}}, "x", {} },
 					{{ "int", {}}, "y", {} },
 					{{ "int", {}}, "z", {} },
-					{{ "int", {}}, "w", {} }
+					{{ "int", {}}, "w", {} },
+					{{ "Vector2Int", {}}, "xy", {} },
+					{{ "Vector2Int", {}}, "yz", {} },
+					{{ "Vector2Int", {}}, "zw", {} },
+					{{ "Vector2Int", {}}, "xz", {} },
+					{{ "Vector2Int", {}}, "xw", {} },
+					{{ "Vector2Int", {}}, "zw", {} },
+					{{ "Vector2Int", {}}, "yw", {} },
+					{{ "Vector3Int", {}}, "xyz", {} },
+					{{ "Vector3Int", {}}, "yzw", {} }
 				}
 			},
 			{ "Vector4UInt", {
 					{{ "uint", {}}, "x", {} },
 					{{ "uint", {}}, "y", {} },
 					{{ "uint", {}}, "z", {} },
-					{{ "uint", {}}, "w", {} }
+					{{ "uint", {}}, "w", {} },
+					{{ "Vector2UInt", {}}, "xy", {} },
+					{{ "Vector2UInt", {}}, "yz", {} },
+					{{ "Vector2UInt", {}}, "zw", {} },
+					{{ "Vector2UInt", {}}, "xz", {} },
+					{{ "Vector2UInt", {}}, "xw", {} },
+					{{ "Vector2UInt", {}}, "zw", {} },
+					{{ "Vector2UInt", {}}, "yw", {} },
+					{{ "Vector3UInt", {}}, "xyz", {} },
+					{{ "Vector3UInt", {}}, "yzw", {} }
 				}
 			},
 			{ "Color", {
@@ -330,47 +366,6 @@ namespace Lumina
 		};
 
 		_availibleFunctions.insert(getPixelFunction);
-
-		std::vector<std::tuple<std::string, std::string, std::string>> reductionDescriptions = {
-			{"Vector3", "Vector2", "xy"},
-
-			{"Vector3Int", "Vector2Int", "xy"},
-
-			{"Vector3UInt", "Vector2UInt", "xy"},
-
-			{"Vector4", "Vector2", "xy"},
-			{"Vector4", "Vector3", "xyz"},
-
-			{"Vector4Int", "Vector2Int", "xy"},
-			{"Vector4Int", "Vector3Int", "xyz"},
-
-			{"Vector4UInt", "Vector2UInt", "xy"},
-			{"Vector4UInt", "Vector3UInt", "xyz"}
-			};
-
-		for (const auto& reduction : reductionDescriptions)
-		{
-			FunctionImpl reductionFunction = {
-					.isPrototype = false,
-					.returnType = {_getType(std::get<1>(reduction)), {}},
-					.name = std::get<0>(reduction) + "_" + std::get<2>(reduction),
-					.parameters = {
-						{
-							.type = _getType(std::get<0>(reduction)),
-							.isReference = false,
-							.name = "this",
-							.arraySizes = {}
-						}
-					},
-					.body = {
-						.code = "return (this." + std::get<2>(reduction) + ");\n"
-					}
-			};
-
-			_availibleFunctions.insert(reductionFunction);
-
-			std::cout << "	{\"" << reductionFunction.name << "\", \"" << std::get<2>(reduction) << "\"}," << std::endl;
-		}
 
 		FunctionImpl matrix4multVector3 = {
 					.isPrototype = false,
@@ -635,6 +630,7 @@ namespace Lumina
 
 		_vertexVariables.insert({ _getType("Vector4"),  "pixelPosition", {} });
 		_fragmentVariables.insert({ _getType("Color"),  "pixelColor", {} });
+		_product.value.outputPipelineFlows.push_back({_getType("Color"), "pixelColor", {}});
 
 		struct MethodDescriptor {
 			std::string methodName;
@@ -771,12 +767,10 @@ namespace Lumina
 				{
 					args += ", " + methodFunction.parameters[i].name;
 				}
-				methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");";
+				methodFunction.body.code = "";
+				//methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");";
 
 				_availibleFunctions.insert(methodFunction);
-
-
-				std::cout << "	{\"" << methodFunction.name << "\", \"" << method.glslFunction << "\"}," << std::endl;
 			}
 		}
 

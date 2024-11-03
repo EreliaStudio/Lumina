@@ -42,18 +42,6 @@ namespace Lumina
 		}
 	};
 
-	struct PipelineFlowImpl
-	{
-		enum class Direction
-		{
-			In,
-			Out
-		};
-
-		Direction direction;
-		VariableImpl variable;
-	};
-
 	struct ExpressionTypeImpl
 	{
 		TypeImpl type;
@@ -191,9 +179,9 @@ namespace Lumina
 
 	struct ShaderImpl
 	{
-		std::vector<PipelineFlowImpl> vertexPipelineFlows;
-		std::vector<PipelineFlowImpl> fragmentPipelineFlows;
-		std::vector<PipelineFlowImpl> outputPipelineFlows;
+		std::vector<VariableImpl> vertexPipelineFlows;
+		std::vector<VariableImpl> fragmentPipelineFlows;
+		std::vector<VariableImpl> outputPipelineFlows;
 
 		std::vector<TypeImpl> structures;
 		std::vector<TypeImpl> attributes;
