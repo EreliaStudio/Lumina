@@ -330,7 +330,6 @@ namespace Lumina
 		};
 
 		_availibleFunctions.insert(getPixelFunction);
-		_product.value.functions.push_back(getPixelFunction);
 
 		std::vector<std::tuple<std::string, std::string, std::string>> reductionDescriptions = {
 			{"Vector3", "Vector2", "xy"},
@@ -369,7 +368,8 @@ namespace Lumina
 			};
 
 			_availibleFunctions.insert(reductionFunction);
-			_product.value.functions.push_back(reductionFunction);
+
+			std::cout << "	{\"" << reductionFunction.name << "\", \"" << std::get<2>(reduction) << "\"}," << std::endl;
 		}
 
 		FunctionImpl matrix4multVector3 = {
@@ -397,6 +397,7 @@ namespace Lumina
 
 		_availibleFunctions.insert(matrix4multVector3);
 		_product.value.functions.push_back(matrix4multVector3);
+
 		
 		std::vector<std::tuple<std::string, std::string, std::string, std::string>> operatorToAdd = {
 			{"Matrix2x2", "*", "Vector2", "Vector2"},
@@ -607,7 +608,6 @@ namespace Lumina
 				}
 			};
 
-			std::cout << "Adding operator : " << toAdd.name << std::endl;
 			_availibleFunctions.insert(toAdd);
 		}
 
@@ -775,7 +775,8 @@ namespace Lumina
 
 				_availibleFunctions.insert(methodFunction);
 
-				_product.value.functions.push_back(methodFunction);
+
+				std::cout << "	{\"" << methodFunction.name << "\", \"" << method.glslFunction << "\"}," << std::endl;
 			}
 		}
 
