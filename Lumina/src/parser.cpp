@@ -84,6 +84,14 @@ namespace Lumina
 		VariableImpl result;
 
 		result.type = _getType(p_variableInfo.type);
+
+		if (result.type.name == TypeImpl::DefaultName)
+		{
+			throw TokenBasedError(
+				"Type [" + p_variableInfo.type.value.content + "] not found in this scope",
+				p_variableInfo.type.value
+			);
+		}
 		result.name = _composeName(p_variableInfo.name);
 		result.arraySizes = _composeArraySizes(p_variableInfo.arraySizes);
 

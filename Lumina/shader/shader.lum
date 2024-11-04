@@ -47,7 +47,7 @@ VertexPass()
 {
     Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
     fragPosition = worldPosition.xyz;
-    fragNormal = modelAttributes.normalMatrix * vertexNormal;
+    fragNormal = Matrix3x3(modelAttributes.normalMatrix) * vertexNormal;
     fragUV = vertexUV;
 
     Vector4 clipSpacePosition = worldPosition;

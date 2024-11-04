@@ -34,6 +34,8 @@ namespace Lumina
 
 			{"Texture", "sampler2D"},
 			{"Texture_getPixel", "texture"},
+
+			{"pixelPosition", "gl_Position"},
 		};
 	}
 
@@ -94,7 +96,7 @@ namespace Lumina
 		return (result);
 	}
 
-	std::string Compiler::_compileUniformBlock(const TypeImpl& p_typeImpl)
+	std::string Compiler::_compileUniformBlock(const TypeImpl& p_typeImpl, const std::string& p_blockType)
 	{
 		std::string result;
 
@@ -107,26 +109,7 @@ namespace Lumina
 	{
 		_product = Product();
 
-		for (size_t i = 0; i < p_input.vertexPipelineFlows.size(); i++)
-		{
-			_product.layoutContent += "in " + p_input.vertexPipelineFlows[i].type.name + " " + p_input.vertexPipelineFlows[i].name + "\n";
-			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_input.vertexPipelineFlows[i].type.name + " " + p_input.vertexPipelineFlows[i].name + ";\n";
-		}
-
-		for (size_t i = 0; i < p_input.fragmentPipelineFlows.size(); i++)
-		{
-			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_input.fragmentPipelineFlows[i].type.name + " " + p_input.fragmentPipelineFlows[i].name + ";\n";
-			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_input.fragmentPipelineFlows[i].type.name + " " + p_input.fragmentPipelineFlows[i].name + ";\n";
-		}
-
-		for (size_t i = 0; i < p_input.outputPipelineFlows.size(); i++)
-		{
-			_product.layoutContent += "out " + p_input.outputPipelineFlows[i].type.name + " " + p_input.outputPipelineFlows[i].name + "\n";
-			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_input.outputPipelineFlows[i].type.name + " " + p_input.outputPipelineFlows[i].name + ";\n";
-		}
-
-		_product.vertexCodeContent += "\n";
-		_product.fragmentCodeContent += "\n";
+		applyPipelineFlow(p_input.vertexPipelineFlows, p_input.fragmentPipelineFlows, p_input.outputPipelineFlows);
 
 		for (const auto& structure : p_input.structures)
 		{
@@ -140,7 +123,7 @@ namespace Lumina
 		{
 			std::string attributeCode = _compileTypeImpl("layout(attributes) uniform ", attribute) + " " + attribute.name.substr(0, attribute.name.size() - 5) + ";\n\n";
 
-			_product.attributeContent += _compileUniformBlock(attribute);
+			_product.attributeContent += _compileUniformBlock(attribute, "attribute");
 
 			_product.vertexCodeContent += attributeCode;
 			_product.fragmentCodeContent += attributeCode;
@@ -150,16 +133,10 @@ namespace Lumina
 		{
 			std::string constantCode = _compileTypeImpl("layout(constants) uniform ", constant) + " " + constant.name.substr(0, constant.name.size() - 5) + ";\n\n";
 
+			_product.constantContent += _compileUniformBlock(constant, "constant");
+
 			_product.vertexCodeContent += constantCode;
 			_product.fragmentCodeContent += constantCode;
-		}
-
-		for (const auto& function : p_input.functions)
-		{
-			std::string functionCode = _compileFunction(function) + "\n\n";
-
-			_product.vertexCodeContent += functionCode;
-			_product.fragmentCodeContent += functionCode;
 		}
 
 		for (const auto& texture : p_input.textures)
@@ -172,10 +149,63 @@ namespace Lumina
 			_product.fragmentCodeContent += functionCode;
 		}
 
-		_product.vertexCodeContent += "void main() {\n" + p_input.vertexPipelinePass.body.code + "\n}";
+		for (const auto& function : p_input.functions)
+		{
+			std::string functionCode = _compileFunction(function) + "\n\n";
 
+			_product.vertexCodeContent += functionCode;
+			_product.fragmentCodeContent += functionCode;
+		}
+
+		_product.vertexCodeContent += "void main() {\n" + p_input.vertexPipelinePass.body.code + "\n}";
 		_product.fragmentCodeContent += "void main() {\n" + p_input.fragmentPipelinePass.body.code + "\n}";
 
+		applyStructureRename();
+		applyTextureRename();
+
+		return (_product);
+	}
+	
+	void Compiler::applyPipelineFlow(
+		const std::vector<VariableImpl>& p_vertexFlows,
+		const std::vector<VariableImpl>& p_fragmentFlows,
+		const std::vector<VariableImpl>& p_outputFlows)
+	{
+		for (size_t i = 0; i < p_vertexFlows.size(); i++)
+		{
+			_product.layoutContent += "in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + "\n";
+			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + ";\n";
+		}
+
+		for (size_t i = 0; i < p_fragmentFlows.size(); i++)
+		{
+			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
+			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
+		}
+
+		for (size_t i = 0; i < p_outputFlows.size(); i++)
+		{
+			_product.layoutContent += "out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + "\n";
+			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + ";\n";
+		}
+
+		_product.vertexCodeContent += "\n";
+		_product.fragmentCodeContent += "\n";
+	}
+
+	void Compiler::applyStructureRename()
+	{
+		for (const auto& [key, value] : _textToSwap)
+		{
+			std::regex word_regex("\\b" + key + "\\b");
+
+			_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, value);
+			_product.fragmentCodeContent = std::regex_replace(_product.fragmentCodeContent, word_regex, value);
+		}
+	}
+	
+	void Compiler::applyTextureRename()
+	{
 		for (const auto& textureName : _textureNames)
 		{
 			std::regex word_regex("\\b" + textureName + "\\b");
@@ -185,16 +215,6 @@ namespace Lumina
 			_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "Texture_" + textureName);
 			_product.fragmentCodeContent = std::regex_replace(_product.fragmentCodeContent, word_regex, "Texture_" + textureName);
 		}
-
-		for (const auto& [key, value] : _textToSwap)
-		{
-			std::regex word_regex("\\b" + key + "\\b");
-
-			_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, value);
-			_product.fragmentCodeContent = std::regex_replace(_product.fragmentCodeContent, word_regex, value);
-		}
-
-		return (_product);
 	}
 
 	Compiler::Product Compiler::compile(const Parser::Output& p_input)

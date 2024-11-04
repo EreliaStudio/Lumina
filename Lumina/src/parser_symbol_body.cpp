@@ -218,17 +218,6 @@ namespace Lumina
 
 		std::string functionName = p_lhs.type.name + "_Operator" + operatorName;
 
-		if (p_op == "||")
-		{
-			std::cout << "FunctionName : " << functionName << "(" << p_lhs << ", " << p_rhs << ")" << std::endl;
-		
-			for (const auto& function : _availibleFunctions)
-			{
-				if (function.name.substr(0, 4) == "bool")
-					std::cout << "	Operation : " << function << std::endl;;
-			}
-		}
-
 		FunctionImpl searchFunction;
 		searchFunction.name = functionName;
 		searchFunction.parameters.push_back({
@@ -250,11 +239,6 @@ namespace Lumina
 			{
 				return (*funcIt);
 			}
-		}
-
-		if (p_op == "||")
-		{
-			std::cout << "Not found" << std::endl;
 		}
 
 		return FunctionImpl();

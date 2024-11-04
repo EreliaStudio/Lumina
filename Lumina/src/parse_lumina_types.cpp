@@ -195,6 +195,18 @@ namespace Lumina
 			{
 				_getType("Vector4UInt"),
 				{_getType("Vector4UInt"), _getType("Vector4Int"), _getType("Vector4")}
+			},
+			{
+				_getType("Matrix2x2"),
+				{_getType("Matrix2x2")}
+			},
+			{
+				_getType("Matrix3x3"),
+				{_getType("Matrix3x3")}
+			},
+			{
+				_getType("Matrix4x4"),
+				{_getType("Matrix4x4")}
 			}
 		};
 
@@ -312,6 +324,36 @@ namespace Lumina
 					{},
 					{"float", "float", "float", "float"}
 				}
+			},
+			{
+				"Matrix2x2",
+				{
+					{},
+					{"float", "float",
+					 "float", "float"},
+					{"Matrix3x3"},
+					{"Matrix4x4"}
+				}
+			},
+			{
+				"Matrix3x3",
+				{
+					{},
+					{"float", "float", "float",
+					 "float", "float", "float",
+					 "float", "float", "float" },
+					{"Matrix4x4"}
+				}
+			},
+			{
+				"Matrix4x4",
+				{
+					{},
+					{"float", "float", "float", "float",
+					 "float", "float", "float", "float",
+					 "float", "float", "float", "float",
+					 "float", "float", "float", "float" }
+				}
 			}
 		};
 
@@ -366,33 +408,6 @@ namespace Lumina
 		};
 
 		_availibleFunctions.insert(getPixelFunction);
-
-		FunctionImpl matrix4multVector3 = {
-					.isPrototype = false,
-					.returnType = {_getType("Vector3"), {}},
-					.name = "Matrix4x4_OperatorMultiply",
-					.parameters = {
-						{
-							.type = _getType("Matrix4x4"),
-							.isReference = false,
-							.name = "this",
-							.arraySizes = {}
-						},
-						{
-							.type = _getType("Vector3"),
-							.isReference = false,
-							.name = "target",
-							.arraySizes = {}
-						}
-					},
-					.body = {
-						.code = "return ((this * Vector4(target, 0)).xyz);\n"
-					}
-		};
-
-		_availibleFunctions.insert(matrix4multVector3);
-		_product.value.functions.push_back(matrix4multVector3);
-
 		
 		std::vector<std::tuple<std::string, std::string, std::string, std::string>> operatorToAdd = {
 			{"Matrix2x2", "*", "Vector2", "Vector2"},
