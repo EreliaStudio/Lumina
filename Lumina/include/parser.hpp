@@ -51,15 +51,15 @@ namespace Lumina
 
 		ParameterImpl _composeParameter(const ParameterInfo& p_parameterInfo);
 
-		std::string _composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo);
-		std::string _composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& p_statement);
-		std::string _composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& p_statement);
-		std::string _composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& p_statement);
-		std::string _composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& p_statement);
-		std::string _composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& p_statement);
-		std::string _composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& p_statement);
-		std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& p_statement);
-		std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& p_statement);
+		std::string _composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& p_statement, std::vector<FunctionImpl>& calledFunctions);
 
 		ExpressionTypeImpl _deduceLiteralExpressionType(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expression);
 		ExpressionTypeImpl _deduceVariableExpressionType(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expression);
@@ -72,16 +72,16 @@ namespace Lumina
 		ExpressionTypeImpl _deduceArrayAccessExpressionType(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression);
 		ExpressionTypeImpl _deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression);
 
-		std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression);
+		std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
 		std::string _composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expression);
 		std::string _composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expression);
-		std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expression);
-		std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expression);
-		std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expression);
-		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expression);
-		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression);
-		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression);
-		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression);
+		std::string _composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
+		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions);
 
 		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& p_argumentTypes);
 		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& p_lhs, const std::string& p_op, const ExpressionTypeImpl& p_rhs, bool p_isAssignment = false);

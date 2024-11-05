@@ -403,7 +403,7 @@ namespace Lumina
 					}
 				},
 				.body = {
-					.code = "return (texture(this, UVs));\n"
+					.code = ""
 				}
 		};
 

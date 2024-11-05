@@ -45,7 +45,7 @@
     <ClCompile Include="src\shader_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\parse_lumina_types.cpp">
+    <ClCompile Include="src\parser_lumina_types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\parser_symbol_body.cpp">

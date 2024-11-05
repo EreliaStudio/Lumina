@@ -155,7 +155,7 @@
     <ClCompile Include="src\parser_compose_expression.cpp" />
     <ClCompile Include="src\parser_deduce_types.cpp" />
     <ClCompile Include="src\parser_symbol_body.cpp" />
-    <ClCompile Include="src\parse_lumina_types.cpp" />
+    <ClCompile Include="src\parser_lumina_types.cpp" />
     <ClCompile Include="src\printer.cpp" />
     <ClCompile Include="src\shader_impl.cpp" />
     <ClCompile Include="src\token.cpp" />

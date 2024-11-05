@@ -115,9 +115,12 @@ namespace Lumina
 		}
 	};
 
+	struct FunctionImpl;
+
 	struct SymbolBodyImpl
 	{
 		std::string code;
+		std::vector<FunctionImpl> calledFunctions;
 
 		friend std::ostream& operator<<(std::ostream& os, const SymbolBodyImpl& functionBody)
 		{

@@ -17,8 +17,6 @@ namespace Lumina
 
 		std::map<std::string, std::string> _textToSwap;
 
-		std::vector<std::string> _textureNames;
-
 		Compiler();
 
 		std::string _compileFunction(const FunctionImpl& p_functionImpl);
@@ -29,8 +27,14 @@ namespace Lumina
 			const std::vector<VariableImpl>& p_vertexFlows,
 			const std::vector<VariableImpl>& p_fragmentFlows,
 			const std::vector<VariableImpl>& p_outputFlows);
-		void applyTextureRename();
-		void applyStructureRename();
+		void applyStructures(const std::vector<TypeImpl>& p_structures);
+		void applyAttributes(const std::vector<TypeImpl>& p_attributes);
+		void applyConstants(const std::vector<TypeImpl>& p_constants);
+		void applyFunction(std::string& p_targetString, const FunctionImpl& p_function);
+		void applyTexture(const std::vector<VariableImpl>& p_textures);
+		void applyPipelinePasses(const PipelinePassImpl& p_vertexPass, const PipelinePassImpl& p_fragmentPass);
+
+		void applyRename();
 
 		Product _compile(const Parser::Output& p_input);
 
