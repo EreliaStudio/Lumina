@@ -31,6 +31,13 @@ namespace Lumina
 		void applyFunction(std::string& p_targetString, const FunctionImpl& p_function);
 		void applyTexture(const std::vector<VariableImpl>& p_textures);
 
+		void applyPipelinePass(
+			const PipelinePassImpl& p_pass,
+			std::string& p_target,
+			const std::vector<TypeImpl>& p_structures,
+			const std::vector<TypeImpl>& p_attributes,
+			const std::vector<TypeImpl>& p_constants);
+
 		void applyRename();
 
 		Product _compile(const Parser::Output& p_input);

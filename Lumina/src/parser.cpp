@@ -154,7 +154,7 @@ namespace Lumina
 			functionVariables.insert({.type = paramImpl.type, .name = paramImpl.name, .arraySizes = paramImpl.arraySizes});
 		}
 
-		result.body = _composeSymbolBody(functionVariables, p_functionInfo.body);
+		result.body = _composeSymbolBody(functionVariables, p_functionInfo.body, 1);
 
 		return (result);
 	}
@@ -204,7 +204,7 @@ namespace Lumina
 					});
 			}
 
-			newConstructor.body = _composeSymbolBody(constructionVariables, constructorInfo.body);
+			newConstructor.body = _composeSymbolBody(constructionVariables, constructorInfo.body, 1);
 
 			result.push_back(newConstructor);
 		}
@@ -254,7 +254,7 @@ namespace Lumina
 						});
 				}
 
-				newMethod.body = _composeSymbolBody(methodVariables, methodInfo.body);
+				newMethod.body = _composeSymbolBody(methodVariables, methodInfo.body, 1);
 
 				result.push_back(newMethod);
 			}
@@ -298,7 +298,7 @@ namespace Lumina
 						});
 				}
 
-				newOperator.body = _composeSymbolBody(operatorVariables, operatorInfo.body);
+				newOperator.body = _composeSymbolBody(operatorVariables, operatorInfo.body, 1);
 
 				result.push_back(newOperator);
 			}
@@ -324,7 +324,7 @@ namespace Lumina
 			variables.insert(_fragmentVariables.begin(), _fragmentVariables.end());
 		}
 
-		result.body = _composeSymbolBody(variables, p_pipelinePassInfo.body);
+		result.body = _composeSymbolBody(variables, p_pipelinePassInfo.body, 1);
 
 		return (result);
 	}

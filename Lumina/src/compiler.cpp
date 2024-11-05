@@ -81,7 +81,7 @@ namespace Lumina
 
 		for (const auto& attribute : p_typeImpl.attributes)
 		{
-			result += attribute.type.name;
+			result += std::string(4, ' ') + attribute.type.name;
 			result += " " + attribute.name;
 
 			for (const auto& dim : attribute.arraySizes)
@@ -133,6 +133,36 @@ namespace Lumina
 
 		return (result);
 	}
+	
+	void Compiler::applyPipelinePass(const PipelinePassImpl& p_pass, std::string& p_target,
+		const std::vector<TypeImpl>& p_structures,
+		const std::vector<TypeImpl>& p_attributes,
+		const std::vector<TypeImpl>& p_constants)
+	{
+		for (const auto& type : p_pass.body.usedTypes)
+		{
+			std::string typeCode = "";
+
+			if (std::find(p_structures.begin(), p_structures.end(), type) != p_structures.end())
+			{
+				typeCode = _compileTypeImpl("struct", type) + "\n\n";
+			}
+			else if (std::find(p_attributes.begin(), p_attributes.end(), type) != p_attributes.end())
+			{
+				typeCode = _compileTypeImpl("layout(attributes) uniform", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.attributeContent += _compileUniformBlock(type);
+			}
+			else if (std::find(p_constants.begin(), p_constants.end(), type) != p_constants.end())
+			{
+				typeCode = _compileTypeImpl("layout(constants) uniform", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.constantContent += _compileUniformBlock(type);
+			}
+
+			p_target += typeCode;
+		}
+	}
 
 	Compiler::Product Compiler::_compile(const Parser::Output& p_input)
 	{
@@ -140,53 +170,8 @@ namespace Lumina
 
 		applyPipelineFlow(p_input.vertexPipelineFlows, p_input.fragmentPipelineFlows, p_input.outputPipelineFlows);
 
-		for (const auto& type : p_input.vertexPipelinePass.body.usedTypes)
-		{
-			std::string typeCode = "";
-
-			if (std::find(p_input.structures.begin(), p_input.structures.end(), type) != p_input.structures.end())
-			{
-				typeCode = _compileTypeImpl("struct", type) + "\n\n";
-			}
-			else if (std::find(p_input.attributes.begin(), p_input.attributes.end(), type) != p_input.attributes.end())
-			{
-				typeCode = _compileTypeImpl("layout(attributes) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
-
-				_product.attributeContent += _compileUniformBlock(type);
-			}
-			else if (std::find(p_input.constants.begin(), p_input.constants.end(), type) != p_input.constants.end())
-			{
-				typeCode = _compileTypeImpl("layout(constants) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
-
-				_product.constantContent += _compileUniformBlock(type);
-			}
-
-			_product.vertexCodeContent += typeCode;
-		}
-
-		for (const auto& type : p_input.fragmentPipelinePass.body.usedTypes)
-		{
-			std::string typeCode = "";
-
-			if (std::find(p_input.structures.begin(), p_input.structures.end(), type) != p_input.structures.end())
-			{
-				typeCode = _compileTypeImpl("struct", type) + "\n\n";
-			}
-			else if (std::find(p_input.attributes.begin(), p_input.attributes.end(), type) != p_input.attributes.end())
-			{
-				typeCode = _compileTypeImpl("layout(attributes) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
-
-				_product.attributeContent += _compileUniformBlock(type);
-			}
-			else if (std::find(p_input.constants.begin(), p_input.constants.end(), type) != p_input.constants.end())
-			{
-				typeCode = _compileTypeImpl("layout(constants) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
-
-				_product.constantContent += _compileUniformBlock(type);
-			}
-
-			_product.fragmentCodeContent += typeCode;
-		}
+		applyPipelinePass(p_input.vertexPipelinePass, _product.vertexCodeContent, p_input.structures, p_input.attributes, p_input.constants);
+		applyPipelinePass(p_input.fragmentPipelinePass, _product.fragmentCodeContent, p_input.structures, p_input.attributes, p_input.constants);
 
 		applyTexture(p_input.textures);
 
@@ -200,8 +185,8 @@ namespace Lumina
 			_product.fragmentCodeContent += _compileFunction(function) + "\n\n";
 		}
 
-		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "\n}";
-		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "\n}";
+		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "}";
+		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "}";
 
 		applyRename();
 
