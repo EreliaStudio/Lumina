@@ -66,7 +66,7 @@ namespace Lumina
 				result += "[" + std::to_string(dim) + "]";
 			}
 		}
-		result += ") {\n";
+		result += ")\n{\n";
 		result += p_functionImpl.body.code;
 		result += "}";
 
@@ -77,7 +77,7 @@ namespace Lumina
 	{
 		std::string result;
 
-		result += p_prefix + " " + p_typeImpl.name + " {\n";
+		result += p_prefix + " " + p_typeImpl.name + "\n{\n";
 
 		for (const auto& attribute : p_typeImpl.attributes)
 		{
@@ -111,15 +111,45 @@ namespace Lumina
 
 		applyPipelineFlow(p_input.vertexPipelineFlows, p_input.fragmentPipelineFlows, p_input.outputPipelineFlows);
 
-		applyStructures(p_input.structures);
-		applyAttributes(p_input.attributes);
-		applyConstants(p_input.constants);
+		for (const auto& type : p_input.vertexPipelinePass.body.usedTypes)
+		{
+			std::string typeCode = "";
+
+			if (std::find(p_input.structures.begin(), p_input.structures.end(), type) != p_input.structures.end())
+			{
+				typeCode = _compileTypeImpl("struct", type) + "\n\n";
+			}
+			else if (std::find(p_input.attributes.begin(), p_input.attributes.end(), type) != p_input.attributes.end())
+			{
+				typeCode = _compileTypeImpl("layout(attributes) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.attributeContent += _compileUniformBlock(type, "attribute");
+			}
+			else if (std::find(p_input.constants.begin(), p_input.constants.end(), type) != p_input.constants.end())
+			{
+				typeCode = _compileTypeImpl("layout(constants) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.constantContent += _compileUniformBlock(type, "constant");
+			}
+
+			_product.vertexCodeContent += typeCode;
+			_product.fragmentCodeContent += typeCode;
+		}
 
 		applyTexture(p_input.textures);
 
-		//applyFunctions(p_input.functions);
+		for (const auto& function : p_input.vertexPipelinePass.body.calledFunctions)
+		{
+			_product.vertexCodeContent += _compileFunction(function) + "\n\n";
+		}
 
-		applyPipelinePasses(p_input.vertexPipelinePass, p_input.fragmentPipelinePass);
+		for (const auto& function : p_input.fragmentPipelinePass.body.calledFunctions)
+		{
+			_product.fragmentCodeContent += _compileFunction(function) + "\n\n";
+		}
+
+		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "\n}";
+		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "\n}";
 
 		applyRename();
 
@@ -153,43 +183,16 @@ namespace Lumina
 		_product.fragmentCodeContent += "\n";
 	}
 
-	void Compiler::applyStructures(const std::vector<TypeImpl>& p_structures)
+	void Compiler::applyFunction(std::string& p_targetString, const FunctionImpl& p_function)
 	{
-		for (const auto& structure : p_structures)
+		for (const auto& function : p_function.body.calledFunctions)
 		{
-			std::string structureCode = _compileTypeImpl("struct", structure) + "\n\n";
-
-			_product.vertexCodeContent += structureCode;
-			_product.fragmentCodeContent += structureCode;
+			applyFunction(p_targetString, function);
 		}
+
+		p_targetString += _compileFunction(p_function) + "\n\n";
 	}
 
-	void Compiler::applyAttributes(const std::vector<TypeImpl>& p_attributes)
-	{
-		for (const auto& attribute : p_attributes)
-		{
-			std::string attributeCode = _compileTypeImpl("layout(attributes) uniform ", attribute) + " " + attribute.name.substr(0, attribute.name.size() - 5) + ";\n\n";
-
-			_product.attributeContent += _compileUniformBlock(attribute, "attribute");
-
-			_product.vertexCodeContent += attributeCode;
-			_product.fragmentCodeContent += attributeCode;
-		}
-	}
-	
-	void Compiler::applyConstants(const std::vector<TypeImpl>& p_constants)
-	{
-		for (const auto& constant : p_constants)
-		{
-			std::string constantCode = _compileTypeImpl("layout(constants) uniform ", constant) + " " + constant.name.substr(0, constant.name.size() - 5) + ";\n\n";
-
-			_product.constantContent += _compileUniformBlock(constant, "constant");
-
-			_product.vertexCodeContent += constantCode;
-			_product.fragmentCodeContent += constantCode;
-		}
-	}
-	
 	void Compiler::applyTexture(const std::vector<VariableImpl>& p_textures)
 	{
 		for (const auto& texture : p_textures)
@@ -203,32 +206,6 @@ namespace Lumina
 
 			_textToSwap[texture.name] = "Texture_" + texture.name;
 		}
-	}
-	
-	void Compiler::applyFunction(std::string& p_targetString, const FunctionImpl& p_function)
-	{
-		for (const auto& function : p_function.body.calledFunctions)
-		{
-			applyFunction(p_targetString, function);
-		}
-
-		p_targetString += _compileFunction(p_function) + "\n\n";
-	}
-	
-	void Compiler::applyPipelinePasses(const PipelinePassImpl& p_vertexPass, const PipelinePassImpl& p_fragmentPass)
-	{
-		for (const auto& function : p_vertexPass.body.calledFunctions)
-		{
-			applyFunction(_product.vertexCodeContent, function);
-		}
-
-		for (const auto& function : p_fragmentPass.body.calledFunctions)
-		{
-			applyFunction(_product.fragmentCodeContent, function);
-		}
-
-		_product.vertexCodeContent += "void main() {\n" + p_vertexPass.body.code + "\n}";
-		_product.fragmentCodeContent += "void main() {\n" + p_fragmentPass.body.code + "\n}";
 	}
 	
 	void Compiler::applyRename()

@@ -3,39 +3,46 @@
 
 namespace Lumina
 {
-	std::string Parser::_composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		switch (p_expr.index())
 		{
 		case 0:
-			return (_composeLiteralExpression(p_variables, std::get<0>(p_expr)));
+			return (_composeLiteralExpression(p_variables, std::get<0>(p_expr), usedTypes));
 		case 1:
-			return (_composeVariableExpression(p_variables, std::get<1>(p_expr)));
+			return (_composeVariableExpression(p_variables, std::get<1>(p_expr), usedTypes));
 		case 2:
-			return (_composeBinaryExpression(p_variables, std::get<2>(p_expr), calledFunctions));
+			return (_composeBinaryExpression(p_variables, std::get<2>(p_expr), calledFunctions, usedTypes));
 		case 3:
-			return (_composeUnaryExpression(p_variables, std::get<3>(p_expr), calledFunctions));
+			return (_composeUnaryExpression(p_variables, std::get<3>(p_expr), calledFunctions, usedTypes));
 		case 4:
-			return (_composePostfixExpression(p_variables, std::get<4>(p_expr), calledFunctions));
+			return (_composePostfixExpression(p_variables, std::get<4>(p_expr), calledFunctions, usedTypes));
 		case 5:
-			return (_composeFunctionCallExpression(p_variables, std::get<5>(p_expr), calledFunctions));
+			return (_composeFunctionCallExpression(p_variables, std::get<5>(p_expr), calledFunctions, usedTypes));
 		case 6:
-			return (_composeMethodCallExpression(p_variables, std::get<6>(p_expr), calledFunctions));
+			return (_composeMethodCallExpression(p_variables, std::get<6>(p_expr), calledFunctions, usedTypes));
 		case 7:
-			return (_composeMemberAccessExpression(p_variables, std::get<7>(p_expr), calledFunctions));
+			return (_composeMemberAccessExpression(p_variables, std::get<7>(p_expr), calledFunctions, usedTypes));
 		case 8:
-			return (_composeArrayAccessExpression(p_variables, std::get<8>(p_expr), calledFunctions));
+			return (_composeArrayAccessExpression(p_variables, std::get<8>(p_expr), calledFunctions, usedTypes));
 		default:
 			throw Lumina::TokenBasedError("Unknown expression type.", Token());
 		}
 	}
 
-	std::string Parser::_composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expr)
+	std::string Parser::_composeLiteralExpression(std::set<VariableImpl>& p_variables, const LiteralExpressionInfo& p_expr, std::vector<TypeImpl>& usedTypes)
 	{
+		ExpressionTypeImpl exprType = _deduceLiteralExpressionType(p_variables, p_expr);
+
+		if (std::find(usedTypes.begin(), usedTypes.end(), exprType.type) == usedTypes.end())
+		{
+			usedTypes.push_back(exprType.type);
+		}
+
 		return p_expr.value.content;
 	}
 
-	std::string Parser::_composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expr)
+	std::string Parser::_composeVariableExpression(std::set<VariableImpl>& p_variables, const VariableExpressionInfo& p_expr, std::vector<TypeImpl>& usedTypes)
 	{
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
@@ -43,6 +50,13 @@ namespace Lumina
 			name += ns.content + "::";
 		}
 		name += p_expr.variableName.content;
+
+		ExpressionTypeImpl exprType = _deduceVariableExpressionType(p_variables, p_expr);
+
+		if (std::find(usedTypes.begin(), usedTypes.end(), exprType.type) == usedTypes.end())
+		{
+			usedTypes.push_back(exprType.type);
+		}
 
 		if (p_variables.contains({ {}, name, {} }) == false)
 		{
@@ -56,13 +70,22 @@ namespace Lumina
 		return name;
 	}
 
-	std::string Parser::_composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeBinaryExpression(std::set<VariableImpl>& p_variables, const BinaryExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		ExpressionTypeImpl leftExpressionType = _deduceExpressionType(p_variables, *(p_expr.left));
 		ExpressionTypeImpl rightExpressionType = _deduceExpressionType(p_variables, *(p_expr.right));
 
-		std::string lhs = _composeExpression(p_variables, *(p_expr.left), calledFunctions);
-		std::string rhs = _composeExpression(p_variables, *(p_expr.right), calledFunctions);
+		if (std::find(usedTypes.begin(), usedTypes.end(), leftExpressionType.type) == usedTypes.end())
+		{
+			usedTypes.push_back(leftExpressionType.type);
+		}
+		if (std::find(usedTypes.begin(), usedTypes.end(), rightExpressionType.type) == usedTypes.end())
+		{
+			usedTypes.push_back(rightExpressionType.type);
+		}
+
+		std::string lhs = _composeExpression(p_variables, *(p_expr.left), calledFunctions, usedTypes);
+		std::string rhs = _composeExpression(p_variables, *(p_expr.right), calledFunctions, usedTypes);
 		std::string op = p_expr.operatorToken.content;
 
 		if (leftExpressionType == rightExpressionType && op == "=")
@@ -92,11 +115,11 @@ namespace Lumina
 		return operatorFunction.name + "(" + lhs + ", " + rhs + ")";
 	}
 
-	std::string Parser::_composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeUnaryExpression(std::set<VariableImpl>& p_variables, const UnaryExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		ExpressionTypeImpl operandExpressionType = _deduceExpressionType(p_variables, *(p_expr.operand));
 
-		std::string operand = _composeExpression(p_variables, *(p_expr.operand), calledFunctions);
+		std::string operand = _composeExpression(p_variables, *(p_expr.operand), calledFunctions, usedTypes);
 		std::string op = p_expr.operatorToken.content;
 
 		if (operandExpressionType.arraySizes.size() != 0)
@@ -120,11 +143,11 @@ namespace Lumina
 		return operatorFunction.name + "(" + operand + ")";
 	}
 
-	std::string Parser::_composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composePostfixExpression(std::set<VariableImpl>& p_variables, const PostfixExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		ExpressionTypeImpl operandExpressionType = _deduceExpressionType(p_variables, *(p_expr.operand));
 
-		std::string operand = _composeExpression(p_variables, *(p_expr.operand), calledFunctions);
+		std::string operand = _composeExpression(p_variables, *(p_expr.operand), calledFunctions, usedTypes);
 		std::string op = p_expr.operatorToken.content;
 
 		if (operandExpressionType.arraySizes.size() != 0)
@@ -148,7 +171,7 @@ namespace Lumina
 		return operatorFunction.name + "(" + operand + ")";
 	}
 
-	std::string Parser::_composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeFunctionCallExpression(std::set<VariableImpl>& p_variables, const FunctionCallExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		std::string name;
 		for (const auto& ns : p_expr.namespacePath)
@@ -164,7 +187,12 @@ namespace Lumina
 			ExpressionTypeImpl exprType = _deduceExpressionType(p_variables, *argExpr);
 			argumentTypes.push_back(exprType);
 
-			std::string argCode = _composeExpression(p_variables, *argExpr, calledFunctions);
+			if (std::find(usedTypes.begin(), usedTypes.end(), exprType.type) == usedTypes.end())
+			{
+				usedTypes.push_back(exprType.type);
+			}
+
+			std::string argCode = _composeExpression(p_variables, *argExpr, calledFunctions, usedTypes);
 			argumentCodes.push_back(argCode);
 		}
 
@@ -215,6 +243,10 @@ namespace Lumina
 		if (matchingFunction->body.code != "")
 		{
 			calledFunctions.push_back(*matchingFunction);
+		}
+		if (std::find(usedTypes.begin(), usedTypes.end(), matchingFunction->returnType.type) == usedTypes.end())
+		{
+			usedTypes.push_back(matchingFunction->returnType.type);
 		}
 		return name + "(" + args + ")";
 	}
@@ -303,9 +335,9 @@ namespace Lumina
 
 		return bestMatch;
 	}
-	std::string Parser::_composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		std::string objectExpression = _composeExpression(p_variables, *(p_expr.object), calledFunctions);
+		std::string objectExpression = _composeExpression(p_variables, *(p_expr.object), calledFunctions, usedTypes);
 		ExpressionTypeImpl objectType = _deduceExpressionType(p_variables, *(p_expr.object));
 
 		std::string methodName = objectType.type.name + "_" + p_expr.name.content;
@@ -321,7 +353,7 @@ namespace Lumina
 			ExpressionTypeImpl argType = _deduceExpressionType(p_variables, *argExpr);
 			argumentTypes.push_back(argType);
 
-			std::string argExpression = _composeExpression(p_variables, *argExpr, calledFunctions);
+			std::string argExpression = _composeExpression(p_variables, *argExpr, calledFunctions, usedTypes);
 			argumentExpressions.push_back(argExpression);
 		}
 
@@ -344,7 +376,7 @@ namespace Lumina
 				}
 			}
 
-			Token errorToken = _getExpressionToken(*(p_expr.object))+ p_expr.name + _getExpressionToken(*(p_expr.arguments).front());
+			Token errorToken = _getExpressionToken(*(p_expr.object)) + p_expr.name + _getExpressionToken(*(p_expr.arguments).front());
 
 			throw TokenBasedError(
 				"No method [" + p_expr.name.content + "] for type [" + objectType.type.name + "] with parameters [" + parameterString + "]",
@@ -391,17 +423,17 @@ namespace Lumina
 		return methodName + "(" + parameters + ")";
 	}
 
-	std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		std::string object = _composeExpression(p_variables, *(p_expr.object), calledFunctions);
+		std::string object = _composeExpression(p_variables, *(p_expr.object), calledFunctions, usedTypes);
 		std::string member = p_expr.memberName.content;
 		return object + "." + member;
 	}
 
-	std::string Parser::_composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		std::string arrayResult = _composeExpression(p_variables, *(p_expr.array), calledFunctions);
-		std::string index = _composeExpression(p_variables, *(p_expr.index), calledFunctions);
+		std::string arrayResult = _composeExpression(p_variables, *(p_expr.array), calledFunctions, usedTypes);
+		std::string index = _composeExpression(p_variables, *(p_expr.index), calledFunctions, usedTypes);
 		return arrayResult + "[" + index + "]";
 	}
 }

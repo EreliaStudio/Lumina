@@ -121,6 +121,7 @@ namespace Lumina
 	{
 		std::string code;
 		std::vector<FunctionImpl> calledFunctions;
+		std::vector<TypeImpl> usedTypes;
 
 		friend std::ostream& operator<<(std::ostream& os, const SymbolBodyImpl& functionBody)
 		{

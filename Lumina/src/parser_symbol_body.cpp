@@ -8,12 +8,13 @@ namespace Lumina
 
 		std::string code;
 		std::vector<FunctionImpl> calledFunctions;
+		std::vector<TypeImpl> usedTypes;
 
 		for (const auto& statement : p_symbolBodyInfo.statements)
 		{
 			try
 			{
-				std::string statementCode = _composeStatement(p_variables, statement, calledFunctions);
+				std::string statementCode = _composeStatement(p_variables, statement, calledFunctions, usedTypes);
 				code += statementCode + "\n";
 			}
 			catch (const Lumina::TokenBasedError& e)
@@ -24,38 +25,40 @@ namespace Lumina
 
 		result.code = code;
 		result.calledFunctions = calledFunctions;
+		result.usedTypes = usedTypes;
 
 		return result;
 	}
 
-	std::string Parser::_composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeStatement(std::set<VariableImpl>& p_variables, const StatementInfo& p_statementInfo, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		switch (p_statementInfo.index())
 		{
 		case 0:
-			return (_composeVariableDeclaration(p_variables, std::get<0>(p_statementInfo), calledFunctions) + ";");
+			return (_composeVariableDeclaration(p_variables, std::get<0>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 1:
-			return (_composeExpressionStatement(p_variables, std::get<1>(p_statementInfo), calledFunctions) + ";");
+			return (_composeExpressionStatement(p_variables, std::get<1>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 2:
-			return (_composeAssignmentStatement(p_variables, std::get<2>(p_statementInfo), calledFunctions) + ";");
+			return (_composeAssignmentStatement(p_variables, std::get<2>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 3:
-			return (_composeReturnStatement(p_variables, std::get<3>(p_statementInfo), calledFunctions) + ";");
+			return (_composeReturnStatement(p_variables, std::get<3>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 4:
 			return ("discard;");
 		case 5:
-			return (_composeIfStatement(p_variables, std::get<5>(p_statementInfo), calledFunctions) + ";");
+			return (_composeIfStatement(p_variables, std::get<5>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 6:
-			return (_composeWhileStatement(p_variables, std::get<6>(p_statementInfo), calledFunctions) + ";");
+			return (_composeWhileStatement(p_variables, std::get<6>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 7:
-			return (_composeForStatement(p_variables, std::get<7>(p_statementInfo), calledFunctions) + ";");
+			return (_composeForStatement(p_variables, std::get<7>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 8:
-			return (_composeRaiseExceptionStatement(p_variables, std::get<8>(p_statementInfo), calledFunctions) + ";");
+			return (_composeRaiseExceptionStatement(p_variables, std::get<8>(p_statementInfo), calledFunctions, usedTypes) + ";");
 		case 9:
-			{
-				SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, std::get<9>(p_statementInfo).body);
-				calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
-				return ("{\n" + innerBody.code + "}\n");
-			}
+		{
+			SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, std::get<9>(p_statementInfo).body);
+			calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
+			usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
+			return ("{\n" + innerBody.code + "}\n");
+		}
 		default:
 			throw Lumina::TokenBasedError("Unknown statement type.", Token());
 		}
@@ -63,7 +66,7 @@ namespace Lumina
 		return ("");
 	}
 
-	std::string Parser::_composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeVariableDeclaration(std::set<VariableImpl>& p_variables, const VariableDeclarationStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		VariableImpl var = _composeVariable(p_stmt.variable);
 
@@ -90,7 +93,7 @@ namespace Lumina
 				}
 			}
 
-			std::string initializerCode = _composeExpression(p_variables, *p_stmt.initializer, calledFunctions);
+			std::string initializerCode = _composeExpression(p_variables, *p_stmt.initializer, calledFunctions, usedTypes);
 
 			if (conversionAvailable)
 			{
@@ -126,17 +129,17 @@ namespace Lumina
 		return code;
 	}
 
-	std::string Parser::_composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeExpressionStatement(std::set<VariableImpl>& p_variables, const ExpressionStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		return _composeExpression(p_variables, *p_stmt.expression, calledFunctions);
+		return _composeExpression(p_variables, *p_stmt.expression, calledFunctions, usedTypes);
 	}
 
-	std::string Parser::_composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeAssignmentStatement(std::set<VariableImpl>& p_variables, const AssignmentStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		ExpressionTypeImpl targetExpressionType = _deduceExpressionType(p_variables, *p_stmt.target);
 		ExpressionTypeImpl valueExpressionType = _deduceExpressionType(p_variables, *p_stmt.value);
-		std::string target = _composeExpression(p_variables, *p_stmt.target, calledFunctions);
-		std::string value = _composeExpression(p_variables, *p_stmt.value, calledFunctions);
+		std::string target = _composeExpression(p_variables, *p_stmt.target, calledFunctions, usedTypes);
+		std::string value = _composeExpression(p_variables, *p_stmt.value, calledFunctions, usedTypes);
 		std::string op = p_stmt.operatorToken.content;
 
 		FunctionImpl operatorFunction = _findOperatorFunction(p_variables, targetExpressionType, op, valueExpressionType, true);
@@ -150,11 +153,11 @@ namespace Lumina
 		}
 	}
 
-	std::string Parser::_composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeReturnStatement(std::set<VariableImpl>& p_variables, const ReturnStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		if (p_stmt.expression)
 		{
-			return "return " + _composeExpression(p_variables, *p_stmt.expression, calledFunctions);
+			return "return " + _composeExpression(p_variables, *p_stmt.expression, calledFunctions, usedTypes);
 		}
 		else
 		{
@@ -162,56 +165,69 @@ namespace Lumina
 		}
 	}
 
-	std::string Parser::_composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeRaiseExceptionStatement(std::set<VariableImpl>& p_variables, const RaiseExceptionStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		return _composeFunctionCallExpression(p_variables, *p_stmt.functionCall, calledFunctions);
+		return _composeFunctionCallExpression(p_variables, *p_stmt.functionCall, calledFunctions, usedTypes);
 	}
 
-	std::string Parser::_composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeIfStatement(std::set<VariableImpl>& p_variables, const IfStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		std::string code;
 		bool first = true;
 		for (const auto& branch : p_stmt.branches)
 		{
-			if (first)
+			if (first == true)
 			{
-				code += "if (" + _composeExpression(p_variables, *branch.condition, calledFunctions) + ")\n";
+				code += "if (" + _composeExpression(p_variables, *branch.condition, calledFunctions, usedTypes) + ")\n";
 			}
 			else
 			{
-				code += "else if (" + _composeExpression(p_variables, *branch.condition, calledFunctions) + ")\n";
+				code += "else if (" + _composeExpression(p_variables, *branch.condition, calledFunctions, usedTypes) + ")\n";
 			}
-			code += "{\n" + _composeSymbolBody(p_variables, branch.body).code + "}\n";
+			SymbolBodyImpl branchBody = _composeSymbolBody(p_variables, branch.body);
+
+			calledFunctions.insert(calledFunctions.end(), branchBody.calledFunctions.begin(), branchBody.calledFunctions.end());
+			usedTypes.insert(usedTypes.end(), branchBody.usedTypes.begin(), branchBody.usedTypes.end());
+
+			code += "{\n" + branchBody.code + "}\n";
+			
 			first = false;
 		}
 
 		if (!p_stmt.elseBody.statements.empty())
 		{
-			code += "else\n{\n" + _composeSymbolBody(p_variables, p_stmt.elseBody).code + "}\n";
+			SymbolBodyImpl elseBody = _composeSymbolBody(p_variables, p_stmt.elseBody);
+
+			calledFunctions.insert(calledFunctions.end(), elseBody.calledFunctions.begin(), elseBody.calledFunctions.end());
+			usedTypes.insert(usedTypes.end(), elseBody.usedTypes.begin(), elseBody.usedTypes.end());
+
+			code += "else\n{\n" + elseBody.code + "}\n";
 		}
 
 		return code;
 	}
 
-	std::string Parser::_composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeWhileStatement(std::set<VariableImpl>& p_variables, const WhileStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		std::string condition = _composeExpression(p_variables, *p_stmt.loop.condition, calledFunctions);
+		std::string condition = _composeExpression(p_variables, *p_stmt.loop.condition, calledFunctions, usedTypes);
 		SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, p_stmt.loop.body);
 		calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
+		usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
 
 		std::string code = "while (" + condition + ")\n{\n" + innerBody.code + "}\n";
 
 		return code;
 	}
 
-	std::string Parser::_composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions)
+	std::string Parser::_composeForStatement(std::set<VariableImpl>& p_variables, const ForStatementInfo& p_stmt, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
-		std::string init = p_stmt.initializer ? _composeStatement(p_variables, *p_stmt.initializer, calledFunctions) : "";
-		std::string condition = p_stmt.condition ? _composeExpression(p_variables, *p_stmt.condition, calledFunctions) : "";
-		std::string increment = p_stmt.increment ? _composeExpression(p_variables, *p_stmt.increment, calledFunctions) : "";
+		std::string init = p_stmt.initializer ? _composeStatement(p_variables, *p_stmt.initializer, calledFunctions, usedTypes) : "";
+		std::string condition = p_stmt.condition ? _composeExpression(p_variables, *p_stmt.condition, calledFunctions, usedTypes) : "";
+		std::string increment = p_stmt.increment ? _composeExpression(p_variables, *p_stmt.increment, calledFunctions, usedTypes) : "";
 
 		SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, p_stmt.body);
 		calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
+		usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
 
 		if (!init.empty() && init.back() == ';')
 			init.pop_back();
