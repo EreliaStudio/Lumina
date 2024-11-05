@@ -62,76 +62,40 @@ namespace Lumina
 			{ "Vector3", {
 					{{ "float", {}}, "x", {} },
 					{{ "float", {}}, "y", {} },
-					{{ "float", {}}, "z", {} },
-					{{ "Vector2", {}}, "xy", {} },
-					{{ "Vector2", {}}, "yz", {} },
-					{{ "Vector2", {}}, "xz", {} }
+					{{ "float", {}}, "z", {} }
 				}
 			},
 			{ "Vector3Int", {
 					{{ "int", {}}, "x", {} },
 					{{ "int", {}}, "y", {} },
-					{{ "int", {}}, "z", {} },
-					{{ "Vector2Int", {}}, "xy", {} },
-					{{ "Vector2Int", {}}, "yz", {} },
-					{{ "Vector2Int", {}}, "xz", {} }
+					{{ "int", {}}, "z", {} }
 				}
 			},
 			{ "Vector3UInt", {
 					{{ "uint", {}}, "x", {} },
 					{{ "uint", {}}, "y", {} },
-					{{ "uint", {}}, "z", {} },
-					{{ "Vector2UInt", {}}, "xy", {} },
-					{{ "Vector2UInt", {}}, "yz", {} },
-					{{ "Vector2UInt", {}}, "xz", {} }
+					{{ "uint", {}}, "z", {} }
 				}
 			},
 			{ "Vector4", {
 					{{ "float", {}}, "x", {} },
 					{{ "float", {}}, "y", {} },
 					{{ "float", {}}, "z", {} },
-					{{ "float", {}}, "w", {} },
-					{{ "Vector2", {}}, "xy", {} },
-					{{ "Vector2", {}}, "yz", {} },
-					{{ "Vector2", {}}, "zw", {} },
-					{{ "Vector2", {}}, "xz", {} },
-					{{ "Vector2", {}}, "xw", {} },
-					{{ "Vector2", {}}, "zw", {} },
-					{{ "Vector2", {}}, "yw", {} },
-					{{ "Vector3", {}}, "xyz", {} },
-					{{ "Vector3", {}}, "yzw", {} }
+					{{ "float", {}}, "w", {} }
 				}
 			},
 			{ "Vector4Int", {
 					{{ "int", {}}, "x", {} },
 					{{ "int", {}}, "y", {} },
 					{{ "int", {}}, "z", {} },
-					{{ "int", {}}, "w", {} },
-					{{ "Vector2Int", {}}, "xy", {} },
-					{{ "Vector2Int", {}}, "yz", {} },
-					{{ "Vector2Int", {}}, "zw", {} },
-					{{ "Vector2Int", {}}, "xz", {} },
-					{{ "Vector2Int", {}}, "xw", {} },
-					{{ "Vector2Int", {}}, "zw", {} },
-					{{ "Vector2Int", {}}, "yw", {} },
-					{{ "Vector3Int", {}}, "xyz", {} },
-					{{ "Vector3Int", {}}, "yzw", {} }
+					{{ "int", {}}, "w", {} }
 				}
 			},
 			{ "Vector4UInt", {
 					{{ "uint", {}}, "x", {} },
 					{{ "uint", {}}, "y", {} },
 					{{ "uint", {}}, "z", {} },
-					{{ "uint", {}}, "w", {} },
-					{{ "Vector2UInt", {}}, "xy", {} },
-					{{ "Vector2UInt", {}}, "yz", {} },
-					{{ "Vector2UInt", {}}, "zw", {} },
-					{{ "Vector2UInt", {}}, "xz", {} },
-					{{ "Vector2UInt", {}}, "xw", {} },
-					{{ "Vector2UInt", {}}, "zw", {} },
-					{{ "Vector2UInt", {}}, "yw", {} },
-					{{ "Vector3UInt", {}}, "xyz", {} },
-					{{ "Vector3UInt", {}}, "yzw", {} }
+					{{ "uint", {}}, "w", {} }
 				}
 			},
 			{ "Color", {

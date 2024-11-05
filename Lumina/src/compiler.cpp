@@ -96,11 +96,40 @@ namespace Lumina
 		return (result);
 	}
 
-	std::string Compiler::_compileUniformBlock(const TypeImpl& p_typeImpl, const std::string& p_blockType)
+	std::string Compiler::_compileUniformBlockAttribute(const VariableImpl& p_variable, size_t p_tabulationSize)
 	{
 		std::string result;
 
+		result += std::string(p_tabulationSize * 4, ' ') + p_variable.name + " {";
 
+		if (p_variable.type.attributes.size() != 0)
+			result += "\n";
+
+		for (const auto& attribute : p_variable.type.attributes)
+		{
+			result += _compileUniformBlockAttribute(attribute, p_tabulationSize + 1) + "\n";
+		}
+
+		result += "}";
+
+		return (result);
+	}
+
+	std::string Compiler::_compileUniformBlock(const TypeImpl& p_typeImpl)
+	{
+		std::string result;
+
+		result += p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " {";
+		
+		if (p_typeImpl.attributes.size() != 0)
+			result += "\n";
+
+		for (const auto& attribute : p_typeImpl.attributes)
+		{
+			result += _compileUniformBlockAttribute(attribute, 1) + "\n";
+		}
+
+		result += "}";
 
 		return (result);
 	}
@@ -123,16 +152,39 @@ namespace Lumina
 			{
 				typeCode = _compileTypeImpl("layout(attributes) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
 
-				_product.attributeContent += _compileUniformBlock(type, "attribute");
+				_product.attributeContent += _compileUniformBlock(type);
 			}
 			else if (std::find(p_input.constants.begin(), p_input.constants.end(), type) != p_input.constants.end())
 			{
 				typeCode = _compileTypeImpl("layout(constants) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
 
-				_product.constantContent += _compileUniformBlock(type, "constant");
+				_product.constantContent += _compileUniformBlock(type);
 			}
 
 			_product.vertexCodeContent += typeCode;
+		}
+
+		for (const auto& type : p_input.fragmentPipelinePass.body.usedTypes)
+		{
+			std::string typeCode = "";
+
+			if (std::find(p_input.structures.begin(), p_input.structures.end(), type) != p_input.structures.end())
+			{
+				typeCode = _compileTypeImpl("struct", type) + "\n\n";
+			}
+			else if (std::find(p_input.attributes.begin(), p_input.attributes.end(), type) != p_input.attributes.end())
+			{
+				typeCode = _compileTypeImpl("layout(attributes) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.attributeContent += _compileUniformBlock(type);
+			}
+			else if (std::find(p_input.constants.begin(), p_input.constants.end(), type) != p_input.constants.end())
+			{
+				typeCode = _compileTypeImpl("layout(constants) uniform ", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
+
+				_product.constantContent += _compileUniformBlock(type);
+			}
+
 			_product.fragmentCodeContent += typeCode;
 		}
 

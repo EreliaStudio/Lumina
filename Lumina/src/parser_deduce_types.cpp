@@ -298,6 +298,7 @@ namespace Lumina
 		ExpressionTypeImpl objectType = _deduceExpressionType(p_variables, *(p_expr.object));
 		std::string memberName = p_expr.memberName.content;
 
+
 		auto it = objectType.type.attributes.find({ {}, memberName, {} });
 		if (it != objectType.type.attributes.end())
 		{
@@ -305,6 +306,29 @@ namespace Lumina
 		}
 		else
 		{
+			std::set<std::string> acceptedSwizzlingStructures = { "Vector3", "Vector3Int", "Vector3UInt","Vector4", "Vector4Int", "Vector4UInt", };
+
+			if (objectType.arraySizes.size() == 0 && acceptedSwizzlingStructures.contains(objectType.type.name) && memberName.size() >= 2 && memberName.size() <= 4)
+			{
+				bool error = false;
+
+				for (const auto& c : memberName)
+				{
+					auto it = objectType.type.attributes.find({ {}, std::string(1, c), {} });
+					if (it == objectType.type.attributes.end())
+					{
+						error = true;
+					}
+				}
+
+				if (error == false)
+				{
+					std::string expectedType = objectType.type.name;
+					expectedType[6] = '0' + static_cast<char>(memberName.size());
+					return { _getType(expectedType), {} };
+				}
+			}
+
 			throw Lumina::TokenBasedError("Member [" + memberName + "] not found in type [" + objectType.type.name + "]", p_expr.memberName);
 		}
 	}
