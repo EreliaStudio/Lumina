@@ -23,7 +23,7 @@ AttributeBlock modelAttributes
 ConstantBlock lightingConstants
 {
     Vector3 lightPosition;
-    Vector3 lightColor;
+    Vector3 lightColor[3];
     float ambientIntensity;
 };
 
@@ -60,7 +60,7 @@ FragmentPass()
     Vector3 lightDir = (lightingConstants.lightPosition - fragPosition).normalize();
     Vector3 viewDir = -fragPosition.normalize();
 
-    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor;
+    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor[0];
 
     Vector3 diffuse = Lighting::calculateDiffuse(normal, lightDir, lightingConstants.lightColor);
 

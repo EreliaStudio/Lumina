@@ -96,19 +96,35 @@ namespace Lumina
 		return (result);
 	}
 
-	std::string Compiler::_compileUniformBlockAttribute(const VariableImpl& p_variable, size_t p_tabulationSize)
+	std::string Compiler::_compileUniformBlockAttribute(const VariableImpl& p_variable, size_t p_tabulationSize, size_t& cpuOffset, size_t& cpuSize, size_t& gpuOffset, size_t& gpuSize)
 	{
 		std::string result;
 
-		result += std::string(p_tabulationSize * 4, ' ') + p_variable.name + " {";
+		size_t cpuSize = 0;
+		size_t gpuSize = 0;
+
+		size_t nbElement = 1;
+
+		for (const auto& dim : p_variable.arraySizes)
+		{
+			nbElement *= dim;
+		}
+
+		std::string content = 0;
+		for (const auto& attribute : p_variable.type.attributes)
+		{
+			content += _compileUniformBlockAttribute(attribute, p_tabulationSize + 1, cpuOffset, cpuSize, gpuOffset, gpuSize) + "\n";
+		}
+
+		result += std::string(p_tabulationSize * 4, ' ') + p_variable.name + " " +
+			std::to_string(cpuOffset) + " " + std::to_string(cpuSize) + " " +
+			std::to_string(gpuOffset) + " " + std::to_string(gpuSize) + " " +
+			std::to_string(nbElement) + " {";
 
 		if (p_variable.type.attributes.size() != 0)
 			result += "\n";
 
-		for (const auto& attribute : p_variable.type.attributes)
-		{
-			result += _compileUniformBlockAttribute(attribute, p_tabulationSize + 1) + "\n";
-		}
+		result += content;
 
 		result += "}";
 
@@ -119,16 +135,23 @@ namespace Lumina
 	{
 		std::string result;
 
-		result += p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " {";
-		
+		size_t cpuOffset = 0;
+		size_t cpuSize = 0;
+		size_t gpuOffset = 0;
+		size_t gpuSize = 0;
+
+		std::string content;
+		for (const auto& attribute : p_typeImpl.attributes)
+		{
+			content += _compileUniformBlockAttribute(attribute, 1, cpuOffset, cpuSize, gpuOffset, gpuSize) + "\n";
+		}
+
+		result = p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " " + std::to_string(cpuSize) + " " + std::to_string(gpuSize) + "{";
+
 		if (p_typeImpl.attributes.size() != 0)
 			result += "\n";
 
-		for (const auto& attribute : p_typeImpl.attributes)
-		{
-			result += _compileUniformBlockAttribute(attribute, 1) + "\n";
-		}
-
+		result += content;
 		result += "}";
 
 		return (result);
