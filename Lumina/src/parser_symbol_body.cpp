@@ -17,7 +17,7 @@ namespace Lumina
 				std::string statementCode = _composeStatement(p_variables, statement, calledFunctions, usedTypes, depth);
 				code += statementCode + "\n";
 			}
-			catch (const Lumina::TokenBasedError& e)
+			catch (Lumina::TokenBasedError& e)
 			{
 				_product.errors.push_back(e);
 			}

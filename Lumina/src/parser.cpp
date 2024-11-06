@@ -172,10 +172,108 @@ namespace Lumina
 		return (result);
 	}
 
-	std::vector<FunctionImpl> Parser::_composeConstructors(const BlockInfo& p_blockInfo)
+	void Parser::_composeConstructorPrototypes(const BlockInfo& p_blockInfo)
 	{
-		std::vector<FunctionImpl> result;
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
 
+		for (const auto& constructorInfo : p_blockInfo.constructorInfos)
+		{
+			FunctionImpl newConstructor = {
+				.isPrototype = true,
+				.returnType = {originator, {}},
+				.name = originator.name,
+				.parameters = {},
+				.body = {}
+			};
+
+			for (const auto& param : constructorInfo.parameters)
+			{
+				ParameterImpl paramImpl = _composeParameter(param);
+
+				newConstructor.parameters.push_back(paramImpl);
+			}
+
+			_availibleFunctions.insert(newConstructor);
+		}
+	}
+
+	void Parser::_composeMethodPrototypes(const BlockInfo& p_blockInfo)
+	{
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
+
+		for (const auto& [key, methodInfoArray] : p_blockInfo.methodInfos)
+		{
+			for (const auto& methodInfo : methodInfoArray)
+			{
+				std::string methodName = _composeName(methodInfo.name);
+
+				if (originator.attributes.size() != 0 &&
+					std::find_if(
+						originator.attributes.begin(),
+						originator.attributes.end(),
+						[&methodName](const VariableImpl& attr)
+						{
+							return attr.name == methodName;
+						}
+					) != originator.attributes.end())
+				{
+					throw TokenBasedError("The method [" + methodName + "] conflicts with an attribute name.", methodInfo.name.value);
+				}
+
+				FunctionImpl newMethod = {
+					.isPrototype = true,
+					.returnType = {_getType(methodInfo.returnType.type), _composeArraySizes(methodInfo.returnType.arraySizes)},
+					.name = originator.name + "_" + methodName,
+					.parameters = {},
+					.body = {}
+				};
+
+				newMethod.parameters.push_back({ originator, true, "this", {} });
+
+				for (const auto& param : methodInfo.parameters)
+				{
+					ParameterImpl paramImpl = _composeParameter(param);
+
+					newMethod.parameters.push_back(paramImpl);
+				}
+
+				_availibleFunctions.insert(newMethod);
+			}
+		}
+	}
+	
+	void Parser::_composeOperatorPrototypes(const BlockInfo& p_blockInfo)
+	{
+		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
+
+		for (const auto& [key, operatorInfoArray] : p_blockInfo.operatorInfos)
+		{
+			for (const auto& operatorInfo : operatorInfoArray)
+			{
+				FunctionImpl newOperator = {
+					.isPrototype = true,
+					.returnType = {_getType(operatorInfo.returnType.type), _composeArraySizes(operatorInfo.returnType.arraySizes)},
+					.name = originator.name + "_Operator" + _operatorNames.at(operatorInfo.opeType.content),
+					.parameters = {},
+					.body = {}
+				};
+
+				newOperator.parameters.push_back({ originator, true, "this", {} });
+
+				for (const auto& param : operatorInfo.parameters)
+				{
+					ParameterImpl paramImpl = _composeParameter(param);
+
+					newOperator.parameters.push_back(paramImpl);
+				}
+
+				_availibleFunctions.insert(newOperator);
+			}
+		}
+	}
+
+	void Parser::_composeConstructors(const BlockInfo& p_blockInfo)
+	{
 		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
 
 		for (const auto& constructorInfo : p_blockInfo.constructorInfos)
@@ -189,7 +287,6 @@ namespace Lumina
 				.body = {}
 			};
 
-			newConstructor.parameters.push_back({ originator, true, "this", {} });
 			constructionVariables.insert({ originator, "this", {} });
 
 			for (const auto& param : constructorInfo.parameters)
@@ -206,16 +303,13 @@ namespace Lumina
 
 			newConstructor.body = _composeSymbolBody(constructionVariables, constructorInfo.body, 1);
 
-			result.push_back(newConstructor);
+			_availibleFunctions.insert(newConstructor);
+			_product.value.functions.push_back(newConstructor);
 		}
-
-		return (result);
 	}
 
-	std::vector<FunctionImpl> Parser::_composeMethods(const BlockInfo& p_blockInfo)
+	void Parser::_composeMethods(const BlockInfo& p_blockInfo)
 	{
-		std::vector<FunctionImpl> result;
-
 		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
 
 		for (const auto& [key, methodInfoArray] : p_blockInfo.methodInfos)
@@ -240,7 +334,7 @@ namespace Lumina
 				std::set<VariableImpl> methodVariables = _globalVariables;
 				FunctionImpl newMethod = {
 					.isPrototype = methodInfo.isPrototype,
-					.returnType = {originator, {}},
+					.returnType = {_getType(methodInfo.returnType.type), _composeArraySizes(methodInfo.returnType.arraySizes)},
 					.name = originator.name + "_" + methodName,
 					.parameters = {},
 					.body = {}
@@ -263,18 +357,14 @@ namespace Lumina
 
 				newMethod.body = _composeSymbolBody(methodVariables, methodInfo.body, 1);
 
-				result.push_back(newMethod);
+				_availibleFunctions.insert(newMethod);
+				_product.value.functions.push_back(newMethod);
 			}
 		}
-
-		return (result);
 	}
 	
-	std::vector<FunctionImpl> Parser::_composeOperators(const BlockInfo& p_blockInfo)
+	void Parser::_composeOperators(const BlockInfo& p_blockInfo)
 	{
-		
-		std::vector<FunctionImpl> result;
-
 		TypeImpl originator = _getType(_composeName(p_blockInfo.name));
 
 		for (const auto& [key, operatorInfoArray] : p_blockInfo.operatorInfos)
@@ -284,7 +374,7 @@ namespace Lumina
 				std::set<VariableImpl> operatorVariables = _globalVariables;
 				FunctionImpl newOperator = {
 					.isPrototype = operatorInfo.isPrototype,
-					.returnType = {originator, {}},
+					.returnType = {_getType(operatorInfo.returnType.type), _composeArraySizes(operatorInfo.returnType.arraySizes)},
 					.name = originator.name + "_Operator" + _operatorNames.at(operatorInfo.opeType.content),
 					.parameters = {},
 					.body = {}
@@ -307,11 +397,10 @@ namespace Lumina
 
 				newOperator.body = _composeSymbolBody(operatorVariables, operatorInfo.body, 1);
 
-				result.push_back(newOperator);
+				_availibleFunctions.insert(newOperator);
+				_product.value.functions.push_back(newOperator);
 			}
 		}
-
-		return (result);
 	}
 
 	PipelinePassImpl Parser::_composePipelinePass(const PipelinePassInfo& p_pipelinePassInfo)
@@ -413,27 +502,13 @@ namespace Lumina
 		_convertionTable[newType] = {_getType(newType.name)};
 		p_destination.push_back(newType);
 
-		std::vector<FunctionImpl> constructors = _composeConstructors(p_blockInfo);
-		std::vector<FunctionImpl> methods = _composeMethods(p_blockInfo);
-		std::vector<FunctionImpl> operators = _composeOperators(p_blockInfo);
+		_composeConstructorPrototypes(p_blockInfo);
+		_composeMethodPrototypes(p_blockInfo);
+		_composeOperatorPrototypes(p_blockInfo);
 
-		for (const auto& function : constructors)
-		{
-			_availibleFunctions.insert(function);
-			_product.value.functions.push_back(function);
-		}
-
-		for (const auto& function : methods)
-		{
-			_availibleFunctions.insert(function);
-			_product.value.functions.push_back(function);
-		}
-
-		for (const auto& function : operators)
-		{
-			_availibleFunctions.insert(function);
-			_product.value.functions.push_back(function);
-		}
+		_composeConstructors(p_blockInfo);
+		_composeMethods(p_blockInfo);
+		_composeOperators(p_blockInfo);
 	}
 	
 	void Parser::_parseBlockArray(const std::vector<BlockInfo>& p_blockInfos, std::vector<TypeImpl>& p_destination, bool p_needInstanciation)

@@ -83,6 +83,7 @@ namespace Lumina
 		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
 		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
 
+		std::vector<const FunctionImpl*> _getFunctionsWithNamespaces(const std::string& p_relativeName);
 		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& p_argumentTypes);
 		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& p_lhs, const std::string& p_op, const ExpressionTypeImpl& p_rhs, bool p_isAssignment = false);
 		FunctionImpl _findUnaryOperatorFunction(std::set<VariableImpl>& p_variables, const std::string& p_op, const ExpressionTypeImpl& p_operand);
@@ -95,9 +96,13 @@ namespace Lumina
 
 		TypeImpl _composeTypeImpl(const BlockInfo& p_blockInfo);
 
-		std::vector<FunctionImpl> _composeConstructors(const BlockInfo& p_blockInfo);
-		std::vector<FunctionImpl> _composeMethods(const BlockInfo& p_blockInfo);
-		std::vector<FunctionImpl> _composeOperators(const BlockInfo& p_blockInfo);
+		void _composeConstructorPrototypes(const BlockInfo& p_blockInfo);
+		void _composeMethodPrototypes(const BlockInfo& p_blockInfo);
+		void _composeOperatorPrototypes(const BlockInfo& p_blockInfo);
+
+		void _composeConstructors(const BlockInfo& p_blockInfo);
+		void _composeMethods(const BlockInfo& p_blockInfo);
+		void _composeOperators(const BlockInfo& p_blockInfo);
 
 		PipelinePassImpl _composePipelinePass(const PipelinePassInfo& p_pipelinePassInfo);
 

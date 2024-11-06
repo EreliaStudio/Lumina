@@ -125,6 +125,10 @@ namespace Lumina
 				}
 			}
 		}
+		else if (token.type == Token::Type::BoolStatement)
+		{
+			return { _getType("bool"), {} };
+		}
 		else
 		{
 			throw Lumina::TokenBasedError("Unknown literal type.", token);
@@ -236,27 +240,36 @@ namespace Lumina
 			argTypes.push_back(_deduceExpressionType(p_variables, *argExpr));
 		}
 
-		for (const auto& func : _availibleFunctions)
+		FunctionImpl* matchingFunction = _findFunctionWithConversions(name, argTypes);
+
+		if (matchingFunction == nullptr)
 		{
-			if (func.name == name && func.parameters.size() == argTypes.size())
+			std::string arguments = "";
+
+			for (size_t i = 0; i < argTypes.size(); i++)
 			{
-				bool match = true;
-				for (size_t i = 0; i < argTypes.size(); ++i)
+				if (i != 0)
+					arguments += ", ";
+				arguments += argTypes[i].type.name;
+				for (const auto& dim : argTypes[i].arraySizes)
 				{
-					if (_convertionTable[func.parameters[i].type].contains(argTypes[i].type) == false)
-					{
-						match = false;
-						break;
-					}
+					arguments += "[" + std::to_string(dim) + "]";
 				}
-				if (match)
-				{
-					return func.returnType;
-				}
+			}
+
+			if (_getType(name).name != TypeImpl::DefaultName)
+			{
+				throw Lumina::TokenBasedError("Constructor [" + name + "] not found for argument types [" + arguments + "]" + DEBUG_INFORMATION, p_expr.functionName);
+			}
+			else
+			{
+				throw Lumina::TokenBasedError("Function [" + name + "] not found or argument types [" + arguments + "] do not match " + DEBUG_INFORMATION, p_expr.functionName);
 			}
 		}
 
-		throw Lumina::TokenBasedError("Function [" + name + "] not found or argument types do not match" + DEBUG_INFORMATION, p_expr.functionName);
+		return (matchingFunction->returnType);
+
+		
 	}
 
 	ExpressionTypeImpl Parser::_deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr)
@@ -272,11 +285,11 @@ namespace Lumina
 
 		std::string fullMethodName = objectType.type.name + "_" + methodName;
 
-		for (const auto& func : _availibleFunctions)
+		for (const auto& funct : _availibleFunctions)
 		{
-			if (func.name == fullMethodName && func.parameters.size() == argTypes.size() + 1)
+			if (funct.name == fullMethodName && funct.parameters.size() == argTypes.size() + 1)
 			{
-				if (func.parameters[0].type != objectType.type)
+				if (funct.parameters[0].type != objectType.type)
 				{
 					continue;
 				}
@@ -284,7 +297,7 @@ namespace Lumina
 				bool match = true;
 				for (size_t i = 0; i < argTypes.size(); ++i)
 				{
-					if (func.parameters[i + 1].type != argTypes[i].type)
+					if (funct.parameters[i + 1].type != argTypes[i].type)
 					{
 						match = false;
 						break;
@@ -292,7 +305,7 @@ namespace Lumina
 				}
 				if (match)
 				{
-					return func.returnType;
+					return funct.returnType;
 				}
 			}
 		}
@@ -368,7 +381,7 @@ namespace Lumina
 			throw Lumina::TokenBasedError("Array index must be of type int or uint", indexExpr->value);
 		}
 
-		if (!arrayType.arraySizes.empty())
+		if (arrayType.arraySizes.size() != 0)
 		{
 			std::vector<size_t> newArraySizes = arrayType.arraySizes;
 			newArraySizes.erase(newArraySizes.begin());
@@ -376,7 +389,7 @@ namespace Lumina
 		}
 		else
 		{
-			throw Lumina::TokenBasedError("Cannot index a non-array type", arrayExpr->memberName);
+			throw Lumina::TokenBasedError("Cannot index a non-array type", indexExpr->value);
 		}
 	}
 

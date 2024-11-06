@@ -1,0 +1,7 @@
+namespace spk
+{
+	ConstantBlock ScreenConstants
+	{
+		Matrix4x4 canvasMVP;
+	};
+}

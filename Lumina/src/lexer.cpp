@@ -470,10 +470,24 @@ namespace Lumina
 
 		std::string fileRelativePath = includeToken.content.substr(1, includeToken.content.size() - 2);
 		std::filesystem::path currentDir = std::filesystem::current_path();
-		std::filesystem::path filePath = composeFilePath(fileRelativePath, { currentDir, includeToken.context.originFile.parent_path() });
+
+		std::vector<std::filesystem::path> additionalPaths = {
+			currentDir,
+			includeToken.context.originFile.parent_path(),
+			includeToken.context.originFile.parent_path() / "..\\predefined_header"
+		};
+
+		std::string luminaCompilerPathEnv = getEnvVar("LuminaCompilerPath");
+		if (!luminaCompilerPathEnv.empty())
+		{
+			additionalPaths.push_back(luminaCompilerPathEnv);
+		}
+
+		std::filesystem::path filePath = composeFilePath(fileRelativePath, additionalPaths);
 
 		if (!std::filesystem::exists(filePath))
 		{
+			_index--;
 			throw TokenBasedError("Included file '" + fileRelativePath + "' does not exist.", includeToken);
 		}
 

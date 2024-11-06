@@ -1,0 +1,245 @@
+#include <math_utils.lum>
+
+namespace spk
+{
+    struct Quaternion
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+
+        Quaternion()
+        {
+            x = 0;
+            y = 0;
+            z = 0;
+            w = 1;
+        }
+        
+        Quaternion(Vector3 p_vector, float p_w)
+        {
+            x = p_vector.x;
+            y = p_vector.y;
+            z = p_vector.z;
+            w = p_w;
+        }
+        
+        Quaternion(float p_x, float p_y, float p_z, float p_w)
+        {
+            x = p_x;
+            y = p_y;
+            z = p_z;
+            w = p_w;
+        }
+
+        Quaternion operator*(Quaternion q) 
+        {
+            return Quaternion(
+                w * q.x + x * q.w + y * q.z - z * q.y,
+                w * q.y - x * q.z + y * q.w + z * q.x,
+                w * q.z + x * q.y - y * q.x + z * q.w,
+                w * q.w - x * q.x - y * q.y - z * q.z
+            );
+        }
+        
+        Quaternion operator + (Quaternion q)
+        {
+            return Quaternion(x + q.x, y + q.y, z + q.z, w + q.w);
+        }
+
+        Quaternion operator - (Quaternion q)
+        {
+            return Quaternion(x - q.x, y - q.y, z - q.z, w - q.w);
+        }
+
+        Quaternion operator * (float scalar) 
+        {
+            return Quaternion(x * scalar, y * scalar, z * scalar, w * scalar);
+        }
+
+        Quaternion operator / (float scalar) 
+        {
+            return Quaternion(x / scalar, y / scalar, z / scalar, w / scalar);
+        }
+        
+        Quaternion operator += (Quaternion q)
+        {
+            x += q.x;
+            y += q.y;
+            z += q.z;
+            w += q.w;
+
+            return (this);
+        }
+
+        Quaternion operator -= (Quaternion q)
+        {
+            x -= q.x;
+            y -= q.y;
+            z -= q.z;
+            w -= q.w;
+
+            return (this);
+        }
+
+        Quaternion operator *= (float scalar) 
+        {
+            x *= scalar;
+            y *= scalar;
+            z *= scalar;
+            w *= scalar;
+
+            return (this);
+        }
+
+        Quaternion operator /= (float scalar) 
+        {
+            x /= scalar;
+            y /= scalar;
+            z /= scalar;
+            w /= scalar;
+
+            return (this);
+        }
+
+        float magnitude() 
+        {
+            return sqrt(x * x + y * y + z * z + w * w);
+        }
+
+        Quaternion normalize() 
+        {
+            float mag = this.magnitude();
+            return Quaternion(x / mag, y / mag, z / mag, w / mag);
+        }
+
+        Quaternion conjugate() 
+        {
+            return Quaternion(-x, -y, -z, w);
+        }
+
+        Quaternion inverse() 
+        {
+            float magSq = x * x + y * y + z * z + w * w;
+            return this.conjugate() / magSq;
+        }
+
+        float dot(Quaternion q) 
+        {
+            return x * q.x + y * q.y + z * q.z + w * q.w;
+        }
+
+        Matrix3x3 toRotationMatrix()
+        {
+            Matrix3x3 result;
+
+            float xx = x * x;
+            float yy = y * y;
+            float zz = z * z;
+
+            float xy = x * y;
+            float xz = x * z;
+            float yz = y * z;
+
+            float wx = w * x;
+            float wy = w * y;
+            float wz = w * z;
+
+            result.values[0][0] = 1.0f - 2.0f * (yy + zz);
+            result.values[0][1] = 2.0f * (xy - wz);
+            result.values[0][2] = 2.0f * (xz + wy);
+
+            result.values[1][0] = 2.0f * (xy + wz);
+            result.values[1][1] = 1.0f - 2.0f * (xx + zz);
+            result.values[1][2] = 2.0f * (yz - wx);
+
+            result.values[2][0] = 2.0f * (xz - wy);
+            result.values[2][1] = 2.0f * (yz + wx);
+            result.values[2][2] = 1.0f - 2.0f * (xx + yy);
+
+            return (result);
+        }
+
+        Quaternion rotateVector(Vector3 p_vector)
+        {
+            Quaternion qv = Quaternion(p_vector, 0.0f);
+            Quaternion result = this * qv * this.inverse();
+            return result;
+        }
+
+        Vector3 rotatePoint(Vector3 p_inputPoint)
+        {
+            Quaternion point = Quaternion(p_inputPoint, 0.0f);
+            Quaternion result = this * point * this.normalize().inverse();
+            return Vector3(result.x, result.y, result.z);
+        }
+
+        bool operator == (Quaternion q)
+        {
+            return x == q.x && y == q.y && z == q.z && w == q.w;
+        }
+
+        bool operator != (Quaternion q)
+        {
+            return ((this == q) == false);
+        }
+    };
+
+    Quaternion slerp(Quaternion q1, Quaternion q2, float t)
+    {
+        float dot = q1.dot(q2);
+        float threshold = 0.9995f;
+        
+        if (dot > threshold)
+        {
+            Quaternion result = q1 + (q2 - q1) * t;
+            return result.normalize();
+        }
+        
+        dot = clamp(dot, -1.0f, 1.0f);
+        float theta_0 = acos(dot);
+        float theta = theta_0 * t;
+        Quaternion q3 = (q2 - q1 * dot).normalize();
+        
+        return q1 * cos(theta) + q3 * sin(theta);
+    }
+
+    Quaternion QuaternionFromEulerAngle(Vector3 p_eulerAngles)
+    {
+        float radianX = spk::degreeToRadian(p_eulerAngles.x);
+        float radianY = spk::degreeToRadian(p_eulerAngles.y);
+        float radianZ = spk::degreeToRadian(p_eulerAngles.z);
+
+        float cy = cos(radianZ * 0.5f);
+        float sy = sin(radianZ * 0.5f);
+        float cp = cos(radianY * 0.5f);
+        float sp = sin(radianY * 0.5f);
+        float cr = cos(radianX * 0.5f);
+        float sr = sin(radianX * 0.5f);
+
+        return Quaternion(
+            sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy,
+            cr * cp * sy - sr * sp * cy,
+            cr * cp * cy + sr * sp * sy
+        );
+    }
+
+    Quaternion QuaternionFromEulerAngle(float p_x, float p_y, float p_z)
+    {
+        return (QuaternionFromEulerAngle(Vector3(p_x, p_y, p_z)));
+    }
+
+    Quaternion QuaternionFromAxisAngle(Vector3 p_axis, float p_angleDegree)
+    {
+        float halfAngle = spk::degreeToRadian(p_angleDegree) * 0.5f;
+        float s = sin(halfAngle);
+        return Quaternion(
+            p_axis.x * s,
+            p_axis.y * s,
+            p_axis.z * s,
+            cos(halfAngle)
+        );
+    }
+}

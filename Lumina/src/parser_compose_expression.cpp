@@ -204,6 +204,7 @@ namespace Lumina
 
 		std::vector<ExpressionTypeImpl> argumentTypes;
 		std::vector<std::string> argumentCodes;
+
 		for (const auto& argExpr : p_expr.arguments)
 		{
 			ExpressionTypeImpl exprType = _deduceExpressionType(p_variables, *argExpr);
@@ -237,7 +238,7 @@ namespace Lumina
 			}
 
 			throw TokenBasedError(
-				"No function [" + p_expr.functionName.content + "] detected with parameters [" + parameterString + "]",
+				"No function [" + p_expr.functionName.content + "] detected with parameters [" + parameterString + "]" + DEBUG_INFORMATION,
 				p_expr.functionName
 			);
 		}
@@ -273,37 +274,82 @@ namespace Lumina
 		return name + "(" + args + ")";
 	}
 
-	FunctionImpl* Parser::_findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& argumentTypes)
+	std::vector<const FunctionImpl *> Parser::_getFunctionsWithNamespaces(const std::string& p_relativeName)
 	{
-		FunctionImpl searchFunction;
-		searchFunction.name = name;
-		searchFunction.parameters.resize(argumentTypes.size());
-
-		for (size_t i = 0; i < argumentTypes.size(); ++i)
-		{
-			searchFunction.parameters[i].type = argumentTypes[i].type;
-			searchFunction.parameters[i].arraySizes = argumentTypes[i].arraySizes;
-			searchFunction.parameters[i].isReference = false;
-		}
-
-		auto it = _availibleFunctions.find(searchFunction);
-		if (it != _availibleFunctions.end())
-		{
-			return const_cast<FunctionImpl*>(&(*it));
-		}
-
-		FunctionImpl* bestMatch = nullptr;
-		int lowestConversionCost = INT_MAX;
-		bool ambiguous = false;
+		std::vector<const FunctionImpl *> result;
 
 		for (const auto& func : _availibleFunctions)
 		{
-			if (func.name != name)
+			if (func.name == p_relativeName)
+			{
+				result.push_back(&func);
+			}
+		}
+
+		std::string namespacePrefix = "";
+		for (const auto& ns : _nspaces)
+		{
+			if (!namespacePrefix.empty())
+			{
+				namespacePrefix += "::";
+			}
+			namespacePrefix += ns;
+
+			std::string qualifiedName = namespacePrefix + "::" + p_relativeName;
+
+			for (const auto& func : _availibleFunctions)
+			{ 
+				if (func.name == qualifiedName)
+				{
+					result.push_back(&func);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	FunctionImpl* Parser::_findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& argumentTypes)
+	{
+		auto candidateFunctions = _getFunctionsWithNamespaces(name);
+
+		for (const auto& functPtr : candidateFunctions)
+		{
+			const FunctionImpl& funct = *functPtr;
+
+			if (funct.parameters.size() != argumentTypes.size())
 			{
 				continue;
 			}
 
-			if (func.parameters.size() != argumentTypes.size())
+			bool exactMatch = true;
+			for (size_t i = 0; i < argumentTypes.size(); ++i)
+			{
+				const ExpressionTypeImpl& argType = argumentTypes[i];
+				const ParameterImpl& param = funct.parameters[i];
+
+				if (!(argType.type == param.type && argType.arraySizes == param.arraySizes))
+				{
+					exactMatch = false;
+					break;
+				}
+			}
+
+			if (exactMatch)
+			{
+				return const_cast<FunctionImpl*>(functPtr);
+			}
+		}
+
+		const FunctionImpl* bestMatch = nullptr;
+		int lowestConversionCost = INT_MAX;
+		bool ambiguous = false;
+
+		for (const auto* functPtr : candidateFunctions)
+		{
+			const FunctionImpl& funct = *functPtr;
+
+			if (funct.parameters.size() != argumentTypes.size())
 			{
 				continue;
 			}
@@ -314,7 +360,7 @@ namespace Lumina
 			for (size_t i = 0; i < argumentTypes.size(); ++i)
 			{
 				const ExpressionTypeImpl& argType = argumentTypes[i];
-				const ParameterImpl& param = func.parameters[i];
+				const ParameterImpl& param = funct.parameters[i];
 
 				if (argType.type == param.type && argType.arraySizes == param.arraySizes)
 				{
@@ -339,7 +385,7 @@ namespace Lumina
 			{
 				if (totalConversionCost < lowestConversionCost)
 				{
-					bestMatch = const_cast<FunctionImpl*>(&func);
+					bestMatch = functPtr;
 					lowestConversionCost = totalConversionCost;
 					ambiguous = false;
 				}
@@ -355,8 +401,9 @@ namespace Lumina
 			return nullptr;
 		}
 
-		return bestMatch;
+		return const_cast<FunctionImpl*>(bestMatch);
 	}
+
 	std::string Parser::_composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
 	{
 		std::string objectExpression = _composeExpression(p_variables, *(p_expr.object), calledFunctions, usedTypes);

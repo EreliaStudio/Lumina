@@ -32,6 +32,37 @@ namespace Lumina
 		return (result);
 	}
 
+	std::string getEnvVar(const std::string& key)
+	{
+#ifdef _WIN32
+		// Windows implementation using _dupenv_s
+		char* value = nullptr;
+		size_t len = 0;
+		errno_t err = _dupenv_s(&value, &len, key.c_str());
+		if (err || value == nullptr)
+		{
+			return "";
+		}
+		else
+		{
+			std::string result(value);
+			free(value);
+			return result;
+		}
+#else
+		// POSIX implementation using getenv
+		const char* val = std::getenv(key.c_str());
+		if (val == nullptr)
+		{
+			return "";
+		}
+		else
+		{
+			return std::string(val);
+		}
+#endif
+	}
+
 	std::filesystem::path composeFilePath(const std::string& p_fileName, const std::vector<std::filesystem::path>& p_additionnalPaths)
 	{
 		std::string pathStr;

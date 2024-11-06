@@ -41,9 +41,15 @@ namespace Lumina
 			{ "int", {} },
 			{ "uint", {} },
 			{ "float", {} },
-			{ "Matrix2x2", {} },
-			{ "Matrix3x3", {} },
-			{ "Matrix4x4", {} },
+			{ "Matrix2x2", {
+					{{ "float", {}}, "values", {2, 2} },
+			} },
+			{ "Matrix3x3", {
+					{{ "float", {}}, "values", {3, 3} },
+			} },
+			{ "Matrix4x4", {
+					{{ "float", {}}, "values", {4, 4} },
+			} },
 			{ "Vector2", {
 					{{ "float", {}}, "x", {} },
 					{{ "float", {}}, "y", {} }

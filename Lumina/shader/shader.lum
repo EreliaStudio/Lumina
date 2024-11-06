@@ -1,85 +1,17 @@
-Input -> VertexPass: Vector3 vertexPosition;
-Input -> VertexPass: Vector3 vertexNormal;
-Input -> VertexPass: Vector2 vertexUV;
-VertexPass -> FragmentPass: Vector3 fragPosition;
-VertexPass -> FragmentPass: Vector3 fragNormal;
-VertexPass -> FragmentPass: Vector2 fragUV;
-
-struct Material
-{
-    Vector3 diffuseColor;
-    Vector3 specularColor;
-    float shininess;
-};
-
-Texture diffuseTexture;
-
-AttributeBlock modelAttributes
-{
-    Matrix4x4 modelMatrix;
-    Matrix4x4 normalMatrix;
-};
-
-ConstantBlock lightingConstants
-{
-    Vector3 lightPosition;
-    Vector3 lightColor[3];
-    float ambientIntensity;
-};
-
-namespace Lighting
-{
-    Vector3 calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor)
-    {
-        float diff = max(normal.dot(lightDir), 0.0);
-        return diff * lightColor;
-    }
-
-    Vector3 calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor)
-    {
-        Vector3 reflectDir = -lightDir.reflect(normal);
-        float spec = pow(max(viewDir.dot(reflectDir), 0.0), shininess);
-        return spec * lightColor;
-    }
-}
+#include <camera_constants.lum>
+#include <math_utils.lum>
+#include <quaternion.lum>
+#include <screen_constants.lum>
+#include <time_constants.lum>
+#include <transform.lum>
+#include <widget_attributes.lum>
 
 VertexPass()
 {
-    Vector4 worldPosition = modelAttributes.modelMatrix * Vector4(vertexPosition, 1.0);
-    fragPosition = worldPosition.xyz;
-    fragNormal = Matrix3x3(modelAttributes.normalMatrix) * vertexNormal;
-    fragUV = vertexUV;
-
-    Vector4 clipSpacePosition = worldPosition;
-    pixelPosition = clipSpacePosition;
+    
 }
 
 FragmentPass()
 {
-    Vector3 normal = fragNormal.normalize();
-    Vector3 lightDir = (lightingConstants.lightPosition - fragPosition).normalize();
-    Vector3 viewDir = -fragPosition.normalize();
-
-    Vector3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor[0];
-
-    Vector3 diffuse = Lighting::calculateDiffuse(normal, lightDir, lightingConstants.lightColor);
-
-    Material material;
-    Vector3 specular = Lighting::calculateSpecular(normal, lightDir, viewDir, material.shininess, lightingConstants.lightColor);
-
-    Vector3 finalColor = ambient + diffuse * material.diffuseColor + specular * material.specularColor;
-
-    Color textureColor = diffuseTexture.getPixel(fragUV);
-
-    if (textureColor.a == 0)
-    {
-        discard;
-    }
-
-    pixelColor = Color(
-		textureColor.r * finalColor.x,
-		textureColor.g * finalColor.y,
-		textureColor.b * finalColor.z,
-		1.0f
-	);
+    
 }

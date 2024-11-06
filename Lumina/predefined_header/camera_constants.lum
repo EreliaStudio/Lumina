@@ -1,0 +1,8 @@
+namespace spk
+{
+	ConstantBlock CameraConstants
+	{
+		Matrix4x4 view;
+		Matrix4x4 projection;
+	};
+}
