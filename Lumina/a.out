@@ -1,104 +1,113 @@
-## INPUT LAYOUTS DEFINITION ##
-0 Vector3
-1 Vector3
-2 Vector2
-
-## OUTPUT LAYOUTS DEFINITION ##
-0 Vector4
+## LAYOUTS DEFINITION ##
+in Vector3 vertexPosition
+in Vector3 vertexNormal
+in Vector2 vertexUV
+out Color pixelColor
 
 
 ## CONSTANTS DEFINITION ##
-lightingConstantsType lightingConstants 28 36 {
-    lightPosition 0 12 0 12 {
-        x 0 4 0 4 {}
-        y 4 4 4 4 {}
-        z 8 4 8 4 {}
+lightingConstants_Type lightingConstants 52 60 {
+    Vector3 lightPosition 0 12 0 12 1 4 {
+        float x 0 4 0 4 1 0 {}
+        float y 4 4 4 4 1 0 {}
+        float z 8 4 8 4 1 0 {}
     }
-    lightColor 12 12 16 12 {
-        x 0 4 0 4 {}
-        y 4 4 4 4 {}
-        z 8 4 8 4 {}
+    Vector3 lightColor 12 12 16 12 3 4 {
+        float x 0 4 0 4 1 0 {}
+        float y 4 4 4 4 1 0 {}
+        float z 8 4 8 4 1 0 {}
     }
-    ambientIntensity 24 4 32 4 {}
+    float ambientIntensity 48 4 60 4 1 0 {}
 }
+
 
 ## ATTRIBUTES DEFINITION ##
-modelAttributesType modelAttributes 128 128 {
-    modelMatrix 0 64 0 64 {}
-    normalMatrix 64 64 64 64 {}
+modelAttributes_Type modelAttributes 128 128 {
+    Matrix4x4 modelMatrix 0 64 0 64 1 16 {}
+    Matrix4x4 normalMatrix 64 64 64 64 1 16 {}
 }
 
+
 ## TEXTURES DEFINITION ##
-diffuseTexture Texture_diffuseTexture 0
+diffuseTexture Texture_diffuseTexture
+
 
 ## VERTEX SHADER CODE ##
-layout(location = 0) in Vector3 vertexPosition;
+layout (location = 0) in vec3 vertexPosition;
+layout (location = 1) in vec3 vertexNormal;
+layout (location = 2) in vec2 vertexUV;
+layout (location = 0) out vec3 fragPosition;
+layout (location = 1) out vec3 fragNormal;
+layout (location = 2) out vec2 fragUV;
 
-layout(location = 1) in Vector3 vertexNormal;
-
-layout(location = 2) in Vector2 vertexUV;
-
-layout(location = 0) out Vector3 fragPosition;
-
-layout(location = 1) out Vector3 fragNormal;
-
-layout(location = 2) out Vector2 fragUV;
-
-struct Material {
-    Vector3 diffuseColor;
-    Vector3 specularColor;
-    float shininess;
-};
-
-layout (attribute) uniform modelAttributesType {
-    Matrix4x4 modelMatrix;
-    Matrix4x4 normalMatrix;
+layout(attributes) uniform modelAttributes_Type
+{
+    mat4 modelMatrix;
+    mat4 normalMatrix;
 } modelAttributes;
-
-layout (attribute) uniform lightingConstantsType {
-    Vector3 lightPosition;
-    Vector3 lightColor;
-    float ambientIntensity;
-} lightingConstants;
-
-Vector3 Lighting::calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor){
-};
-Vector3 Lighting::calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
-};
-void main(){
-};
-
-## FRAGMENT SHADER CODE ##
-layout(location = 0) out vec4 pixelColor;
-
-layout(location = 0) in Vector3 fragPosition;
-
-layout(location = 1) in Vector3 fragNormal;
-
-layout(location = 2) in Vector2 fragUV;
-
-struct Material {
-    Vector3 diffuseColor;
-    Vector3 specularColor;
-    float shininess;
-};
 
 uniform sampler2D Texture_diffuseTexture;
-layout (attribute) uniform modelAttributesType {
-    Matrix4x4 modelMatrix;
-    Matrix4x4 normalMatrix;
-} modelAttributes;
 
-layout (attribute) uniform lightingConstantsType {
-    Vector3 lightPosition;
-    Vector3 lightColor;
+void main()
+{
+    vec4 worldPosition = modelAttributes.modelMatrix * vec4(vertexPosition, 1.0);
+    fragPosition = worldPosition.xyz;
+    fragNormal = mat3(modelAttributes.normalMatrix) * vertexNormal;
+    fragUV = vertexUV;
+    vec4 clipSpacePosition = worldPosition;
+    gl_Position = clipSpacePosition;
+}
+
+## FRAGMENT SHADER CODE ##
+layout (location = 0) in vec3 fragPosition;
+layout (location = 1) in vec3 fragNormal;
+layout (location = 2) in vec2 fragUV;
+layout (location = 0) out vec4 pixelColor;
+
+layout(constants) uniform lightingConstants_Type
+{
+    vec3 lightPosition;
+    vec3 lightColor[3];
     float ambientIntensity;
 } lightingConstants;
 
-Vector3 Lighting::calculateDiffuse(Vector3 normal, Vector3 lightDir, Vector3 lightColor){
-};
-Vector3 Lighting::calculateSpecular(Vector3 normal, Vector3 lightDir, Vector3 viewDir, float shininess, Vector3 lightColor){
-};
-void main(){
-};
+struct Material
+{
+    vec3 diffuseColor;
+    vec3 specularColor;
+    float shininess;
+}
+
+uniform sampler2D Texture_diffuseTexture;
+
+vec3 Lighting_calculateDiffuse(vec3 normal, vec3 lightDir, vec3 lightColor)
+{
+    float diff = max(dot(normal, lightDir), 0.0);
+    return diff * lightColor;
+}
+
+vec3 Lighting_calculateSpecular(vec3 normal, vec3 lightDir, vec3 viewDir, float shininess, vec3 lightColor)
+{
+    vec3 reflectDir = -reflect(lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    return spec * lightColor;
+}
+
+void main()
+{
+    vec3 normal = normalize(fragNormal);
+    vec3 lightDir = normalize(lightingConstants.lightPosition - fragPosition);
+    vec3 viewDir = -normalize(fragPosition);
+    vec3 ambient = lightingConstants.ambientIntensity * lightingConstants.lightColor[0];
+    vec3 diffuse = Lighting_calculateDiffuse(normal, lightDir, lightingConstants.lightColor);
+    Material material;
+    vec3 specular = Lighting_calculateSpecular(normal, lightDir, viewDir, material.shininess, lightingConstants.lightColor);
+    vec3 finalColor = ambient + diffuse * material.diffuseColor + specular * material.specularColor;
+    vec4 textureColor = getPixel(Texture_diffuseTexture, fragUV);
+    if (textureColor.a == 0)
+    {
+        discard;
+    }
+    pixelColor = vec4(textureColor.r * finalColor.x, textureColor.g * finalColor.y, textureColor.b * finalColor.z, 1.0f);
+}
 

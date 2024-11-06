@@ -4,6 +4,7 @@
 #include "tokenizer.hpp"
 #include "expected.hpp"
 
+#include <fstream>
 #include <iostream>
 
 #include "lexer.hpp"
@@ -15,7 +16,7 @@
 
 int main(int argc, char** argv)
 {
-	if (argc != 3)
+	if (argc < 2 || argc > 3)
 	{
 		std::cout << "Usage : " << argv[0] << " [path to your lumina shader code] [path to your compiled shader file]" << std::endl;
 		return (0);
@@ -53,7 +54,21 @@ int main(int argc, char** argv)
 
 	Lumina::Compiler::Product compilerProduct = Lumina::Compiler::compile(parserProduct.value);
 
-	std::cout << "Shader : " << std::endl << compilerProduct << std::endl;
+	std::string outputPath = (argc == 2 ? "a.out" : argv[2]);
+
+	std::ofstream outputFile(outputPath);
+	if (outputFile.is_open() == false)
+	{
+		std::cerr << "Error: Unable to open output file [" << outputPath << "]" << std::endl;
+		return (-1);
+	}
+
+	// Write the compiler product to the output file
+	outputFile << compilerProduct;
+	outputFile.close();
+
+	std::cout << "Compilation successful. Output written to [" << outputPath << "]" << std::endl;
+
 
 	return (0);
 }

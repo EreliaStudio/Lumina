@@ -138,19 +138,19 @@ namespace Lumina
 			.attributes = {}
 		}},
 
-		{"mat2", {
+		{"Matrix2x2", {
 			.cpuSize = 16,
 			.gpuSize = 16,
 			.attributes = {}
 		}},
 
-		{"mat3", {
+		{"Matrix3x3", {
 			.cpuSize = 36,
 			.gpuSize = 36,
 			.attributes = {}
 		}},
 
-		{"mat4", {
+		{"Matrix4x4", {
 			.cpuSize = 64,
 			.gpuSize = 64,
 			.attributes = {}
@@ -194,14 +194,10 @@ namespace Lumina
 				elementCount *= dim;
 			}
 
-			std::cout << "Adding a [" << attribute.type.name << "](size : " << attrDataRep.cpuSize << ") at offset [" << gpuOffset << "]" << std::endl;
-
 			size_t alignment = getAlignment(attrDataRep.gpuSize);
 			size_t padding = alignment - (attrDataRep.gpuSize % 16);
 
 			gpuOffset = ((gpuOffset + alignment - 1) / alignment) * alignment;
-
-			std::cout << "Starting index : " << gpuOffset << std::endl;
 
 			DataRepresentation::Attribute attr = {
 				.type = attribute.type.name,
