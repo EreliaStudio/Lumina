@@ -1,6 +1,7 @@
 #include "compiler.hpp"
 
 #include <regex>
+#include <unordered_map>
 
 namespace Lumina
 {
@@ -96,65 +97,179 @@ namespace Lumina
 		return (result);
 	}
 
-	std::string Compiler::_compileUniformBlockAttribute(const VariableImpl& p_variable, size_t p_tabulationSize, size_t& cpuOffset, size_t& cpuSize, size_t& gpuOffset, size_t& gpuSize)
+	struct DataRepresentation
 	{
-		std::string result;
-
-		size_t cpuSize = 0;
-		size_t gpuSize = 0;
-
-		size_t nbElement = 1;
-
-		for (const auto& dim : p_variable.arraySizes)
+		struct Attribute
 		{
-			nbElement *= dim;
+			std::string type;
+			std::string name;
+
+			size_t cpuOffset;
+			size_t gpuOffset;
+
+			size_t elementCount;
+			size_t padding;
+		};
+
+		size_t cpuSize;
+		size_t gpuSize;
+		std::vector<Attribute> attributes;
+	};
+
+	static std::unordered_map<std::string, DataRepresentation> _typeDataRepresentation = {
+		{"bool", {
+			.cpuSize = 4,
+			.gpuSize = 4,
+			.attributes = {}
+		}},
+		{"int", {
+			.cpuSize = 4,
+			.gpuSize = 4,
+			.attributes = {}
+		}},
+		{"uint", {
+			.cpuSize = 4,
+			.gpuSize = 4,
+			.attributes = {}
+		}},
+		{"float", {
+			.cpuSize = 4,
+			.gpuSize = 4,
+			.attributes = {}
+		}},
+
+		{"mat2", {
+			.cpuSize = 16,
+			.gpuSize = 16,
+			.attributes = {}
+		}},
+
+		{"mat3", {
+			.cpuSize = 36,
+			.gpuSize = 36,
+			.attributes = {}
+		}},
+
+		{"mat4", {
+			.cpuSize = 64,
+			.gpuSize = 64,
+			.attributes = {}
+		}},
+	};
+
+	size_t getAlignment(size_t size)
+	{
+		if (size == 4)
+			return 4;
+		else if (size == 8)
+			return 8;
+		else
+			return 16;
+	}
+
+	DataRepresentation buildDataRepresentation(const TypeImpl& p_typeImpl)
+	{
+		auto it = _typeDataRepresentation.find(p_typeImpl.name);
+		if (it != _typeDataRepresentation.end())
+		{
+			return it->second;
 		}
 
-		std::string content = 0;
-		for (const auto& attribute : p_variable.type.attributes)
+		DataRepresentation dataRep = {
+			.cpuSize = 0,
+			.gpuSize = 0,
+			.attributes = {}
+		};
+
+		size_t cpuOffset = 0;
+		size_t gpuOffset = 0;
+
+		for (const auto& attribute : p_typeImpl.attributes)
 		{
-			content += _compileUniformBlockAttribute(attribute, p_tabulationSize + 1, cpuOffset, cpuSize, gpuOffset, gpuSize) + "\n";
+			DataRepresentation attrDataRep = buildDataRepresentation(attribute.type);
+
+			size_t elementCount = 1;
+			for (const auto& dim : attribute.arraySizes)
+			{
+				elementCount *= dim;
+			}
+
+			std::cout << "Adding a [" << attribute.type.name << "](size : " << attrDataRep.cpuSize << ") at offset [" << gpuOffset << "]" << std::endl;
+
+			size_t alignment = getAlignment(attrDataRep.gpuSize);
+			size_t padding = alignment - (attrDataRep.gpuSize % 16);
+
+			gpuOffset = ((gpuOffset + alignment - 1) / alignment) * alignment;
+
+			std::cout << "Starting index : " << gpuOffset << std::endl;
+
+			DataRepresentation::Attribute attr = {
+				.type = attribute.type.name,
+				.name = attribute.name,
+				.cpuOffset = cpuOffset,
+				.gpuOffset = gpuOffset,
+				.elementCount = elementCount,
+				.padding = padding
+			};
+
+			dataRep.attributes.push_back(attr);
+
+			dataRep.cpuSize += elementCount * attrDataRep.cpuSize;
+			dataRep.gpuSize += attrDataRep.gpuSize;
+			dataRep.gpuSize += (elementCount - 1) * (attrDataRep.gpuSize + attr.padding);
+
+			cpuOffset += elementCount * attrDataRep.cpuSize;
+			gpuOffset += attrDataRep.gpuSize;
+			gpuOffset += (elementCount - 1) * (attrDataRep.gpuSize + attr.padding);
 		}
 
-		result += std::string(p_tabulationSize * 4, ' ') + p_variable.name + " " +
-			std::to_string(cpuOffset) + " " + std::to_string(cpuSize) + " " +
-			std::to_string(gpuOffset) + " " + std::to_string(gpuSize) + " " +
-			std::to_string(nbElement) + " {";
+		_typeDataRepresentation[p_typeImpl.name] = dataRep;
 
-		if (p_variable.type.attributes.size() != 0)
-			result += "\n";
+		return dataRep;
+	}
 
-		result += content;
+	void appendAttributes(const DataRepresentation& dataRep, size_t indentLevel, std::string& result)
+	{
+		std::string indent(indentLevel * 4, ' ');
+		for (const auto& attribute : dataRep.attributes)
+		{
+			DataRepresentation attrDataRep = _typeDataRepresentation[attribute.type];
 
-		result += "}";
+			result += indent + attribute.type + " " + attribute.name + " " +
+				std::to_string(attribute.cpuOffset) + " " +
+				std::to_string(attrDataRep.cpuSize) + " " +
+				std::to_string(attribute.gpuOffset) + " " +
+				std::to_string(attrDataRep.gpuSize) + " " +
+				std::to_string(attribute.elementCount) + " " +
+				std::to_string(attribute.padding);
 
-		return (result);
+			if (attrDataRep.attributes.size() != 0)
+			{
+				result += " {\n";
+				appendAttributes(attrDataRep, indentLevel + 1, result);
+				result += indent + "}\n";
+			}
+			else
+			{
+				result += " {}\n";
+			}
+		}
 	}
 
 	std::string Compiler::_compileUniformBlock(const TypeImpl& p_typeImpl)
 	{
+		DataRepresentation dataRep = buildDataRepresentation(p_typeImpl);
+
 		std::string result;
 
-		size_t cpuOffset = 0;
-		size_t cpuSize = 0;
-		size_t gpuOffset = 0;
-		size_t gpuSize = 0;
+		result = p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " " +
+			std::to_string(dataRep.cpuSize) + " " + std::to_string(dataRep.gpuSize) + " {\n";
 
-		std::string content;
-		for (const auto& attribute : p_typeImpl.attributes)
-		{
-			content += _compileUniformBlockAttribute(attribute, 1, cpuOffset, cpuSize, gpuOffset, gpuSize) + "\n";
-		}
+		appendAttributes(dataRep, 1, result);
 
-		result = p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " " + std::to_string(cpuSize) + " " + std::to_string(gpuSize) + "{";
+		result += "}\n";
 
-		if (p_typeImpl.attributes.size() != 0)
-			result += "\n";
-
-		result += content;
-		result += "}";
-
-		return (result);
+		return result;
 	}
 	
 	void Compiler::applyPipelinePass(const PipelinePassImpl& p_pass, std::string& p_target,

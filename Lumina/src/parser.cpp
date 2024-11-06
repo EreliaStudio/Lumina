@@ -166,7 +166,7 @@ namespace Lumina
 		result.name = _namespacePrefix() + _composeName(p_blockInfo.name);
 		for (const auto& element : p_blockInfo.attributes)
 		{
-			result.attributes.insert(_composeVariable(element));
+			result.attributes.push_back(_composeVariable(element));
 		}
 
 		return (result);
@@ -225,9 +225,16 @@ namespace Lumina
 				std::string methodName = _composeName(methodInfo.name);
 
 				if (originator.attributes.size() != 0 &&
-					originator.attributes.find({ methodName, {} }) != originator.attributes.end())
+					std::find_if(
+						originator.attributes.begin(),
+						originator.attributes.end(),
+						[&methodName](const VariableImpl& attr)
+						{
+							return attr.name == methodName;
+						}
+					) != originator.attributes.end())
 				{
-					throw TokenBasedError("The method [" + methodName + "] conflict with one attribute name.", methodInfo.name.value);
+					throw TokenBasedError("The method [" + methodName + "] conflicts with an attribute name.", methodInfo.name.value);
 				}
 
 				std::set<VariableImpl> methodVariables = _globalVariables;

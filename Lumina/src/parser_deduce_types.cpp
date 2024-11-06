@@ -150,7 +150,14 @@ namespace Lumina
 			auto thisIt = p_variables.find({ {}, "this", {} });
 			if (thisIt != p_variables.end())
 			{
-				auto attrIt = thisIt->type.attributes.find({ {}, name, {} });
+				auto attrIt = std::find_if(
+					thisIt->type.attributes.begin(),
+					thisIt->type.attributes.end(),
+					[&name](const VariableImpl& attr) {
+						return attr.name == name;
+					}
+				);
+
 				if (attrIt != thisIt->type.attributes.end())
 				{
 					return { attrIt->type, attrIt->arraySizes };
@@ -299,7 +306,14 @@ namespace Lumina
 		std::string memberName = p_expr.memberName.content;
 
 
-		auto it = objectType.type.attributes.find({ {}, memberName, {} });
+		auto it = std::find_if(
+			objectType.type.attributes.begin(),
+			objectType.type.attributes.end(),
+			[&memberName](const VariableImpl& attr) {
+				return attr.name == memberName;
+			}
+		);
+
 		if (it != objectType.type.attributes.end())
 		{
 			return { it->type, it->arraySizes };
@@ -314,10 +328,17 @@ namespace Lumina
 
 				for (const auto& c : memberName)
 				{
-					auto it = objectType.type.attributes.find({ {}, std::string(1, c), {} });
-					if (it == objectType.type.attributes.end())
+					auto it = std::find_if(
+						objectType.type.attributes.begin(),
+						objectType.type.attributes.end(),
+						[&c](const VariableImpl& attr) {
+							return attr.name == std::string(1, c);
+						}
+					);
+
+					if (it != objectType.type.attributes.end())
 					{
-						error = true;
+						return { it->type, it->arraySizes };
 					}
 				}
 

@@ -22,7 +22,7 @@ namespace Lumina
 		std::string _compileFunction(const FunctionImpl& p_functionImpl);
 		std::string _compileTypeImpl(const std::string& p_prefix, const TypeImpl& p_typeImpl);
 		std::string _compileUniformBlockAttribute(const VariableImpl& p_variable, size_t p_tabulationSize,
-			size_t& cpuOffset, size_t& cpuSize, size_t& gpuOffset, size_t& gpuSize);
+			size_t& cpuOffset, size_t& cpuOwnerSize, size_t& gpuOffset, size_t& gpuOwnerSize);
 		std::string _compileUniformBlock(const TypeImpl& p_typeImpl);
 
 		void applyPipelineFlow(

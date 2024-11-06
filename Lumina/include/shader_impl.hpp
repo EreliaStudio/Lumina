@@ -13,7 +13,7 @@ namespace Lumina
 	{
 		const static inline std::string DefaultName = "UnknownTypeName";
 		std::string name = DefaultName;
-		std::set<VariableImpl> attributes;
+		std::vector<VariableImpl> attributes;
 
 		bool operator < (const TypeImpl& p_other) const
 		{

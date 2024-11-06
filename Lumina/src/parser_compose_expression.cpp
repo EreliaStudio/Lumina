@@ -60,11 +60,33 @@ namespace Lumina
 
 		if (p_variables.contains({ {}, name, {} }) == false)
 		{
-			if (p_variables.contains({ {}, "this", {} }) == false ||
-				(p_variables.find({ {}, "this", {} }))->type.attributes.contains({ {}, name, {} }) == false)
+			auto thisVarIt = std::find_if(
+				p_variables.begin(),
+				p_variables.end(),
+				[](const VariableImpl& var) {
+					return var.name == "this";
+				}
+			);
+
+			if (thisVarIt == p_variables.end())
 			{
-				throw (TokenBasedError("No variable named [" + name + "] declared in this scope", p_expr.variableName));
+				throw TokenBasedError("No variable named [this] declared in this scope", p_expr.variableName);
 			}
+
+			const auto& attributes = thisVarIt->type.attributes;
+			auto attrIt = std::find_if(
+				attributes.begin(),
+				attributes.end(),
+				[&name](const VariableImpl& attr) {
+					return attr.name == name;
+				}
+			);
+
+			if (attrIt == attributes.end())
+			{
+				throw TokenBasedError("No variable named [" + name + "] declared in this scope", p_expr.variableName);
+			}
+
 			return ("this." + name);
 		}
 		return name;
