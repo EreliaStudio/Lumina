@@ -231,7 +231,7 @@ namespace Lumina
 		{
 			DataRepresentation attrDataRep = _typeDataRepresentation[attribute.type];
 
-			result += indent + attribute.type + " " + attribute.name + " " +
+			result += indent + attribute.name + " " +
 				std::to_string(attribute.cpuOffset) + " " +
 				std::to_string(attrDataRep.cpuSize) + " " +
 				std::to_string(attribute.gpuOffset) + " " +
@@ -258,7 +258,7 @@ namespace Lumina
 
 		std::string result;
 
-		result = p_typeImpl.name + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " " +
+		result = std::regex_replace(p_typeImpl.name, std::regex("::"), "_") + " " + p_typeImpl.name.substr(0, p_typeImpl.name.size() - 5) + " " +
 			std::to_string(dataRep.cpuSize) + " " + std::to_string(dataRep.gpuSize) + " {\n";
 
 		appendAttributes(dataRep, 1, result);
@@ -285,13 +285,21 @@ namespace Lumina
 			{
 				typeCode = _compileTypeImpl("layout(attributes) uniform", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
 
-				_product.attributeContent += _compileUniformBlock(type);
+				if (_insertedAttributes.contains(type.name) == false)
+				{
+					_insertedAttributes.insert(type.name);
+					_product.attributeContent += _compileUniformBlock(type);
+				}
 			}
 			else if (std::find(p_constants.begin(), p_constants.end(), type) != p_constants.end())
 			{
 				typeCode = _compileTypeImpl("layout(constants) uniform", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
 
-				_product.constantContent += _compileUniformBlock(type);
+				if (_insertedConstants.contains(type.name) == false)
+				{
+					_insertedConstants.insert(type.name);
+					_product.constantContent += _compileUniformBlock(type);
+				}
 			}
 
 			p_target += typeCode;

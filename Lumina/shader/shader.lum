@@ -1,17 +1,19 @@
-#include <camera_constants.lum>
-#include <math_utils.lum>
-#include <quaternion.lum>
-#include <screen_constants.lum>
-#include <time_constants.lum>
-#include <transform.lum>
-#include <widget_attributes.lum>
+#include <screen_constants>
+     
+Input -> VertexPass : Vector2Int modelPosition;
+
+AttributeBlock self
+{
+    Color color;
+    float layer;
+};
 
 VertexPass()
 {
-    
+    pixelPosition = spk::ScreenConstants.canvasMVP * Vector4(modelPosition, self.layer, 1.0f);
 }
 
 FragmentPass()
 {
-    
+    pixelColor = self.color;
 }

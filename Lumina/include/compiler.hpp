@@ -17,6 +17,9 @@ namespace Lumina
 
 		std::map<std::string, std::string> _textToSwap;
 
+		std::set<std::string> _insertedAttributes;
+		std::set<std::string> _insertedConstants;
+
 		Compiler();
 
 		std::string _compileFunction(const FunctionImpl& p_functionImpl);

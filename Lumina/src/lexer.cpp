@@ -491,6 +491,12 @@ namespace Lumina
 			throw TokenBasedError("Included file '" + fileRelativePath + "' does not exist.", includeToken);
 		}
 
+		if (_alreadyLoadedFiles.contains(filePath) == true)
+		{
+			return ;
+		}
+
+		_alreadyLoadedFiles.insert(filePath);
 		std::string rawCode = Lumina::readFileAsString(filePath);
 
 		std::vector<Lumina::Token> includeTokens = Lumina::Tokenizer::tokenize(filePath, rawCode);

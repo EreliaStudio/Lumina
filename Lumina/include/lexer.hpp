@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include "expected.hpp"
 #include "token.hpp"
 #include "shader_info.hpp"
@@ -17,6 +18,8 @@ namespace Lumina
 		size_t _index = 0;
 		Product _product;
 		Lumina::Token _emptyToken;
+
+		std::set<std::filesystem::path> _alreadyLoadedFiles;
 
 		Lexer() = default;
 

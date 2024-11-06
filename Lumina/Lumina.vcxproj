@@ -163,13 +163,6 @@
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="predefined_header\camera_constants.lum" />
-    <None Include="predefined_header\math_utils.lum" />
-    <None Include="predefined_header\quaternion.lum" />
-    <None Include="predefined_header\screen_constants.lum" />
-    <None Include="predefined_header\time_constants.lum" />
-    <None Include="predefined_header\transform.lum" />
-    <None Include="predefined_header\widget_attributes.lum" />
     <None Include="shader\shader.lum" />
     <None Include="shader\test.lum" />
   </ItemGroup>
