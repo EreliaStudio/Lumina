@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35004.147
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lumina", "Lumina\Lumina.vcxproj", "{7D4C6EB5-48FB-49A1-9CF3-C0B1BCA9D86E}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "LuminaInstaller", "LuminaInstaller\LuminaInstaller.vdproj", "{D3C20B0E-8F9B-4CB9-BF32-28ABEA2C2C9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{7D4C6EB5-48FB-49A1-9CF3-C0B1BCA9D86E}.Release|x64.Build.0 = Release|x64
 		{7D4C6EB5-48FB-49A1-9CF3-C0B1BCA9D86E}.Release|x86.ActiveCfg = Release|Win32
 		{7D4C6EB5-48FB-49A1-9CF3-C0B1BCA9D86E}.Release|x86.Build.0 = Release|Win32
+		{D3C20B0E-8F9B-4CB9-BF32-28ABEA2C2C9F}.Debug|x64.ActiveCfg = Debug
+		{D3C20B0E-8F9B-4CB9-BF32-28ABEA2C2C9F}.Debug|x86.ActiveCfg = Debug
+		{D3C20B0E-8F9B-4CB9-BF32-28ABEA2C2C9F}.Release|x64.ActiveCfg = Release
+		{D3C20B0E-8F9B-4CB9-BF32-28ABEA2C2C9F}.Release|x86.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
