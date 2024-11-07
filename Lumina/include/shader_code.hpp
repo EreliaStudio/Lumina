@@ -18,8 +18,8 @@ namespace Lumina
 		std::string constantContent = "";
 		std::string attributeContent = "";
 		std::string textureContent = "";
-		std::string vertexCodeContent = "";
-		std::string fragmentCodeContent = "";
+		std::string vertexCodeContent = "#version 450\n\n";
+		std::string fragmentCodeContent = "#version 450\n\n";
 
 		friend std::ostream& operator << (std::ostream& p_os, const ShaderCode& p_shader)
 		{
