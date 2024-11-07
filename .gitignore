@@ -17,3 +17,4 @@ x64
 /Debug
 /Playground/vertex_shader.glsl
 *.glsl
+/Lumina/Release
