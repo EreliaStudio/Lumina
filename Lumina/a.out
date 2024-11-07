@@ -1,5 +1,6 @@
 ## LAYOUTS DEFINITION ##
-out Color pixelColor
+0 in Vector2 modelPosition
+0 out Color pixelColor
 
 
 ## CONSTANTS DEFINITION ##
@@ -12,16 +13,22 @@ out Color pixelColor
 
 
 ## VERTEX SHADER CODE ##
+#version 450
+
+layout (location = 0) in vec2 modelPosition;
 
 void main()
 {
-    int values = {{10, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}};
+    gl_Position = vec4(modelPosition, (float)(0), (float)(1));
 }
 
 ## FRAGMENT SHADER CODE ##
+#version 450
+
 layout (location = 0) out vec4 pixelColor;
 
 void main()
 {
+    pixelColor = vec4((float)(1), (float)(0), (float)(0), (float)(1));
 }
 
