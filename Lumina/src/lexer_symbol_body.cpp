@@ -478,6 +478,23 @@ namespace Lumina
 		{
 			return parseVariableOrFunctionCallExpressionInfo();
 		}
+		else if (currentToken().type == Lumina::Token::Type::OpenCurlyBracket)
+		{
+			ArrayDefinitionExpressionInfo arrayInfo;
+
+			advance();
+			while (currentToken().type != Lumina::Token::Type::CloseCurlyBracket)
+			{
+				if (arrayInfo.elements.size() != 0)
+				{
+					expect(Lumina::Token::Type::Comma, "Expected ',' between array definition elements." + DEBUG_INFORMATION);
+				}
+				arrayInfo.elements.push_back(parseExpressionInfo());
+			}
+			expect(Lumina::Token::Type::CloseCurlyBracket, "Expected a '}' to close the array definition expression.");
+
+			return (std::make_shared<ExpressionInfo>(arrayInfo));
+		}
 		else if (currentToken().type == Lumina::Token::Type::OpenParenthesis)
 		{
 			advance();
@@ -488,6 +505,7 @@ namespace Lumina
 		else
 		{
 			throw TokenBasedError("Unexpected token in expression." + DEBUG_INFORMATION, currentToken());
+			return (nullptr);
 		}
 	}
 

@@ -42,9 +42,18 @@ namespace Lumina
 
 	std::ostream& operator << (std::ostream& p_os, const Token& p_token)
 	{
-		p_os << "[" << std::setw(25) << p_token.type << "] | [" << std::setw(3) << p_token.context.line << "::" << std::left << std::setw(3) << p_token.context.column << std::right << "] | " << p_token.content;
+		p_os << p_token.to_string();
 
 		return (p_os);
+	}
+
+	std::string Token::to_string() const
+	{
+		std::stringstream oss;
+
+		oss << "[" << std::setw(25) << type << "] | [" << std::setw(3) << context.line << "::" << std::left << std::setw(3) << context.column << std::right << "] | " << content;
+
+		return (oss.str());
 	}
 
 	std::string Token::to_string(Token::Type p_type)

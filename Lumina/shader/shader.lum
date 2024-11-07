@@ -1,19 +1,9 @@
-#include <screen_constants>
-     
-Input -> VertexPass : Vector2Int modelPosition;
-
-AttributeBlock self
-{
-    Color color;
-    float layer;
-};
-
 VertexPass()
 {
-    pixelPosition = spk::ScreenConstants.canvasMVP * Vector4(modelPosition, self.layer, 1.0f);
+    int values[6][2] = {{10, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}};
 }
 
 FragmentPass()
 {
-    pixelColor = self.color;
+
 }

@@ -67,6 +67,14 @@ namespace Lumina
 				indexToken.content += "]";
 				return arrayToken + indexToken;
 			}
+			else if constexpr (std::is_same_v<T, ArrayDefinitionExpressionInfo>) {
+				Token result; 
+				for (const auto& element : arg.elements)
+				{
+					result += _getExpressionToken(*element);
+				}
+				return result;
+			}
 			}, p_expr);
 	}
 
@@ -268,8 +276,6 @@ namespace Lumina
 		}
 
 		return (matchingFunction->returnType);
-
-		
 	}
 
 	ExpressionTypeImpl Parser::_deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expr)
@@ -392,6 +398,72 @@ namespace Lumina
 			throw Lumina::TokenBasedError("Cannot index a non-array type", indexExpr->value);
 		}
 	}
+	
+	ExpressionTypeImpl Parser::_deduceArrayDefinitionExpressionType(std::set<VariableImpl>& p_variables, const ArrayDefinitionExpressionInfo& p_expression)
+	{
+		if (p_expression.elements.size() == 0)
+		{
+			return (ExpressionTypeImpl{
+					.type = _getType("void"), 
+					.arraySizes = {}
+				});
+		}
+
+		std::vector<ExpressionTypeImpl> elementExpressionTypes;
+
+		ExpressionTypeImpl firstElementType = _deduceExpressionType(p_variables, *(p_expression.elements[0]));
+		ExpressionTypeImpl result = { firstElementType.type, { p_expression.elements.size() } };
+		for (const auto& dim : firstElementType.arraySizes)
+		{
+			result.arraySizes.push_back(dim);
+		}
+
+		for (size_t i = 1; i < p_expression.elements.size(); i++)
+		{
+			ExpressionTypeImpl tmpExpressionType = _deduceExpressionType(p_variables, *(p_expression.elements[i]));
+
+			const auto& convIt = _convertionTable[tmpExpressionType.type];
+			if (convIt.contains(result.type) == true)
+			{
+				tmpExpressionType.type = firstElementType.type;
+			}
+
+			if (tmpExpressionType != firstElementType)
+			{
+				std::string firstElementStr = firstElementType.type.name;
+				for (const auto& dim : firstElementType.arraySizes)
+				{
+					firstElementStr += "[" + std::to_string(dim) + "]";
+				}
+				std::string tmpExpressionStr = tmpExpressionType.type.name;
+				for (const auto& dim : tmpExpressionType.arraySizes)
+				{
+					tmpExpressionStr += "[" + std::to_string(dim) + "]";
+				}
+
+				std::string errorReason = "";
+				if (firstElementType.type != tmpExpressionType.type && firstElementType.arraySizes != tmpExpressionType.arraySizes)
+				{
+					errorReason = "Type and array size differents";
+				}
+				else if (firstElementType.type != tmpExpressionType.type)
+				{
+					errorReason = "Type differents";
+				}
+				else if (firstElementType.arraySizes != tmpExpressionType.arraySizes)
+				{
+					errorReason = "Array size differents";
+				}
+				Token errorToken = _getExpressionToken(*(p_expression.elements[i]));
+				throw TokenBasedError(
+					"Cannot assign type [" + tmpExpressionStr + "] to type [" + firstElementStr + "] : " + errorReason,
+					errorToken
+				);
+			}
+		}
+
+		return (result);
+	}
 
 	ExpressionTypeImpl Parser::_deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expr)
 	{
@@ -415,6 +487,8 @@ namespace Lumina
 			return _deduceMemberAccessExpressionType(p_variables, std::get<7>(p_expr));
 		case 8:
 			return _deduceArrayAccessExpressionType(p_variables, std::get<8>(p_expr));
+		case 9:
+			return _deduceArrayDefinitionExpressionType(p_variables, std::get<9>(p_expr));
 		default:
 			throw Lumina::TokenBasedError("Unknown expression type.", Token());
 		}

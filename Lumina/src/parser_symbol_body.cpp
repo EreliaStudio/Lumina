@@ -78,9 +78,29 @@ namespace Lumina
 
 			ExpressionTypeImpl initializerType = _deduceExpressionType(p_variables, *p_stmt.initializer);
 
+			if (variableType.arraySizes != initializerType.arraySizes)
+			{
+				std::string variableTypeString = variableType.type.name;
+				for (const auto& dim : variableType.arraySizes)
+				{
+					variableTypeString += "[" + std::to_string(dim) + "]";
+				}
+				std::string initializerTypeString = initializerType.type.name;
+				for (const auto& dim : initializerType.arraySizes)
+				{
+					initializerTypeString += "[" + std::to_string(dim) + "]";
+				}
+
+				Token errorToken = _getExpressionToken(*p_stmt.initializer);
+				throw TokenBasedError(
+					"Cannot assign type [" + initializerTypeString + "] to type [" + variableTypeString + "] : array sizes doesn't match",
+					errorToken
+				);
+			}
+
 			bool conversionAvailable = false;
 
-			if (variableType.type == initializerType.type && variableType.arraySizes == initializerType.arraySizes)
+			if (variableType.type == initializerType.type)
 			{
 				conversionAvailable = true;
 			}
@@ -94,6 +114,8 @@ namespace Lumina
 			}
 
 			std::string initializerCode = _composeExpression(p_variables, *p_stmt.initializer, calledFunctions, usedTypes);
+
+
 
 			if (conversionAvailable)
 			{

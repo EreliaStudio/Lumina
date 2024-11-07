@@ -25,6 +25,8 @@ namespace Lumina
 			return (_composeMemberAccessExpression(p_variables, std::get<7>(p_expr), calledFunctions, usedTypes));
 		case 8:
 			return (_composeArrayAccessExpression(p_variables, std::get<8>(p_expr), calledFunctions, usedTypes));
+		case 9:
+			return (_composeArrayDefinitionExpression(p_variables, std::get<9>(p_expr), calledFunctions, usedTypes));
 		default:
 			throw Lumina::TokenBasedError("Unknown expression type.", Token());
 		}
@@ -504,5 +506,24 @@ namespace Lumina
 		std::string arrayResult = _composeExpression(p_variables, *(p_expr.array), calledFunctions, usedTypes);
 		std::string index = _composeExpression(p_variables, *(p_expr.index), calledFunctions, usedTypes);
 		return arrayResult + "[" + index + "]";
+	}
+	
+	std::string Parser::_composeArrayDefinitionExpression(std::set<VariableImpl>& p_variables, const ArrayDefinitionExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
+	{
+		std::string result = "{";
+
+		for (const auto& element : p_expression.elements)
+		{
+			if (result.size() != 1)
+			{
+				result += ", ";
+			}
+
+			result += _composeExpression(p_variables, *element, calledFunctions, usedTypes);
+		}
+
+		result += "}";
+
+		return (result);
 	}
 }

@@ -70,6 +70,7 @@ namespace Lumina
 		ExpressionTypeImpl _deduceMethodCallExpressionType(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression);
 		ExpressionTypeImpl _deduceMemberAccessExpressionType(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression);
 		ExpressionTypeImpl _deduceArrayAccessExpressionType(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression);
+		ExpressionTypeImpl _deduceArrayDefinitionExpressionType(std::set<VariableImpl>& p_variables, const ArrayDefinitionExpressionInfo& p_expression);
 		ExpressionTypeImpl _deduceExpressionType(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression);
 
 		std::string _composeExpression(std::set<VariableImpl>& p_variables, const ExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
@@ -82,7 +83,8 @@ namespace Lumina
 		std::string _composeMethodCallExpression(std::set<VariableImpl>& p_variables, const MethodCallExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
 		std::string _composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
 		std::string _composeArrayAccessExpression(std::set<VariableImpl>& p_variables, const ArrayAccessExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
-
+		std::string _composeArrayDefinitionExpression(std::set<VariableImpl>& p_variables, const ArrayDefinitionExpressionInfo& p_expression, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes);
+		
 		std::vector<const FunctionImpl*> _getFunctionsWithNamespaces(const std::string& p_relativeName);
 		FunctionImpl* _findFunctionWithConversions(const std::string& name, const std::vector<ExpressionTypeImpl>& p_argumentTypes);
 		FunctionImpl _findOperatorFunction(std::set<VariableImpl>& p_variables, const ExpressionTypeImpl& p_lhs, const std::string& p_op, const ExpressionTypeImpl& p_rhs, bool p_isAssignment = false);
