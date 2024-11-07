@@ -1,9 +1,11 @@
+Input -> VertexPass : Vector2 modelPosition;
+
 VertexPass()
 {
-    int values[6][2] = {{10, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}};
+    pixelPosition = Vector4(modelPosition, 0, 1);
 }
 
 FragmentPass()
 {
-
+	pixelColor = Color(1, 0, 0, 1);
 }

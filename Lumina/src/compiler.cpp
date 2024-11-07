@@ -342,7 +342,7 @@ namespace Lumina
 	{
 		for (size_t i = 0; i < p_vertexFlows.size(); i++)
 		{
-			_product.layoutContent += "in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + "\n";
+			_product.layoutContent += std::to_string(i) + " in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + "\n";
 			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + ";\n";
 		}
 
@@ -354,7 +354,7 @@ namespace Lumina
 
 		for (size_t i = 0; i < p_outputFlows.size(); i++)
 		{
-			_product.layoutContent += "out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + "\n";
+			_product.layoutContent += std::to_string(i) + " out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + "\n";
 			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + ";\n";
 		}
 
