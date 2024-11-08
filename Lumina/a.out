@@ -1,6 +1,9 @@
 ## LAYOUTS DEFINITION ##
-0 in Vector2 modelPosition
-0 out Color pixelColor
+0 Vector2 modelPosition
+
+
+## FRAMEBUFFER DEFINITION ##
+0 Color pixelColor
 
 
 ## CONSTANTS DEFINITION ##
