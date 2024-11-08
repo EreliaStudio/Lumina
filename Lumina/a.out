@@ -19,7 +19,7 @@ layout (location = 0) in vec2 modelPosition;
 
 void main()
 {
-    gl_Position = vec4(modelPosition, (float)(0), (float)(1));
+    gl_Position = vec4(modelPosition, 0, 1);
 }
 
 ## FRAGMENT SHADER CODE ##
@@ -29,6 +29,6 @@ layout (location = 0) out vec4 pixelColor;
 
 void main()
 {
-    pixelColor = vec4((float)(1), (float)(0), (float)(0), (float)(1));
+    pixelColor = vec4(1, 0, 0, 1);
 }
 
