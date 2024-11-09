@@ -1,5 +1,6 @@
 ## LAYOUTS DEFINITION ##
 0 Vector2 modelPosition
+1 Color modelColor
 
 
 ## FRAMEBUFFER DEFINITION ##
@@ -19,19 +20,23 @@
 #version 450
 
 layout (location = 0) in vec2 modelPosition;
+layout (location = 1) in vec4 modelColor;
+layout (location = 0) out vec4 fragmentColor;
 
 void main()
 {
     gl_Position = vec4(modelPosition, 0, 1);
+    fragmentColor = modelColor;
 }
 
 ## FRAGMENT SHADER CODE ##
 #version 450
 
+layout (location = 0) in vec4 fragmentColor;
 layout (location = 0) out vec4 pixelColor;
 
 void main()
 {
-    pixelColor = vec4(1, 0, 0, 1);
+    pixelColor = fragmentColor;
 }
 

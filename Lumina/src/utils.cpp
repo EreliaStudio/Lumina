@@ -70,7 +70,7 @@ namespace Lumina
 #ifdef _WIN32
 		char* pathEnv = nullptr;
 		size_t len = 0;
-		if (_dupenv_s(&pathEnv, &len, "Path") != 0 || pathEnv == nullptr)
+		if (_dupenv_s(&pathEnv, &len, "PATH") != 0 || pathEnv == nullptr)
 		{
 			std::cerr << "PATH environment variable not found." << std::endl;
 			return std::filesystem::path();
@@ -96,10 +96,11 @@ namespace Lumina
 #else
 		const char delimiter = ':';
 #endif
-
+	
 		while (std::getline(ss, path, delimiter))
 		{
-			paths.push_back(path);
+			std::string fuzedPath = path + "\\includes";
+			paths.push_back(fuzedPath);
 		}
 
 		for (const auto& dir : paths)

@@ -1,11 +1,17 @@
+#include <widget_attributes>
+#include <screen_constants>
+
 Input -> VertexPass : Vector2 modelPosition;
+Input -> VertexPass : Color modelColor;
+VertexPass -> FragmentPass : Color fragmentColor;
 
 VertexPass()
 {
     pixelPosition = Vector4(modelPosition, 0, 1);
+	fragmentColor = modelColor;
 }
 
 FragmentPass()
 {
-	pixelColor = Color(1, 0, 0, 1);
+	pixelColor = fragmentColor;
 }

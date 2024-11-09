@@ -473,15 +473,8 @@ namespace Lumina
 
 		std::vector<std::filesystem::path> additionalPaths = {
 			currentDir,
-			includeToken.context.originFile.parent_path(),
-			includeToken.context.originFile.parent_path() / "..\\predefined_header"
+			includeToken.context.originFile.parent_path()
 		};
-
-		std::string luminaCompilerPathEnv = getEnvVar("LuminaCompilerPath");
-		if (!luminaCompilerPathEnv.empty())
-		{
-			additionalPaths.push_back(luminaCompilerPathEnv);
-		}
 
 		std::filesystem::path filePath = composeFilePath(fileRelativePath, additionalPaths);
 
