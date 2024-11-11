@@ -195,7 +195,7 @@ namespace Lumina
 			}
 
 			size_t alignment = getAlignment(attrDataRep.gpuSize);
-			size_t padding = alignment - (attrDataRep.gpuSize % 16);
+			size_t padding = (alignment - (attrDataRep.gpuSize % 16)) % 16;
 
 			gpuOffset = ((gpuOffset + alignment - 1) / alignment) * alignment;
 

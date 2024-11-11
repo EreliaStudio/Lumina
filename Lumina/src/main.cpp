@@ -69,6 +69,5 @@ int main(int argc, char** argv)
 
 	std::cout << "Compilation successful. Output written to [" << outputPath << "]" << std::endl;
 
-
 	return (0);
 }
