@@ -3,6 +3,11 @@ Input -> VertexPass : Vector2 modelPosition;
 VertexPass()
 {
     pixelPosition = Vector4(modelPosition, 0, 1);
+
+    if (instanceID == 0)
+    {
+       //Check
+    }
 }
 
 FragmentPass()

@@ -36,7 +36,7 @@ namespace Lumina
 			{"Texture", "sampler2D"},
 			{"Texture_getPixel", "texture"},
 
-			{"pixelPosition", "gl_Position"}
+			{"pixelPosition", "gl_Position"},
 		};
 	}
 
@@ -327,8 +327,16 @@ namespace Lumina
 			_product.fragmentCodeContent += _compileFunction(function) + "\n\n";
 		}
 
-		_product.vertexCodeContent += "void main()\n{\n    instanceID = gl_InstanceID;\n" + p_input.vertexPipelinePass.body.code + "}";
+		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "    out_instanceID = instanceID;\n}";
 		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "}";
+
+		std::regex word_regex(R"(layout\s*\(\s*location\s*=\s*0\s*\)\s*out\s+int\s+instanceID\s*;)");
+
+		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "layout(location = 0) out int out_instanceID;");
+
+		word_regex = std::regex("\\binstanceID\\b");
+
+		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "gl_InstanceID");
 
 		applyRename();
 
