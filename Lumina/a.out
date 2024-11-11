@@ -10,14 +10,6 @@
 
 
 ## ATTRIBUTES DEFINITION ##
-ColorAttributes_Type ColorAttributes 48 48 {
-    values 0 16 0 16 3 0 {
-        r 0 4 0 4 1 0 {}
-        g 4 4 4 4 1 0 {}
-        b 8 4 8 4 1 0 {}
-        a 12 4 12 4 1 0 {}
-    }
-}
 
 
 ## TEXTURES DEFINITION ##
@@ -27,24 +19,29 @@ ColorAttributes_Type ColorAttributes 48 48 {
 #version 450
 
 layout (location = 0) in vec2 modelPosition;
+layout (location = 0) out int instanceID;
 
 void main()
 {
+    instanceID = gl_InstanceID;
     gl_Position = vec4(modelPosition, 0, 1);
 }
 
 ## FRAGMENT SHADER CODE ##
 #version 450
 
+layout (location = 0) in int instanceID;
 layout (location = 0) out vec4 pixelColor;
-
-layout(attributes) uniform ColorAttributes_Type
-{
-    vec4 values[3];
-} ColorAttributes;
 
 void main()
 {
-    pixelColor = vec4(ColorAttributes.values[0].r, ColorAttributes.values[1].g, ColorAttributes.values[2].b, 1.0f);
+    if (instanceID == 0)
+    {
+        pixelColor = vec4(1, 0, 0, 1);
+    }
+    else
+    {
+        pixelColor = vec4(0, 1, 0, 1);
+    }
 }
 

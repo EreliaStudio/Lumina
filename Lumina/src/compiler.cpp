@@ -36,7 +36,7 @@ namespace Lumina
 			{"Texture", "sampler2D"},
 			{"Texture_getPixel", "texture"},
 
-			{"pixelPosition", "gl_Position"},
+			{"pixelPosition", "gl_Position"}
 		};
 	}
 
@@ -327,7 +327,7 @@ namespace Lumina
 			_product.fragmentCodeContent += _compileFunction(function) + "\n\n";
 		}
 
-		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "}";
+		_product.vertexCodeContent += "void main()\n{\n    instanceID = gl_InstanceID;\n" + p_input.vertexPipelinePass.body.code + "}";
 		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "}";
 
 		applyRename();

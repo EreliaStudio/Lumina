@@ -1,10 +1,5 @@
 Input -> VertexPass : Vector2 modelPosition;
 
-AttributeBlock ColorAttributes
-{
-	Color values[3];
-};
-
 VertexPass()
 {
     pixelPosition = Vector4(modelPosition, 0, 1);
@@ -12,5 +7,12 @@ VertexPass()
 
 FragmentPass()
 {
-	pixelColor = Color(ColorAttributes.values[0].r, ColorAttributes.values[1].g, ColorAttributes.values[2].b, 1.0f);
+    if (instanceID == 0)
+    {
+       pixelColor = Color(1, 0, 0, 1);
+    }
+    else
+    {
+       pixelColor = Color(0, 1, 0, 1);
+    }
 }

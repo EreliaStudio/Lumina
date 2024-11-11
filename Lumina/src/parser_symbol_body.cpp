@@ -223,7 +223,7 @@ namespace Lumina
 			calledFunctions.insert(calledFunctions.end(), elseBody.calledFunctions.begin(), elseBody.calledFunctions.end());
 			usedTypes.insert(usedTypes.end(), elseBody.usedTypes.begin(), elseBody.usedTypes.end());
 
-			code += std::string(depth * 4, ' ') + "else\n{\n" + elseBody.code + std::string(depth * 4, ' ') + "}";
+			code += "\n" + std::string(depth * 4, ' ') + "else\n" + std::string(depth * 4, ' ') + "{\n" + elseBody.code + std::string(depth * 4, ' ') + "}";
 		}
 
 		return code;
