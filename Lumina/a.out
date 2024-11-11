@@ -19,7 +19,7 @@
 #version 450
 
 layout (location = 0) in vec2 modelPosition;
-layout(location = 0) out int out_instanceID;
+layout(location = 0) out flat int out_instanceID;
 
 void main()
 {
@@ -33,7 +33,7 @@ void main()
 ## FRAGMENT SHADER CODE ##
 #version 450
 
-layout (location = 0) in int instanceID;
+layout (location = 0) in flat int instanceID;
 layout (location = 0) out vec4 pixelColor;
 
 void main()

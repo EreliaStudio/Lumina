@@ -38,6 +38,20 @@ namespace Lumina
 
 			{"pixelPosition", "gl_Position"},
 		};
+
+		_flatTypes = {
+			"int",
+			"uint",
+
+			"Vector2Int",
+			"Vector2UInt",
+
+			"Vector3Int",
+			"Vector3UInt",
+
+			"Vector4Int",
+			"Vector4UInt",
+		};
 	}
 
 	std::string Compiler::_compileFunction(const FunctionImpl& p_functionImpl)
@@ -330,9 +344,9 @@ namespace Lumina
 		_product.vertexCodeContent += "void main()\n{\n" + p_input.vertexPipelinePass.body.code + "    out_instanceID = instanceID;\n}";
 		_product.fragmentCodeContent += "void main()\n{\n" + p_input.fragmentPipelinePass.body.code + "}";
 
-		std::regex word_regex(R"(layout\s*\(\s*location\s*=\s*0\s*\)\s*out\s+int\s+instanceID\s*;)");
+		std::regex word_regex(R"(layout\s*\(\s*location\s*=\s*0\s*\)\s*out\sflat\s+int\s+instanceID\s*;)");
 
-		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "layout(location = 0) out int out_instanceID;");
+		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "layout(location = 0) out flat int out_instanceID;");
 
 		word_regex = std::regex("\\binstanceID\\b");
 
@@ -351,19 +365,19 @@ namespace Lumina
 		for (size_t i = 0; i < p_vertexFlows.size(); i++)
 		{
 			_product.layoutContent += std::to_string(i) + " " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + "\n";
-			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + ";\n";
+			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") in " + std::string(_flatTypes.contains(p_vertexFlows[i].type.name) == true ? "flat " : "") + p_vertexFlows[i].type.name + " " + p_vertexFlows[i].name + ";\n";
 		}
 
 		for (size_t i = 0; i < p_fragmentFlows.size(); i++)
 		{
-			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
-			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") in " + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
+			_product.vertexCodeContent += "layout (location = " + std::to_string(i) + ") out " + std::string(_flatTypes.contains(p_fragmentFlows[i].type.name) == true ? "flat " : "") + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
+			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") in " + std::string(_flatTypes.contains(p_fragmentFlows[i].type.name) == true ? "flat " : "") + p_fragmentFlows[i].type.name + " " + p_fragmentFlows[i].name + ";\n";
 		}
 
 		for (size_t i = 0; i < p_outputFlows.size(); i++)
 		{
 			_product.frameBufferContent += std::to_string(i) + " " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + "\n";
-			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") out " + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + ";\n";
+			_product.fragmentCodeContent += "layout (location = " + std::to_string(i) + ") out " + std::string(_flatTypes.contains(p_outputFlows[i].type.name) == true ? "flat " : "") + p_outputFlows[i].type.name + " " + p_outputFlows[i].name + ";\n";
 		}
 
 		_product.vertexCodeContent += "\n";
