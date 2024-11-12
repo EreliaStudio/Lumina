@@ -255,7 +255,7 @@ namespace Lumina
 
 			if (argType.type.name != param.type.name)
 			{
-				argCode = "(" + param.type.name + ")(" + argCode + ")";
+				argCode = argCode;
 			}
 
 			if (i > 0)
@@ -466,7 +466,7 @@ namespace Lumina
 			{
 				if (_convertionTable[argType.type].contains(param.type) == true)
 				{
-					argExpression = "(" + param.type.name + ")(" + argExpression + ")";
+					argExpression = argExpression;
 				}
 				else
 				{

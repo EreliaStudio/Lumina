@@ -614,8 +614,13 @@ namespace Lumina
 		}
 
 		_vertexVariables.insert({ _getType("Vector4"),  "pixelPosition", {} });
-		_fragmentVariables.insert({ _getType("Color"),  "pixelColor", {} });
+
+		_product.value.fragmentPipelineFlows.push_back({ _getType("int"), "instanceID", {} });
 		_product.value.outputPipelineFlows.push_back({_getType("Color"), "pixelColor", {}});
+		_fragmentVariables.insert({ _getType("Color"),  "pixelColor", {} });
+
+		_vertexVariables.insert({ _getType("int"),  "instanceID", {} });
+		_fragmentVariables.insert({ _getType("int"),  "instanceID", {} });
 
 		struct MethodDescriptor {
 			std::string methodName;

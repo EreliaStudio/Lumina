@@ -3,9 +3,21 @@ Input -> VertexPass : Vector2 modelPosition;
 VertexPass()
 {
     pixelPosition = Vector4(modelPosition, 0, 1);
+
+    if (instanceID == 0)
+    {
+       //Check
+    }
 }
 
 FragmentPass()
 {
-	pixelColor = Color(1, 0, 0, 1);
+    if (instanceID == 0)
+    {
+       pixelColor = Color(1, 0, 0, 1);
+    }
+    else
+    {
+       pixelColor = Color(0, 1, 0, 1);
+    }
 }

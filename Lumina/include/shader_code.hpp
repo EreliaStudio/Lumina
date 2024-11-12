@@ -8,6 +8,7 @@ namespace Lumina
 	struct ShaderCode
 	{
 		static inline const std::string LAYOUTS_DELIMITER = "## LAYOUTS DEFINITION ##";
+		static inline const std::string FRAMEBUFFERS_DELIMITER = "## FRAMEBUFFER DEFINITION ##";
 		static inline const std::string CONSTANTS_DELIMITER = "## CONSTANTS DEFINITION ##";
 		static inline const std::string ATTRIBUTES_DELIMITER = "## ATTRIBUTES DEFINITION ##";
 		static inline const std::string TEXTURES_DELIMITER = "## TEXTURES DEFINITION ##";
@@ -15,6 +16,7 @@ namespace Lumina
 		static inline const std::string FRAGMENT_DELIMITER = "## FRAGMENT SHADER CODE ##";
 
 		std::string layoutContent = "";
+		std::string frameBufferContent = "";
 		std::string constantContent = "";
 		std::string attributeContent = "";
 		std::string textureContent = "";
@@ -25,6 +27,9 @@ namespace Lumina
 		{
 			p_os << ShaderCode::LAYOUTS_DELIMITER << std::endl;
 			p_os << p_shader.layoutContent << std::endl;
+			p_os << std::endl;
+			p_os << ShaderCode::FRAMEBUFFERS_DELIMITER << std::endl;
+			p_os << p_shader.frameBufferContent << std::endl;
 			p_os << std::endl;
 			p_os << ShaderCode::CONSTANTS_DELIMITER << std::endl;
 			p_os << p_shader.constantContent << std::endl;

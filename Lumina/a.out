@@ -1,5 +1,9 @@
 ## LAYOUTS DEFINITION ##
-out Color pixelColor
+0 Vector2 modelPosition
+
+
+## FRAMEBUFFER DEFINITION ##
+0 Color pixelColor
 
 
 ## CONSTANTS DEFINITION ##
@@ -12,16 +16,35 @@ out Color pixelColor
 
 
 ## VERTEX SHADER CODE ##
+#version 450
+
+layout (location = 0) in vec2 modelPosition;
+layout(location = 0) out flat int out_instanceID;
 
 void main()
 {
-    int values = {{10, 15}, {10, 10}, {10, 10}, {10, 10}, {10, 10}, {10, 10}};
+    gl_Position = vec4(modelPosition, 0, 1);
+    if (gl_InstanceID == 0)
+    {
+    }
+    out_instanceID = gl_InstanceID;
 }
 
 ## FRAGMENT SHADER CODE ##
+#version 450
+
+layout (location = 0) in flat int instanceID;
 layout (location = 0) out vec4 pixelColor;
 
 void main()
 {
+    if (instanceID == 0)
+    {
+        pixelColor = vec4(1, 0, 0, 1);
+    }
+    else
+    {
+        pixelColor = vec4(0, 1, 0, 1);
+    }
 }
 
