@@ -73,7 +73,7 @@ namespace Lumina
 
 		for (const auto& sizeToken : p_arraySize.dims)
 		{
-			result.push_back(std::stoll(sizeToken.content));
+			result.push_back(static_cast<size_t>(std::stoll(sizeToken.content)));
 		}
 
 		return (result);
@@ -499,7 +499,7 @@ namespace Lumina
 		}
 
 		_availibleTypes.insert(newType);
-		_convertionTable[newType] = {_getType(newType.name)};
+		_convertionTable[{newType, {}}].insert({ _getType(newType.name), {} });
 		p_destination.push_back(newType);
 
 		_composeConstructorPrototypes(p_blockInfo);

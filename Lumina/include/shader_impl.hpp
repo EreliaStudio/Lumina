@@ -48,6 +48,20 @@ namespace Lumina
 		TypeImpl type;
 		std::vector<size_t> arraySizes;
 
+
+		bool operator < (const ExpressionTypeImpl& p_other) const
+		{
+			if (type < p_other.type)
+				return (true);
+			if (p_other.type < type)
+				return (false);
+
+			if (arraySizes < p_other.arraySizes)
+				return (true);
+
+			return (false);
+		}
+
 		bool operator == (const ExpressionTypeImpl& p_other) const
 		{
 			if (type != p_other.type)

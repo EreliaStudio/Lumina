@@ -106,8 +106,8 @@ namespace Lumina
 			}
 			else
 			{
-				auto convIt = _convertionTable.find(initializerType.type);
-				if (convIt != _convertionTable.end() && convIt->second.count(variableType.type) > 0)
+				auto convIt = _convertionTable.find(initializerType);
+				if (convIt != _convertionTable.end() && convIt->second.count(variableType) > 0)
 				{
 					conversionAvailable = true;
 				}
@@ -272,12 +272,12 @@ namespace Lumina
 				.arraySizes = p_lhs.arraySizes
 			});
 
-		for (const auto& convertedType : _convertionTable[p_rhs.type])
+		for (const auto& convertedType : _convertionTable[p_rhs])
 		{
 			FunctionImpl toTest = searchFunction;
 
 			toTest.parameters.push_back({
-					.type = convertedType,
+					.type = convertedType.type,
 					.arraySizes = p_rhs.arraySizes
 				});
 

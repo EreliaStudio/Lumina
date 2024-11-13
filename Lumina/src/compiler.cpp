@@ -125,8 +125,8 @@ namespace Lumina
 			size_t padding;
 		};
 
-		size_t cpuSize;
-		size_t gpuSize;
+		size_t cpuSize = 0;
+		size_t gpuSize = 0;
 		std::vector<Attribute> attributes;
 	};
 

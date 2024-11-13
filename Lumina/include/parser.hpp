@@ -27,7 +27,7 @@ namespace Lumina
 		std::vector<std::string> _nspaces;
 
 		std::set<TypeImpl> _availibleTypes;
-		std::map<TypeImpl, std::set<TypeImpl>> _convertionTable;
+		std::map<ExpressionTypeImpl, std::set<ExpressionTypeImpl>> _convertionTable;
 		std::set<FunctionImpl> _availibleFunctions;
 
 		std::set<VariableImpl> _vertexVariables;

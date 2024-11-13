@@ -1,23 +1,61 @@
-Input -> VertexPass : Vector2 modelPosition;
+#include <WidgetAttributes>
+#include <ScreenConstants>
+
+Input -> VertexPass : Vector2Int modelPosition;
+Input -> VertexPass : Vector2 modelUVs;
+
+VertexPass -> FragmentPass : Vector2 fragmentUVs;
+
+AttributeBlock textRendererAttribute
+{
+	Color textColor;
+	float textEdgePower;
+	Color outlineColor;
+	float outlineEdgePower;
+};
+
+Texture fontTexture;
 
 VertexPass()
 {
-    pixelPosition = Vector4(modelPosition, 0, 1);
+	pixelPosition = spk::ScreenConstants.canvasMVP * Vector4(modelPosition, spk::WidgetAttributes.layer, 1.0f);
 
-    if (instanceID == 0)
-    {
-       //Check
-    }
+	fragmentUVs = modelUVs;
+}
+
+float strongInterpolation(float x, float minRange, float maxRange, float exponent)
+{
+	float adjustedX = (x - minRange) / (maxRange - minRange);
+	float strongValue = pow(adjustedX, exponent);
+	return strongValue;
 }
 
 FragmentPass()
 {
-    if (instanceID == 0)
-    {
-       pixelColor = Color(1, 0, 0, 1);
-    }
-    else
-    {
-       pixelColor = Color(0, 1, 0, 1);
-    }
+	float distance = fontTexture.getPixel(fragmentUVs).r;
+			
+	if (distance <= 0.00390f)
+	{
+		discard;
+	}
+	else
+	{
+		Color resultColor;
+		if (distance >= 0.5)
+		{
+			float t = strongInterpolation(distance, 0.5, 1.0, textRendererAttribute.textEdgePower);
+			resultColor = textRendererAttribute.outlineColor.lerp(textRendererAttribute.textColor, t);
+		}
+		else
+		{
+			float alpha = strongInterpolation(distance, 0.0, 0.5, textRendererAttribute.outlineEdgePower);
+			resultColor = Color(textRendererAttribute.outlineColor.rgb, alpha);
+		}
+
+		pixelColor = resultColor;
+		if (pixelColor.a <= 0.00390f)
+		{
+			discard;
+		}
+	}
 }

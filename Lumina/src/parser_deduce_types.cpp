@@ -339,7 +339,7 @@ namespace Lumina
 		}
 		else
 		{
-			std::set<std::string> acceptedSwizzlingStructures = { "Vector3", "Vector3Int", "Vector3UInt","Vector4", "Vector4Int", "Vector4UInt", };
+			std::set<std::string> acceptedSwizzlingStructures = { "Vector3", "Vector3Int", "Vector3UInt","Vector4", "Vector4Int", "Vector4UInt", "Color"};
 
 			if (objectType.arraySizes.size() == 0 && acceptedSwizzlingStructures.contains(objectType.type.name) && memberName.size() >= 2 && memberName.size() <= 4)
 			{
@@ -357,7 +357,7 @@ namespace Lumina
 
 					if (it != objectType.type.attributes.end())
 					{
-						return { it->type, it->arraySizes };
+						return { it->type, {memberName.size()} };
 					}
 				}
 
@@ -422,8 +422,8 @@ namespace Lumina
 		{
 			ExpressionTypeImpl tmpExpressionType = _deduceExpressionType(p_variables, *(p_expression.elements[i]));
 
-			const auto& convIt = _convertionTable[tmpExpressionType.type];
-			if (convIt.contains(result.type) == true)
+			const auto& convIt = _convertionTable[tmpExpressionType];
+			if (convIt.contains(result) == true)
 			{
 				tmpExpressionType.type = firstElementType.type;
 			}

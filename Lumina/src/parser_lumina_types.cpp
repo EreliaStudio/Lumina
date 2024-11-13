@@ -115,214 +115,239 @@ namespace Lumina
 
 		_convertionTable = {
 			{
-				_getType("bool"),
-				{_getType("bool")}
+				{_getType("bool"), {}},
+				{{_getType("bool"), {}}}
 			},
 			{
-				_getType("int"),
-				{_getType("int"), _getType("uint"), _getType("float")}
+				{_getType("int"), {}},
+				{{_getType("int"), {}}, {_getType("uint"), {}}, {_getType("float"), {}}}
 			},
 			{
-				_getType("float"),
-				{_getType("float"), _getType("int"), _getType("uint")}
+				{_getType("float"), {}},
+				{{_getType("float"), {}}, {_getType("int"), {}}, {_getType("uint"), {}}}
 			},
 			{
-				_getType("uint"),
-				{_getType("uint"), _getType("int"), _getType("float")}
+				{_getType("uint"), {}},
+				{{_getType("uint"), {}}, {_getType("int"), {}}, {_getType("float"), {}}}
 			},
 			{
-				_getType("Vector2"),
-				{_getType("Vector2"), _getType("Vector2Int"), _getType("Vector2UInt")}
+				{_getType("Vector2"), {}},
+				{{_getType("Vector2"), {}}, {_getType("Vector2Int"), {}}, {_getType("Vector2UInt"), {}}}
 			},
 			{
-				_getType("Vector2Int"),
-				{_getType("Vector2Int"), _getType("Vector2"), _getType("Vector2UInt")}
+				{_getType("Vector2Int"), {}},
+				{{_getType("Vector2Int"), {}}, {_getType("Vector2"), {}}, {_getType("Vector2UInt"), {}}}
 			},
 			{
-				_getType("Vector2UInt"),
-				{_getType("Vector2UInt"), _getType("Vector2Int"), _getType("Vector2")}
+				{_getType("Vector2UInt"), {}},
+				{{_getType("Vector2UInt"), {}}, {_getType("Vector2Int"), {}}, {_getType("Vector2"), {}}}
 			},
 			{
-				_getType("Vector3"),
-				{_getType("Vector3"), _getType("Vector3Int"), _getType("Vector3UInt")}
+				{_getType("Vector3"), {}},
+				{{_getType("Vector3"), {}}, {_getType("Vector3Int"), {}}, {_getType("Vector3UInt"), {}}}
 			},
 			{
-				_getType("Vector3Int"),
-				{_getType("Vector3Int"), _getType("Vector3"), _getType("Vector3UInt")}
+				{_getType("Vector3Int"), {}},
+				{{_getType("Vector3Int"), {}}, {_getType("Vector3"), {}}, {_getType("Vector3UInt"), {}}}
 			},
 			{
-				_getType("Vector3UInt"),
-				{_getType("Vector3UInt"), _getType("Vector3Int"), _getType("Vector3")}
+				{_getType("Vector3UInt"), {}},
+				{{_getType("Vector3UInt"), {}}, {_getType("Vector3Int"), {}}, {_getType("Vector3"), {}}}
 			},
 			{
-				_getType("Vector4"),
-				{_getType("Vector4"), _getType("Vector4Int"), _getType("Vector4UInt")}
+				{_getType("Vector4"), {}},
+				{{_getType("Vector4"), {}}, {_getType("Vector4Int"), {}}, {_getType("Vector4UInt"), {}}}
 			},
 			{
-				_getType("Vector4Int"),
-				{_getType("Vector4Int"), _getType("Vector4"), _getType("Vector4UInt")}
+				{_getType("Vector4Int"), {}},
+				{{_getType("Vector4Int"), {}}, {_getType("Vector4"), {}}, {_getType("Vector4UInt"), {}}}
 			},
 			{
-				_getType("Vector4UInt"),
-				{_getType("Vector4UInt"), _getType("Vector4Int"), _getType("Vector4")}
+				{_getType("Vector4UInt"), {}},
+				{{_getType("Vector4UInt"), {}}, {_getType("Vector4Int"), {}}, {_getType("Vector4"), {}}}
 			},
 			{
-				_getType("Matrix2x2"),
-				{_getType("Matrix2x2")}
+				{_getType("Matrix2x2"), {}},
+				{{_getType("Matrix2x2"), {}}}
 			},
 			{
-				_getType("Matrix3x3"),
-				{_getType("Matrix3x3")}
+				{_getType("Matrix3x3"), {}},
+				{{_getType("Matrix3x3"), {}}}
 			},
 			{
-				_getType("Matrix4x4"),
-				{_getType("Matrix4x4")}
+				{_getType("Matrix4x4"), {}},
+				{{_getType("Matrix4x4"), {}}}
 			}
 		};
 
-		std::map<std::string, std::vector<std::vector<std::string>>> constructorDescriptors = {
+
+		std::map<std::string, std::vector<std::vector<ExpressionTypeImpl>>> constructorDescriptors = {
 			{
 				"bool",
 				{
 					{},
-					{"int"},
-					{"bool"},
+					{{_getType("int"), {}}, {_getType("bool"), {}}}
 				}
 			},
 			{
 				"int",
 				{
 					{},
-					{"int"},
-					{"uint"},
-					{"float"},
+					{{_getType("int"), {}}, {_getType("uint"), {}}, {_getType("float"), {}}}
 				}
 			},
 			{
 				"uint",
 				{
 					{},
-					{"int"},
-					{"uint"},
-					{"float"},
+					{{_getType("int"), {}}, {_getType("uint"), {}}, {_getType("float"), {}}}
 				}
 			},
 			{
 				"float",
 				{
 					{},
-					{"int"},
-					{"uint"},
-					{"float"},
+					{{_getType("int"), {}}, {_getType("uint"), {}}, {_getType("float"), {}}}
 				}
 			},
 			{
 				"Vector2",
 				{
 					{},
-					{"float", "float"}
+					{{_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {2}}}
 				}
 			},
 			{
 				"Vector2Int",
 				{
 					{},
-					{"int", "int"}
+					{{_getType("int"), {}}, {_getType("int"), {}}},
+					{{_getType("int"), {2}}}
 				}
 			},
 			{
 				"Vector2UInt",
 				{
 					{},
-					{"uint", "uint"}
+					{{_getType("uint"), {}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {2}}}
 				}
 			},
 			{
 				"Vector3",
 				{
 					{},
-					{"float", "float", "float"},
-					{"Vector2", "float"}
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("Vector2"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {2}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {2}}},
+					{{_getType("float"), {3}}}
 				}
 			},
 			{
 				"Vector3Int",
 				{
 					{},
-					{"int", "int", "int"},
-					{"Vector2Int", "int"}
+					{{_getType("int"), {}}, {_getType("int"), {}}, {_getType("int"), {}}},
+					{{_getType("Vector2Int"), {}}, {_getType("int"), {}}},
+					{{_getType("int"), {2}}, {_getType("int"), {}}},
+					{{_getType("int"), {}}, {_getType("int"), {2}}},
+					{{_getType("int"), {3}}}
 				}
 			},
 			{
 				"Vector3UInt",
 				{
 					{},
-					{"uint", "uint", "uint"},
-					{"Vector2UInt", "uint"}
+					{{_getType("uint"), {}}, {_getType("uint"), {}}, {_getType("uint"), {}}},
+					{{_getType("Vector2UInt"), {}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {2}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {}}, {_getType("uint"), {2}}},
+					{{_getType("uint"), {3}}}
 				}
 			},
 			{
 				"Vector4",
 				{
 					{},
-					{"float", "float", "float", "float"},
-					{"Vector2", "float", "float"},
-					{"Vector3", "float"}
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("Vector2"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("Vector3"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {2}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {2}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {2}}},
+					{{_getType("float"), {3}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {3}}}
 				}
 			},
 			{
 				"Vector4Int",
 				{
 					{},
-					{"int", "int", "int", "int"},
-					{"Vector2Int", "int", "int"},
-					{"Vector3Int", "int"}
+					{{_getType("int"), {}}, {_getType("int"), {}}, {_getType("int"), {}}, {_getType("int"), {}}},
+					{{_getType("Vector2Int"), {}}, {_getType("int"), {}}, {_getType("int"), {}}},
+					{{_getType("Vector3Int"), {}}, {_getType("int"), {}}},
+					{{_getType("int"), {2}}, {_getType("int"), {}}, {_getType("int"), {}}},
+					{{_getType("int"), {}}, {_getType("int"), {2}}, {_getType("int"), {}}},
+					{{_getType("int"), {}}, {_getType("int"), {}}, {_getType("int"), {2}}},
+					{{_getType("int"), {3}}, {_getType("int"), {}}},
+					{{_getType("int"), {}}, {_getType("int"), {3}}}
 				}
 			},
 			{
 				"Vector4UInt",
 				{
 					{},
-					{"uint", "uint", "uint", "uint"},
-					{"Vector2UInt", "uint", "uint"},
-					{"Vector3UInt", "uint"}
+					{{_getType("uint"), {}}, {_getType("uint"), {}}, {_getType("uint"), {}}, {_getType("uint"), {}}},
+					{{_getType("Vector2UInt"), {}}, {_getType("uint"), {}}, {_getType("uint"), {}}},
+					{{_getType("Vector3UInt"), {}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {2}}, {_getType("uint"), {}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {}}, {_getType("uint"), {2}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {}}, {_getType("uint"), {}}, {_getType("uint"), {2}}},
+					{{_getType("uint"), {3}}, {_getType("uint"), {}}},
+					{{_getType("uint"), {}}, {_getType("uint"), {3}}}
 				}
 			},
 			{
 				"Color",
 				{
 					{},
-					{"float", "float", "float", "float"}
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {2}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {2}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {2}}},
+					{{_getType("float"), {3}}, {_getType("float"), {}}},
+					{{_getType("float"), {}}, {_getType("float"), {3}}}
 				}
 			},
 			{
 				"Matrix2x2",
 				{
 					{},
-					{"float", "float",
-					 "float", "float"},
-					{"Matrix3x3"},
-					{"Matrix4x4"}
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("Matrix3x3"), {}}},
+					{{_getType("Matrix4x4"), {}}}
 				}
 			},
 			{
 				"Matrix3x3",
 				{
 					{},
-					{"float", "float", "float",
-					 "float", "float", "float",
-					 "float", "float", "float" },
-					{"Matrix4x4"}
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}},
+					 {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}},
+					 {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}},
+					{{_getType("Matrix4x4"), {}}}
 				}
 			},
 			{
 				"Matrix4x4",
 				{
 					{},
-					{"float", "float", "float", "float",
-					 "float", "float", "float", "float",
-					 "float", "float", "float", "float",
-					 "float", "float", "float", "float" }
+					{{_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}},
+					 {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}},
+					 {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}},
+					 {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}, {_getType("float"), {}}}
 				}
 			}
 		};
@@ -335,18 +360,18 @@ namespace Lumina
 					.isPrototype = false,
 					.returnType = {_getType(key), {}},
 					.name = key,
-					.parameters = {
-					},
+					.parameters = {},
 					.body = {}
 				};
 
+				// Use each ExpressionTypeImpl directly from parameterList
 				for (const auto& parameter : parameterList)
 				{
 					toAdd.parameters.push_back({
-							.type = _getType(parameter),
-							.isReference = false,
-							.name = "",
-							.arraySizes = {}
+						.type = parameter.type,
+						.isReference = false,
+						.name = "",
+						.arraySizes = parameter.arraySizes
 						});
 				}
 
@@ -378,7 +403,76 @@ namespace Lumina
 		};
 
 		_availibleFunctions.insert(getPixelFunction);
-		
+
+		_availibleFunctions.insert({
+			.isPrototype = false,
+				.returnType = { _getType("Vector3"), {} },
+				.name = "Vector3",
+				.parameters = {
+					{
+						.type = _getType("float"),
+						.isReference = false,
+						.name = "a",
+						.arraySizes = {2}
+					},
+					{
+						.type = _getType("float"),
+						.isReference = false,
+						.name = "b",
+						.arraySizes = {}
+					}
+			},
+				.body = {
+					.code = ""
+			}
+			});
+
+		_availibleFunctions.insert({
+			.isPrototype = false,
+				.returnType = { _getType("Vector3Int"), {} },
+				.name = "Vector3Int",
+				.parameters = {
+					{
+						.type = _getType("int"),
+						.isReference = false,
+						.name = "a",
+						.arraySizes = {2}
+					},
+					{
+						.type = _getType("int"),
+						.isReference = false,
+						.name = "b",
+						.arraySizes = {}
+					}
+			},
+				.body = {
+					.code = ""
+			}
+			});
+
+		_availibleFunctions.insert({
+			.isPrototype = false,
+				.returnType = { _getType("Vector3UInt"), {} },
+				.name = "Vector3UInt",
+				.parameters = {
+					{
+						.type = _getType("uint"),
+						.isReference = false,
+						.name = "a",
+						.arraySizes = {2}
+					},
+					{
+						.type = _getType("int"),
+						.isReference = false,
+						.name = "b",
+						.arraySizes = {}
+					}
+			},
+				.body = {
+					.code = ""
+			}
+			});
+
 		std::vector<std::tuple<std::string, std::string, std::string, std::string>> operatorToAdd = {
 			{"Matrix2x2", "*", "Vector2", "Vector2"},
 			{"Matrix3x3", "*", "Vector3", "Vector3"},
@@ -717,6 +811,14 @@ namespace Lumina
 				{ "acos", "acos", "Vector4", {} },
 				{ "atan", "atan", "Vector4", {} },
 				{ "lerp", "mix", "Vector4", { "Vector4", "float" } }
+			}},
+			{ "Color", {
+				{ "min", "min", "Color", { "Color" } },
+				{ "max", "max", "Color", { "Color" } },
+				{ "clamp", "clamp", "Color", { "Color", "Color" } },
+				{ "step", "step", "Color", { "Color" } },
+				{ "smoothstep", "smoothstep", "Color", { "Color", "Color" } },
+				{ "lerp", "mix", "Color", { "Color", "float" } }
 			}}
 		};
 

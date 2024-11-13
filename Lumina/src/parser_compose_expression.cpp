@@ -370,8 +370,8 @@ namespace Lumina
 				}
 				else
 				{
-					auto convIt = _convertionTable.find(argType.type);
-					if (convIt != _convertionTable.end() && convIt->second.count(param.type) > 0)
+					auto convIt = _convertionTable.find(argType);
+					if (convIt != _convertionTable.end() && convIt->second.contains({ param.type, param.arraySizes }) == true)
 					{
 						totalConversionCost += 1;
 					}
@@ -464,7 +464,7 @@ namespace Lumina
 
 			if (argType.type != param.type)
 			{
-				if (_convertionTable[argType.type].contains(param.type) == true)
+				if (_convertionTable[argType].contains({ param.type, param.arraySizes }) == true)
 				{
 					argExpression = argExpression;
 				}

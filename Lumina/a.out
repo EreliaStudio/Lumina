@@ -1,5 +1,6 @@
 ## LAYOUTS DEFINITION ##
-0 Vector2 modelPosition
+0 Vector2Int modelPosition
+1 Vector2 modelUVs
 
 
 ## FRAMEBUFFER DEFINITION ##
@@ -7,26 +8,61 @@
 
 
 ## CONSTANTS DEFINITION ##
+spk_ScreenConstants_Type spk::ScreenConstants 64 64 {
+    canvasMVP 0 64 0 64 1 0 {}
+}
 
 
 ## ATTRIBUTES DEFINITION ##
+spk_WidgetAttributes_Type spk::WidgetAttributes 4 4 {
+    layer 0 4 0 4 1 0 {}
+}
+textRendererAttribute_Type textRendererAttribute 40 40 {
+    textColor 0 16 0 16 1 0 {
+        r 0 4 0 4 1 0 {}
+        g 4 4 4 4 1 0 {}
+        b 8 4 8 4 1 0 {}
+        a 12 4 12 4 1 0 {}
+    }
+    textEdgePower 16 4 16 4 1 0 {}
+    outlineColor 20 16 32 16 1 0 {
+        r 0 4 0 4 1 0 {}
+        g 4 4 4 4 1 0 {}
+        b 8 4 8 4 1 0 {}
+        a 12 4 12 4 1 0 {}
+    }
+    outlineEdgePower 36 4 48 4 1 0 {}
+}
 
 
 ## TEXTURES DEFINITION ##
+fontTexture Texture_fontTexture
 
 
 ## VERTEX SHADER CODE ##
 #version 450
 
-layout (location = 0) in vec2 modelPosition;
+layout (location = 0) in flat ivec2 modelPosition;
+layout (location = 1) in vec2 modelUVs;
 layout(location = 0) out flat int out_instanceID;
+layout (location = 1) out vec2 fragmentUVs;
+
+layout(constants) uniform spk_ScreenConstants_Type
+{
+    mat4 canvasMVP;
+} spk_ScreenConstants;
+
+layout(attributes) uniform spk_WidgetAttributes_Type
+{
+    float layer;
+} spk_WidgetAttributes;
+
+uniform sampler2D Texture_fontTexture;
 
 void main()
 {
-    gl_Position = vec4(modelPosition, 0, 1);
-    if (gl_InstanceID == 0)
-    {
-    }
+    gl_Position = spk_ScreenConstants.canvasMVP * vec4(modelPosition, spk_WidgetAttributes.layer, 1.0f);
+    fragmentUVs = modelUVs;
     out_instanceID = gl_InstanceID;
 }
 
@@ -34,17 +70,66 @@ void main()
 #version 450
 
 layout (location = 0) in flat int instanceID;
+layout (location = 1) in vec2 fragmentUVs;
 layout (location = 0) out vec4 pixelColor;
+
+layout(attributes) uniform textRendererAttribute_Type
+{
+    vec4 textColor;
+    float textEdgePower;
+    vec4 outlineColor;
+    float outlineEdgePower;
+} textRendererAttribute;
+
+layout(attributes) uniform textRendererAttribute_Type
+{
+    vec4 textColor;
+    float textEdgePower;
+    vec4 outlineColor;
+    float outlineEdgePower;
+} textRendererAttribute;
+
+uniform sampler2D Texture_fontTexture;
+
+float strongInterpolation(float x, float minRange, float maxRange, float exponent)
+{
+    float adjustedX = x - minRange / maxRange - minRange;
+    float strongValue = pow(adjustedX, exponent);
+    return strongValue;
+}
+
+float strongInterpolation(float x, float minRange, float maxRange, float exponent)
+{
+    float adjustedX = x - minRange / maxRange - minRange;
+    float strongValue = pow(adjustedX, exponent);
+    return strongValue;
+}
 
 void main()
 {
-    if (instanceID == 0)
+    float distance = getPixel(Texture_fontTexture, fragmentUVs).r;
+    if (distance <= 0.00390f)
     {
-        pixelColor = vec4(1, 0, 0, 1);
+        discard;
     }
     else
     {
-        pixelColor = vec4(0, 1, 0, 1);
+        vec4 resultColor;
+        if (distance >= 0.5)
+        {
+            float t = strongInterpolation(distance, 0.5, 1.0, textRendererAttribute.textEdgePower);
+            resultColor = lerp(textRendererAttribute.outlineColor, textRendererAttribute.textColor, t);
+        }
+        else
+        {
+            float alpha = strongInterpolation(distance, 0.0, 0.5, textRendererAttribute.outlineEdgePower);
+            resultColor = vec4(textRendererAttribute.outlineColor.rgb, alpha);
+        }
+        pixelColor = resultColor;
+        if (pixelColor.a <= 0.00390f)
+        {
+            discard;
+        }
     }
 }
 
