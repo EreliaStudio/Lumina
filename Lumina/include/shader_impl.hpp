@@ -101,6 +101,20 @@ namespace Lumina
 		std::string name;
 		std::vector<size_t> arraySizes;
 
+		bool operator==(const ParameterImpl& p_other) const
+		{
+			if (type != p_other.type)
+				return false;
+
+			if (isReference != p_other.isReference)
+				return false;
+
+			if (arraySizes != p_other.arraySizes)
+				return false;
+
+			return true;
+		}
+
 		bool operator<(const ParameterImpl& p_other) const
 		{
 			if (type < p_other.type) return true;
@@ -168,6 +182,25 @@ namespace Lumina
 			}
 
 			return false;
+		}
+
+		bool operator==(const FunctionImpl& p_other) const
+		{
+			if (name != p_other.name)
+				return false;
+
+			if (returnType != p_other.returnType)
+				return false;
+
+			if (parameters.size() != p_other.parameters.size())
+				return false;
+			for (size_t i = 0; i < parameters.size(); ++i)
+			{			
+				if (parameters[i] != p_other.parameters[i])
+					return false;
+			}
+
+			return true;
 		}
 
 		friend std::ostream& operator << (std::ostream& p_os, const FunctionImpl& p_toPrint)

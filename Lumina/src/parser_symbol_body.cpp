@@ -55,8 +55,23 @@ namespace Lumina
 		case 9:
 		{
 			SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, std::get<9>(p_statementInfo).body, depth + 1);
-			calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
-			usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
+
+			for (const auto& function : innerBody.calledFunctions)
+			{
+				if (std::find(calledFunctions.begin(), calledFunctions.end(), function) == calledFunctions.end())
+				{
+					calledFunctions.insert(calledFunctions.end(), function);
+				}
+			}
+
+			for (const auto& structure : innerBody.usedTypes)
+			{
+				if (std::find(usedTypes.begin(), usedTypes.end(), structure) == usedTypes.end())
+				{
+					usedTypes.insert(usedTypes.end(), structure);
+				}
+			}
+
 			return ("{\n" + innerBody.code + "}\n");
 		}
 		default:
