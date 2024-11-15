@@ -42,7 +42,7 @@ fontTexture Texture_fontTexture
 ## VERTEX SHADER CODE ##
 #version 450
 
-layout (location = 0) in flat ivec2 modelPosition;
+layout (location = 0) in ivec2 modelPosition;
 layout (location = 1) in vec2 modelUVs;
 layout (location = 0) out flat int out_instanceID;
 layout (location = 1) out vec2 fragmentUVs;
@@ -90,9 +90,14 @@ float strongInterpolation(float x, float minRange, float maxRange, float exponen
     return strongValue;
 }
 
+vec4 Color_lerp(vec4 param0, vec4 param1, float param2)
+{
+return mix(param0, param1, param2);
+}
+
 void main()
 {
-    float distance = getPixel(Texture_fontTexture, fragmentUVs).r;
+    float distance = texture(Texture_fontTexture, fragmentUVs).r;
     if (distance <= 0.00390f)
     {
         discard;
@@ -103,7 +108,7 @@ void main()
         if (distance >= 0.5)
         {
             float t = strongInterpolation(distance, 0.5, 1.0, textRendererAttribute.textEdgePower);
-            resultColor = lerp(textRendererAttribute.outlineColor, textRendererAttribute.textColor, t);
+            resultColor = Color_lerp(textRendererAttribute.outlineColor, textRendererAttribute.textColor, t);
         }
         else
         {

@@ -33,7 +33,7 @@ float strongInterpolation(float x, float minRange, float maxRange, float exponen
 FragmentPass()
 {
 	float distance = fontTexture.getPixel(fragmentUVs).r;
-			
+
 	if (distance <= 0.00390f)
 	{
 		discard;

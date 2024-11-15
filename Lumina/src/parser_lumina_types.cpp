@@ -839,7 +839,7 @@ namespace Lumina
 				methodFunction.parameters.push_back({
 					.type = _getType(typeName),
 					.isReference = false,
-					.name = "this",
+					.name = "param0",
 					.arraySizes = {}
 					});
 
@@ -854,13 +854,22 @@ namespace Lumina
 						});
 				}
 
-				std::string args = "this";
-				for (size_t i = 1; i < methodFunction.parameters.size(); ++i)
+				if (method.glslFunction == method.methodName)
 				{
-					args += ", " + methodFunction.parameters[i].name;
+					methodFunction.body.code = "";
 				}
-				methodFunction.body.code = "";
-				//methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");";
+				else
+				{
+					std::string args = "";
+					for (size_t i = 0; i < methodFunction.parameters.size(); ++i)
+					{
+						if (i != 0)
+							args += ", ";
+						args += methodFunction.parameters[i].name;
+					}
+
+					methodFunction.body.code = "return " + method.glslFunction + "(" + args + ");\n";
+				}
 
 				_availibleFunctions.insert(methodFunction);
 			}

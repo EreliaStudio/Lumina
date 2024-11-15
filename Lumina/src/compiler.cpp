@@ -34,23 +34,14 @@ namespace Lumina
 			{"Matrix4x4", "mat4"},
 
 			{"Texture", "sampler2D"},
-			{"Texture_getPixel", "texture"},
+			{"getPixel", "texture"},
 
 			{"pixelPosition", "gl_Position"},
 		};
 
 		_flatTypes = {
 			"int",
-			"uint",
-
-			"Vector2Int",
-			"Vector2UInt",
-
-			"Vector3Int",
-			"Vector3UInt",
-
-			"Vector4Int",
-			"Vector4UInt",
+			"uint"
 		};
 	}
 

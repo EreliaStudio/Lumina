@@ -486,12 +486,13 @@ namespace Lumina
 			parameters += argExpression;
 		}
 
-		if (matchingMethod->body.code == "")
+		if (matchingMethod->body.code != "")
 		{
-			return (p_expr.name.content + "(" + parameters + ")");
+			calledFunctions.push_back(*matchingMethod);
+			return (methodName + "(" + parameters + ")");
 		}
-		calledFunctions.push_back(*matchingMethod);
-		return methodName + "(" + parameters + ")";
+
+		return p_expr.name.content + "(" + parameters + ")";
 	}
 
 	std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
