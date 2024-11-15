@@ -223,8 +223,22 @@ namespace Lumina
 			}
 			SymbolBodyImpl branchBody = _composeSymbolBody(p_variables, branch.body, depth + 1);
 
-			calledFunctions.insert(calledFunctions.end(), branchBody.calledFunctions.begin(), branchBody.calledFunctions.end());
-			usedTypes.insert(usedTypes.end(), branchBody.usedTypes.begin(), branchBody.usedTypes.end());
+			for (const auto& function : branchBody.calledFunctions)
+			{
+				if (std::find(calledFunctions.begin(), calledFunctions.end(), function) == calledFunctions.end())
+				{
+					calledFunctions.push_back(function);
+				}
+			}
+
+
+			for (const auto& structure : branchBody.usedTypes)
+			{
+				if (std::find(usedTypes.begin(), usedTypes.end(), structure) == usedTypes.end())
+				{
+					usedTypes.push_back(structure);
+				}
+			}
 
 			code += std::string(depth * 4, ' ') + "{\n" + branchBody.code + std::string(depth * 4, ' ') + "}";
 			
@@ -235,8 +249,22 @@ namespace Lumina
 		{
 			SymbolBodyImpl elseBody = _composeSymbolBody(p_variables, p_stmt.elseBody, depth + 1);
 
-			calledFunctions.insert(calledFunctions.end(), elseBody.calledFunctions.begin(), elseBody.calledFunctions.end());
-			usedTypes.insert(usedTypes.end(), elseBody.usedTypes.begin(), elseBody.usedTypes.end());
+			for (const auto& function : elseBody.calledFunctions)
+			{
+				if (std::find(calledFunctions.begin(), calledFunctions.end(), function) == calledFunctions.end())
+				{
+					calledFunctions.push_back(function);
+				}
+			}
+
+
+			for (const auto& structure : elseBody.usedTypes)
+			{
+				if (std::find(usedTypes.begin(), usedTypes.end(), structure) == usedTypes.end())
+				{
+					usedTypes.push_back(structure);
+				}
+			}
 
 			code += "\n" + std::string(depth * 4, ' ') + "else\n" + std::string(depth * 4, ' ') + "{\n" + elseBody.code + std::string(depth * 4, ' ') + "}";
 		}
@@ -248,8 +276,22 @@ namespace Lumina
 	{
 		std::string condition = _composeExpression(p_variables, *p_stmt.loop.condition, calledFunctions, usedTypes);
 		SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, p_stmt.loop.body, depth + 1);
-		calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
-		usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
+
+		for (const auto& function : innerBody.calledFunctions)
+		{
+			if (std::find(calledFunctions.begin(), calledFunctions.end(), function) == calledFunctions.end())
+			{
+				calledFunctions.push_back(function);
+			}
+		}
+
+		for (const auto& structure : innerBody.usedTypes)
+		{
+			if (std::find(usedTypes.begin(), usedTypes.end(), structure) == usedTypes.end())
+			{
+				usedTypes.push_back(structure);
+			}
+		}
 
 		std::string code = std::string(depth * 4, ' ') + "while (" + condition + ")\n" + std::string(depth * 4, ' ') + "{\n" + innerBody.code + std::string(depth * 4, ' ') + "}";
 
@@ -263,8 +305,22 @@ namespace Lumina
 		std::string increment = p_stmt.increment ? _composeExpression(p_variables, *p_stmt.increment, calledFunctions, usedTypes) : "";
 
 		SymbolBodyImpl innerBody = _composeSymbolBody(p_variables, p_stmt.body, depth + 1);
-		calledFunctions.insert(calledFunctions.end(), innerBody.calledFunctions.begin(), innerBody.calledFunctions.end());
-		usedTypes.insert(usedTypes.end(), innerBody.usedTypes.begin(), innerBody.usedTypes.end());
+
+		for (const auto& function : innerBody.calledFunctions)
+		{
+			if (std::find(calledFunctions.begin(), calledFunctions.end(), function) == calledFunctions.end())
+			{
+				calledFunctions.push_back(function);
+			}
+		}
+
+		for (const auto& structure : innerBody.usedTypes)
+		{
+			if (std::find(usedTypes.begin(), usedTypes.end(), structure) == usedTypes.end())
+			{
+				usedTypes.push_back(structure);
+			}
+		}
 
 		if (!init.empty() && init.back() == ';')
 			init.pop_back();

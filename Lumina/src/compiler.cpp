@@ -346,7 +346,7 @@ namespace Lumina
 
 		std::regex word_regex(R"(layout\s*\(\s*location\s*=\s*0\s*\)\s*out\sflat\s+int\s+instanceID\s*;)");
 
-		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "layout(location = 0) out flat int out_instanceID;");
+		_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, "layout (location = 0) out flat int out_instanceID;");
 
 		word_regex = std::regex("\\binstanceID\\b");
 

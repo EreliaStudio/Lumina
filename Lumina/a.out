@@ -44,7 +44,7 @@ fontTexture Texture_fontTexture
 
 layout (location = 0) in flat ivec2 modelPosition;
 layout (location = 1) in vec2 modelUVs;
-layout(location = 0) out flat int out_instanceID;
+layout (location = 0) out flat int out_instanceID;
 layout (location = 1) out vec2 fragmentUVs;
 
 layout(constants) uniform spk_ScreenConstants_Type
@@ -81,22 +81,7 @@ layout(attributes) uniform textRendererAttribute_Type
     float outlineEdgePower;
 } textRendererAttribute;
 
-layout(attributes) uniform textRendererAttribute_Type
-{
-    vec4 textColor;
-    float textEdgePower;
-    vec4 outlineColor;
-    float outlineEdgePower;
-} textRendererAttribute;
-
 uniform sampler2D Texture_fontTexture;
-
-float strongInterpolation(float x, float minRange, float maxRange, float exponent)
-{
-    float adjustedX = x - minRange / maxRange - minRange;
-    float strongValue = pow(adjustedX, exponent);
-    return strongValue;
-}
 
 float strongInterpolation(float x, float minRange, float maxRange, float exponent)
 {
