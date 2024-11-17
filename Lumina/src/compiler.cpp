@@ -34,7 +34,8 @@ namespace Lumina
 			{"Matrix4x4", "mat4"},
 
 			{"Texture", "sampler2D"},
-			{"getPixel", "texture"},
+			{"Texture_getPixel", "texture"},
+			{"Texture_size", "textureSize"},
 
 			{"pixelPosition", "gl_Position"},
 		};
@@ -203,6 +204,8 @@ namespace Lumina
 			size_t padding = (alignment - (attrDataRep.gpuSize % 16)) % 16;
 
 			gpuOffset = ((gpuOffset + alignment - 1) / alignment) * alignment;
+
+			dataRep.gpuSize = gpuOffset;
 
 			DataRepresentation::Attribute attr = {
 				.type = attribute.type.name,

@@ -402,7 +402,25 @@ namespace Lumina
 				}
 		};
 
+		FunctionImpl textureSizeFunction = {
+				.isPrototype = false,
+				.returnType = {_getType("Vector2"), {}},
+				.name = "Texture_size",
+				.parameters = {
+					{
+						.type = _getType("Texture"),
+						.isReference = false,
+						.name = "this",
+						.arraySizes = {}
+					}
+				},
+				.body = {
+					.code = ""
+				}
+		};
+
 		_availibleFunctions.insert(getPixelFunction);
+		_availibleFunctions.insert(textureSizeFunction);
 
 		_availibleFunctions.insert({
 			.isPrototype = false,

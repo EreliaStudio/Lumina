@@ -17,7 +17,7 @@ spk_ScreenConstants_Type spk::ScreenConstants 64 64 {
 spk_WidgetAttributes_Type spk::WidgetAttributes 4 4 {
     layer 0 4 0 4 1 0 {}
 }
-textRendererAttribute_Type textRendererAttribute 40 40 {
+textRendererAttribute_Type textRendererAttribute 40 52 {
     textColor 0 16 0 16 1 0 {
         r 0 4 0 4 1 0 {}
         g 4 4 4 4 1 0 {}
@@ -98,6 +98,8 @@ return mix(param0, param1, param2);
 void main()
 {
     float distance = texture(Texture_fontTexture, fragmentUVs).r;
+    vec2 textureSize = textureSize(Texture_fontTexture);
+    float dot = dot(textureSize, textureSize);
     if (distance <= 0.00390f)
     {
         discard;

@@ -492,7 +492,21 @@ namespace Lumina
 			return (methodName + "(" + parameters + ")");
 		}
 
-		return p_expr.name.content + "(" + parameters + ")";
+		if (objectType.type.name == "Vector2" ||
+			objectType.type.name == "Vector2Int" ||
+			objectType.type.name == "Vector2UInt" ||
+			objectType.type.name == "Vector3" ||
+			objectType.type.name == "Vector3Int" ||
+			objectType.type.name == "Vector3UInt" ||
+			objectType.type.name == "Vector4" ||
+			objectType.type.name == "Vector4Int" ||
+			objectType.type.name == "Vector4UInt" ||
+			objectType.type.name == "Color")
+		{
+			return (p_expr.name.content + "(" + parameters + ")");
+		}
+
+		return methodName + "(" + parameters + ")";
 	}
 
 	std::string Parser::_composeMemberAccessExpression(std::set<VariableImpl>& p_variables, const MemberAccessExpressionInfo& p_expr, std::vector<FunctionImpl>& calledFunctions, std::vector<TypeImpl>& usedTypes)
