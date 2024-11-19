@@ -931,7 +931,8 @@ namespace Lumina
 				{ "floor", "floor", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "ceil", "ceil", { _getType("float"), {} }, { { _getType("float"), {} } } },
 				{ "fract", "fract", { _getType("float"), {} }, { { _getType("float"), {} } } },
-				{ "sign", "sign", { _getType("float"), {} }, { { _getType("float"), {} } } }
+				{ "sign", "sign", { _getType("float"), {} }, { { _getType("float"), {} } } },
+				{ "smoothstep", "smoothstep",  { _getType("float"), {} }, { { _getType("float"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
 			}},
 
 			{ "int", {
@@ -954,6 +955,221 @@ namespace Lumina
 				{ "abs", "abs", { _getType("uint"), {} }, { { _getType("uint"), {} } } },
 				{ "mod", "mod", { _getType("uint"), {} }, { { _getType("uint"), {} }, { _getType("uint"), {} } } }
 			}},
+
+			// Functions for Vector2
+			{ "Vector2", {
+				// Trigonometric Functions
+				{ "sin", "sin", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "cos", "cos", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "tan", "tan", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "asin", "asin", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "acos", "acos", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "atan", "atan", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "max", "max", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "lerp", "mix", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+
+				// Exponential Functions
+				{ "pow", "pow", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "exp", "exp", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "log", "log", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "exp2", "exp2", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "log2", "log2", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "sqrt", "sqrt", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "inversesqrt", "inversesqrt", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+
+				// Other Functions
+				{ "abs", "abs", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "mod", "mod", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "floor", "floor", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "ceil", "ceil", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "fract", "fract", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "sign", "sign", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "smoothstep", "smoothstep", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+
+				// Geometric Functions
+				{ "length", "length", { _getType("float"), {} }, { { _getType("Vector2"), {} } } },
+				{ "normalize", "normalize", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} } } },
+				{ "dot", "dot", { _getType("float"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "reflect", "reflect", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+				{ "refract", "refract", { _getType("Vector2"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} }, { _getType("float"), {} } } },
+				{ "distance", "distance", { _getType("float"), {} }, { { _getType("Vector2"), {} }, { _getType("Vector2"), {} } } },
+			}},
+
+			// Functions for Vector3
+			{ "Vector3", {
+				// Trigonometric Functions
+				{ "sin", "sin", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "cos", "cos", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "tan", "tan", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "asin", "asin", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "acos", "acos", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "atan", "atan", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "max", "max", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "lerp", "mix", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+
+				// Exponential Functions
+				{ "pow", "pow", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "exp", "exp", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "log", "log", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "exp2", "exp2", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "log2", "log2", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "sqrt", "sqrt", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "inversesqrt", "inversesqrt", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+
+				// Other Functions
+				{ "abs", "abs", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "mod", "mod", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "floor", "floor", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "ceil", "ceil", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "fract", "fract", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "sign", "sign", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "smoothstep", "smoothstep", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+
+				// Geometric Functions
+				{ "length", "length", { _getType("float"), {} }, { { _getType("Vector3"), {} } } },
+				{ "normalize", "normalize", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} } } },
+				{ "dot", "dot", { _getType("float"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "cross", "cross", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "reflect", "reflect", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+				{ "refract", "refract", { _getType("Vector3"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} }, { _getType("float"), {} } } },
+				{ "distance", "distance", { _getType("float"), {} }, { { _getType("Vector3"), {} }, { _getType("Vector3"), {} } } },
+			}},
+
+			// Functions for Vector4
+			{ "Vector4", {
+				// Trigonometric Functions
+				{ "sin", "sin", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "cos", "cos", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "tan", "tan", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "asin", "asin", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "acos", "acos", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "atan", "atan", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "max", "max", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "lerp", "mix", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+
+				// Exponential Functions
+				{ "pow", "pow", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "exp", "exp", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "log", "log", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "exp2", "exp2", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "log2", "log2", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "sqrt", "sqrt", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "inversesqrt", "inversesqrt", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+
+				// Other Functions
+				{ "abs", "abs", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "mod", "mod", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "floor", "floor", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "ceil", "ceil", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "fract", "fract", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "sign", "sign", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "smoothstep", "smoothstep", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+
+				// Geometric Functions
+				{ "length", "length", { _getType("float"), {} }, { { _getType("Vector4"), {} } } },
+				{ "normalize", "normalize", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} } } },
+				{ "dot", "dot", { _getType("float"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "reflect", "reflect", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+				{ "refract", "refract", { _getType("Vector4"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} }, { _getType("float"), {} } } },
+				{ "distance", "distance", { _getType("float"), {} }, { { _getType("Vector4"), {} }, { _getType("Vector4"), {} } } },
+			}},
+
+			// Functions for Vector2Int
+			{ "Vector2Int", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} }, { _getType("Vector2Int"), {} } } },
+				{ "max", "max", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} }, { _getType("Vector2Int"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} }, { _getType("Vector2Int"), {} }, { _getType("Vector2Int"), {} } } },
+				{ "abs", "abs", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} } } },
+				{ "mod", "mod", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} }, { _getType("Vector2Int"), {} } } },
+
+				// Other Functions
+				{ "sign", "sign", { _getType("Vector2Int"), {} }, { { _getType("Vector2Int"), {} } } },
+			}},
+
+			// Functions for Vector3Int
+			{ "Vector3Int", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} }, { _getType("Vector3Int"), {} } } },
+				{ "max", "max", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} }, { _getType("Vector3Int"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} }, { _getType("Vector3Int"), {} }, { _getType("Vector3Int"), {} } } },
+				{ "abs", "abs", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} } } },
+				{ "mod", "mod", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} }, { _getType("Vector3Int"), {} } } },
+
+				// Other Functions
+				{ "sign", "sign", { _getType("Vector3Int"), {} }, { { _getType("Vector3Int"), {} } } },
+			}},
+
+			// Functions for Vector4Int
+			{ "Vector4Int", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} }, { _getType("Vector4Int"), {} } } },
+				{ "max", "max", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} }, { _getType("Vector4Int"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} }, { _getType("Vector4Int"), {} }, { _getType("Vector4Int"), {} } } },
+				{ "abs", "abs", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} } } },
+				{ "mod", "mod", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} }, { _getType("Vector4Int"), {} } } },
+
+				// Other Functions
+				{ "sign", "sign", { _getType("Vector4Int"), {} }, { { _getType("Vector4Int"), {} } } },
+			}},
+
+			// Functions for Vector2UInt
+			{ "Vector2UInt", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector2UInt"), {} }, { { _getType("Vector2UInt"), {} }, { _getType("Vector2UInt"), {} } } },
+				{ "max", "max", { _getType("Vector2UInt"), {} }, { { _getType("Vector2UInt"), {} }, { _getType("Vector2UInt"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector2UInt"), {} }, { { _getType("Vector2UInt"), {} }, { _getType("Vector2UInt"), {} }, { _getType("Vector2UInt"), {} } } },
+				{ "mod", "mod", { _getType("Vector2UInt"), {} }, { { _getType("Vector2UInt"), {} }, { _getType("Vector2UInt"), {} } } },
+			}},
+
+			// Functions for Vector3UInt
+			{ "Vector3UInt", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector3UInt"), {} }, { { _getType("Vector3UInt"), {} }, { _getType("Vector3UInt"), {} } } },
+				{ "max", "max", { _getType("Vector3UInt"), {} }, { { _getType("Vector3UInt"), {} }, { _getType("Vector3UInt"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector3UInt"), {} }, { { _getType("Vector3UInt"), {} }, { _getType("Vector3UInt"), {} }, { _getType("Vector3UInt"), {} } } },
+				{ "mod", "mod", { _getType("Vector3UInt"), {} }, { { _getType("Vector3UInt"), {} }, { _getType("Vector3UInt"), {} } } },
+			}},
+
+			// Functions for Vector4UInt
+			{ "Vector4UInt", {
+				// Mathematical Functions
+				{ "min", "min", { _getType("Vector4UInt"), {} }, { { _getType("Vector4UInt"), {} }, { _getType("Vector4UInt"), {} } } },
+				{ "max", "max", { _getType("Vector4UInt"), {} }, { { _getType("Vector4UInt"), {} }, { _getType("Vector4UInt"), {} } } },
+				{ "clamp", "clamp", { _getType("Vector4UInt"), {} }, { { _getType("Vector4UInt"), {} }, { _getType("Vector4UInt"), {} }, { _getType("Vector4UInt"), {} } } },
+				{ "mod", "mod", { _getType("Vector4UInt"), {} }, { { _getType("Vector4UInt"), {} }, { _getType("Vector4UInt"), {} } } },
+			}},
+			
+			{ "Color", {
+				// Blending and interpolation
+				{ "mix", "mix", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} }, { _getType("float"), {} } } },
+				{ "lerp", "mix", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} }, { _getType("float"), {} } } },
+
+				// Clamping
+				{ "clamp", "clamp", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} }, { _getType("Color"), {} } } },
+				{ "saturate", "clamp", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("float"), {} }, { _getType("float"), {} } } },
+
+				// Component-wise operations
+				{ "min", "min", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} } } },
+				{ "max", "max", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} } } },
+				{ "abs", "abs", { _getType("Color"), {} }, { { _getType("Color"), {} } } },
+
+				// Color adjustment
+				{ "smoothstep", "smoothstep", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} }, { _getType("Color"), {} } } },
+				{ "step", "step", { _getType("Color"), {} }, { { _getType("Color"), {} }, { _getType("Color"), {} } } },
+			} },
 		};
 
 		for (const auto& [typeName, functions] : functionsPerType) {

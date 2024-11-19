@@ -1,7 +1,7 @@
 #include <WidgetAttributes>
 #include <ScreenConstants>
 
-Input -> VertexPass : Vector2Int modelPosition;
+Input -> VertexPass : Vector2 modelPosition;
 Input -> VertexPass : Vector2 modelUVs;
 
 VertexPass -> FragmentPass : Vector2 fragmentUVs;
@@ -18,7 +18,7 @@ Texture fontTexture;
 
 VertexPass()
 {
-	pixelPosition = spk::ScreenConstants.canvasMVP * Vector4(modelPosition, spk::WidgetAttributes.layer, 1.0f);
+	pixelPosition = Vector4(modelPosition, spk::WidgetAttributes.layer, 1.0f);
 
 	fragmentUVs = modelUVs;
 }
@@ -32,33 +32,24 @@ float strongInterpolation(float x, float minRange, float maxRange, float exponen
 
 FragmentPass()
 {
-	float distance = fontTexture.getPixel(fragmentUVs).r;
-	Vector2 textureSize = fontTexture.size();
-			
-		float dot = textureSize.dot(textureSize);
+    float grayscale = fontTexture.getPixel(fragmentUVs).r;
 
-	if (distance <= 0.00390f)
-	{
-		discard;
-	}
-	else
-	{
-		Color resultColor;
-		if (distance >= 0.5)
-		{
-			float t = strongInterpolation(distance, 0.5, 1.0, textRendererAttribute.textEdgePower);
-			resultColor = textRendererAttribute.outlineColor.lerp(textRendererAttribute.textColor, t);
-		}
-		else
-		{
-			float alpha = strongInterpolation(distance, 0.0, 0.5, textRendererAttribute.outlineEdgePower);
-			resultColor = Color(textRendererAttribute.outlineColor.rgb, alpha);
-		}
+    float edgeThresholdLow = 0.4;
+    float edgeThresholdHigh = 0.6;
 
-		pixelColor = resultColor;
-		if (pixelColor.a <= 0.00390f)
-		{
-			discard;
-		}
-	}
+    if (grayscale < edgeThresholdLow)
+    {
+        pixelColor = textRendererAttribute.outlineColor;
+		pixelColor.a = smoothstep(0, edgeThresholdLow, grayscale);
+    }
+    else if (grayscale < edgeThresholdHigh)
+    {
+        float blendFactor = smoothstep(edgeThresholdLow, edgeThresholdHigh, grayscale);
+        pixelColor = textRendererAttribute.outlineColor.lerp(textRendererAttribute.textColor, blendFactor);
+    }
+    else
+    {
+        pixelColor = textRendererAttribute.textColor;
+		pixelColor.a = smoothstep(edgeThresholdHigh, 1.0f, grayscale);
+    }
 }
