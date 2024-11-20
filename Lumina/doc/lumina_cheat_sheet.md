@@ -38,13 +38,14 @@ Lumina is a wrapper around GLSL behavior, designed to simplify the creation of s
 - Available pipeline flow :
     - Input -> VertexPass
     - VertexPass -> FragmentPass
-    - FragmentPass -> Ouput
-- Data passed thought flow must remain native data, such as vec2, ivec2, float, int, etc
+    - FragmentPass -> Output
+- Data passed thought flow must remain native data, such as Vector2, Vector2Int, float, int, etc
 ```cpp
 Input -> VertexPass: float variableNameA;
 VertexPass -> FragmentPass: Vector3 variableNameB;
 FragmentPass -> Ouput: Vector4 variableNameC;
 ```
+
 
 ### Functions
 - Define functions with return types and input parameters.
@@ -66,6 +67,8 @@ Vector4 myFunction(float inputVariable)
 
 ### Structures
 - Define custom structures to group variables.
+- Much like in C++, structures can contain methods, constructors and operators.
+- Inside those methods, constructors and operators, you can use the "this" keyword to refer to the current instance, but the compiler will be able to deduce its presence if you didn't place it (Like in C++)
 ```cpp
 struct StructName
 {
@@ -75,6 +78,8 @@ struct StructName
 
 	Type method(ParamTypeA valueA, ParamTypeB& valueBAsReference)
     {
+        variableA += valueA;
+        variableB += this.variableB;
     }
 
     // Operator definition inside a structure
@@ -93,7 +98,7 @@ AttributeBlock attributeBlockName
     int variableName;
 };
 ```
-- AttributeBlock share the same structure as Struct for defining methods and operator overloads.
+- AttributeBlock share the same principle as structures for defining methods and operator overloads.
 
 ### Constant Blocks
 - Define uniform blocks for information shared across all calls.
@@ -103,14 +108,15 @@ ConstantBlock constantBlockName
     float variableName;
 };
 ```
-- ConstantBlock share the same structure as Struct for defining methods and operator overloads.
+- ConstantBlock share the same principle as structures for defining methods and operator overloads.
 
 ### Texture variable
 - Define 2D texture object
 ```cpp
 Texture myTexture;
 ```
-- You can then access the pixel stored inside the texture using the function `getPixel(Texture, Vector2)`
+- You can then access the pixel stored inside the texture using the method `getPixel(Vector2)`
+- You can also access the texture size (in pixels), using the method `getSize()`
 ```cpp
 FragmentPass()
 {

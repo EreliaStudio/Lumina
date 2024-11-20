@@ -16,6 +16,7 @@ namespace Lumina
 		Product _product;
 
 		std::map<std::string, std::string> _textToSwap;
+		std::map<std::string, std::string> _textureToSwap;
 
 		std::set<std::string> _flatTypes;
 

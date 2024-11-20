@@ -399,12 +399,19 @@ namespace Lumina
 			_product.vertexCodeContent += functionCode;
 			_product.fragmentCodeContent += functionCode;
 
-			_textToSwap[texture.name] = "Texture_" + texture.name;
+			_textureToSwap[texture.name] = "Texture_" + texture.name;
 		}
 	}
 	
 	void Compiler::applyRename()
 	{
+		for (const auto& [key, value] : _textureToSwap)
+		{
+			std::regex word_regex("\\b" + key + "\\b");
+
+			_product.vertexCodeContent = std::regex_replace(_product.vertexCodeContent, word_regex, value);
+			_product.fragmentCodeContent = std::regex_replace(_product.fragmentCodeContent, word_regex, value);
+		}
 		for (const auto& [key, value] : _textToSwap)
 		{
 			std::regex word_regex("\\b" + key + "\\b");

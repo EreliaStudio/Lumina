@@ -6,50 +6,15 @@ Input -> VertexPass : Vector2 modelUVs;
 
 VertexPass -> FragmentPass : Vector2 fragmentUVs;
 
-AttributeBlock textRendererAttribute
-{
-	Color textColor;
-	float textEdgePower;
-	Color outlineColor;
-	float outlineEdgePower;
-};
-
-Texture fontTexture;
+Texture texture;
 
 VertexPass()
 {
 	pixelPosition = Vector4(modelPosition, spk::WidgetAttributes.layer, 1.0f);
-
 	fragmentUVs = modelUVs;
-}
-
-float strongInterpolation(float x, float minRange, float maxRange, float exponent)
-{
-	float adjustedX = (x - minRange) / (maxRange - minRange);
-	float strongValue = pow(adjustedX, exponent);
-	return strongValue;
 }
 
 FragmentPass()
 {
-    float grayscale = fontTexture.getPixel(fragmentUVs).r;
-
-    float edgeThresholdLow = 0.4;
-    float edgeThresholdHigh = 0.6;
-
-    if (grayscale < edgeThresholdLow)
-    {
-        pixelColor = textRendererAttribute.outlineColor;
-		pixelColor.a = smoothstep(0, edgeThresholdLow, grayscale);
-    }
-    else if (grayscale < edgeThresholdHigh)
-    {
-        float blendFactor = smoothstep(edgeThresholdLow, edgeThresholdHigh, grayscale);
-        pixelColor = textRendererAttribute.outlineColor.lerp(textRendererAttribute.textColor, blendFactor);
-    }
-    else
-    {
-        pixelColor = textRendererAttribute.textColor;
-		pixelColor.a = smoothstep(edgeThresholdHigh, 1.0f, grayscale);
-    }
+	pixelColor = texture.getPixel(fragmentUVs);
 }

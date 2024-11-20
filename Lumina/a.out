@@ -14,26 +14,10 @@
 spk_WidgetAttributes_Type spk::WidgetAttributes 4 4 {
     layer 0 4 0 4 1 0 {}
 }
-textRendererAttribute_Type textRendererAttribute 40 52 {
-    textColor 0 16 0 16 1 0 {
-        r 0 4 0 4 1 0 {}
-        g 4 4 4 4 1 0 {}
-        b 8 4 8 4 1 0 {}
-        a 12 4 12 4 1 0 {}
-    }
-    textEdgePower 16 4 16 4 1 0 {}
-    outlineColor 20 16 32 16 1 0 {
-        r 0 4 0 4 1 0 {}
-        g 4 4 4 4 1 0 {}
-        b 8 4 8 4 1 0 {}
-        a 12 4 12 4 1 0 {}
-    }
-    outlineEdgePower 36 4 48 4 1 0 {}
-}
 
 
 ## TEXTURES DEFINITION ##
-fontTexture Texture_fontTexture
+texture Texture_texture
 
 
 ## VERTEX SHADER CODE ##
@@ -49,7 +33,7 @@ layout(attributes) uniform spk_WidgetAttributes_Type
     float layer;
 } spk_WidgetAttributes;
 
-uniform sampler2D Texture_fontTexture;
+uniform sampler2D Texture_texture;
 
 void main()
 {
@@ -65,39 +49,10 @@ layout (location = 0) in flat int instanceID;
 layout (location = 1) in vec2 fragmentUVs;
 layout (location = 0) out vec4 pixelColor;
 
-layout(attributes) uniform textRendererAttribute_Type
-{
-    vec4 textColor;
-    float textEdgePower;
-    vec4 outlineColor;
-    float outlineEdgePower;
-} textRendererAttribute;
-
-uniform sampler2D Texture_fontTexture;
-
-vec4 Color_lerp(vec4 param0, vec4 param1, float param2)
-{
-return mix(param0, param1, param2);
-}
+uniform sampler2D Texture_texture;
 
 void main()
 {
-    float grayscale = texture(Texture_fontTexture, fragmentUVs).r;
-    float edgeThresholdLow = 0.4;
-    float edgeThresholdHigh = 0.6;
-    if (grayscale < edgeThresholdLow)
-    {
-        pixelColor = textRendererAttribute.outlineColor;
-        pixelColor.a = smoothstep(0, edgeThresholdLow, grayscale);
-    }    else if (grayscale < edgeThresholdHigh)
-    {
-        float blendFactor = smoothstep(edgeThresholdLow, edgeThresholdHigh, grayscale);
-        pixelColor = Color_lerp(textRendererAttribute.outlineColor, textRendererAttribute.textColor, blendFactor);
-    }
-    else
-    {
-        pixelColor = textRendererAttribute.textColor;
-        pixelColor.a = smoothstep(edgeThresholdHigh, 1.0f, grayscale);
-    }
+    pixelColor = texture(Texture_texture, fragmentUVs);
 }
 
