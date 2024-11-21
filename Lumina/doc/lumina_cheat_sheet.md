@@ -92,6 +92,7 @@ struct StructName
 
 ### Attribute Blocks
 - Define uniform blocks for information shared by every triangle in a single call.
+- Attributes are shared by both the Vertex and the Fragment passes.
 ```cpp
 AttributeBlock attributeBlockName
 {
@@ -102,6 +103,7 @@ AttributeBlock attributeBlockName
 
 ### Constant Blocks
 - Define uniform blocks for information shared across all calls.
+- Constants are shared by both the Vertex and the Fragment passes.
 ```cpp
 ConstantBlock constantBlockName
 {
@@ -112,6 +114,7 @@ ConstantBlock constantBlockName
 
 ### Texture variable
 - Define 2D texture object
+- Textures can't be placed inside a structure block, nor in an Attribute or Constant
 ```cpp
 Texture myTexture;
 ```

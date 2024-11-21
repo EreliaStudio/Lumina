@@ -5,6 +5,12 @@ VertexPass -> FragmentPass : Vector2 fragmentUVs;
 
 Texture fontTexture;
 
+AttributeBlock textInformations
+{
+	Color textColor;
+	Color outlineColor;
+};
+
 VertexPass()
 {
 	pixelPosition = Vector4(modelPosition, 0, 1.0f);
@@ -12,11 +18,34 @@ VertexPass()
 	fragmentUVs = modelUVs;
 }
 
+float computeFormula(float x, float k) {
+    return (1.0 - exp(-k * x)) / (1.0 - exp(-k));
+}
+
 FragmentPass()
 {
     float grayscale = fontTexture.getPixel(fragmentUVs).r;
 
-	float values[3] = {grayscale, grayscale, grayscale};
+	if (grayscale == 0)
+	{
+		discard;
+	}
 
-	pixelColor = Color(values, 1);
+	float outlineToGlyphThreshold = 0.2f;
+
+	if (grayscale <= outlineToGlyphThreshold)
+	{
+		pixelColor = textInformations.outlineColor;
+		pixelColor.a = computeFormula(smoothstep(0, outlineToGlyphThreshold, grayscale), 20);
+	}
+	else
+	{
+		float t = computeFormula(smoothstep(outlineToGlyphThreshold, 1.0, grayscale), -20);
+		//pixelColor = mix(textInformations.outlineColor, textInformations.textColor, t);
+		pixelColor = Color(t, t, t, 1.0f);
+		if (t <= 0)
+		{
+			pixelColor = Color(0, 0, 255, 1);
+		}
+	}
 }
