@@ -1,20 +1,22 @@
-#include <WidgetAttributes>
-#include <ScreenConstants>
-
 Input -> VertexPass : Vector2 modelPosition;
 Input -> VertexPass : Vector2 modelUVs;
 
 VertexPass -> FragmentPass : Vector2 fragmentUVs;
 
-Texture texture;
+Texture fontTexture;
 
 VertexPass()
 {
-	pixelPosition = Vector4(modelPosition, spk::WidgetAttributes.layer, 1.0f);
+	pixelPosition = Vector4(modelPosition, 0, 1.0f);
+
 	fragmentUVs = modelUVs;
 }
 
 FragmentPass()
 {
-	pixelColor = texture.getPixel(fragmentUVs);
+    float grayscale = fontTexture.getPixel(fragmentUVs).r;
+
+	float values[3] = {grayscale, grayscale, grayscale};
+
+	pixelColor = Color(values, 1);
 }

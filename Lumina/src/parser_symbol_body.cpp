@@ -87,6 +87,11 @@ namespace Lumina
 
 		std::string code = var.type.name + " " + var.name;
 
+		for (const auto& dim : var.arraySizes)
+		{
+			code += "[" + std::to_string(dim) + "]";
+		}
+
 		if (p_stmt.initializer)
 		{
 			ExpressionTypeImpl variableType = { var.type, var.arraySizes };

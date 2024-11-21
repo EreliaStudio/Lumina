@@ -11,13 +11,10 @@
 
 
 ## ATTRIBUTES DEFINITION ##
-spk_WidgetAttributes_Type spk::WidgetAttributes 4 4 {
-    layer 0 4 0 4 1 0 {}
-}
 
 
 ## TEXTURES DEFINITION ##
-texture Texture_texture
+fontTexture Texture_fontTexture
 
 
 ## VERTEX SHADER CODE ##
@@ -28,16 +25,11 @@ layout (location = 1) in vec2 modelUVs;
 layout (location = 0) out flat int out_instanceID;
 layout (location = 1) out vec2 fragmentUVs;
 
-layout(attributes) uniform spk_WidgetAttributes_Type
-{
-    float layer;
-} spk_WidgetAttributes;
-
-uniform sampler2D Texture_texture;
+uniform sampler2D Texture_fontTexture;
 
 void main()
 {
-    gl_Position = vec4(modelPosition, spk_WidgetAttributes.layer, 1.0f);
+    gl_Position = vec4(modelPosition, 0, 1.0f);
     fragmentUVs = modelUVs;
     out_instanceID = gl_InstanceID;
 }
@@ -49,10 +41,12 @@ layout (location = 0) in flat int instanceID;
 layout (location = 1) in vec2 fragmentUVs;
 layout (location = 0) out vec4 pixelColor;
 
-uniform sampler2D Texture_texture;
+uniform sampler2D Texture_fontTexture;
 
 void main()
 {
-    pixelColor = texture(Texture_texture, fragmentUVs);
+    float grayscale = texture(Texture_fontTexture, fragmentUVs).r;
+    float values[3] = {grayscale, grayscale, grayscale};
+    pixelColor = vec4(values, 1);
 }
 
