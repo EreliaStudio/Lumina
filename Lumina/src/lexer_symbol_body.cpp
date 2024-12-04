@@ -9,7 +9,7 @@ namespace Lumina
 	{
 		if (p_token.type == Lumina::Token::Type::Operator)
 		{
-			if (p_token.content == "*" || p_token.content == "/")
+			if (p_token.content == "*" || p_token.content == "/" || p_token.content == "%")
 			{
 				return 5;
 			}
