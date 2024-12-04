@@ -108,8 +108,11 @@ namespace Lumina
 			usedTypes.push_back(rightExpressionType.type);
 		}
 
-		std::string lhs = "(" + _composeExpression(p_variables, *(p_expr.left), calledFunctions, usedTypes) + ")";
-		std::string rhs = "(" + _composeExpression(p_variables, *(p_expr.right), calledFunctions, usedTypes) + ")";
+		std::string rawlhs = _composeExpression(p_variables, *(p_expr.left), calledFunctions, usedTypes);
+		std::string rawrhs = _composeExpression(p_variables, *(p_expr.right), calledFunctions, usedTypes);
+
+		std::string lhs = (rawlhs.find_first_of(" ") != std::string::npos ? "(" + rawlhs + ")" : rawlhs);
+		std::string rhs = (rawrhs.find_first_of(" ") != std::string::npos ? "(" + rawrhs + ")" : rawrhs);
 		std::string op = p_expr.operatorToken.content;
 
 		if (leftExpressionType == rightExpressionType && op == "=")
