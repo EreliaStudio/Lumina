@@ -281,15 +281,20 @@ namespace Lumina
 		const std::vector<TypeImpl>& p_attributes,
 		const std::vector<TypeImpl>& p_constants)
 	{
+		for (const auto& type : p_structures)
+		{
+			std::string typeCode = "";
+
+			typeCode = _compileTypeImpl("struct", type) + ";\n\n";
+
+			p_target += typeCode;
+		}
+		
 		for (const auto& type : p_pass.body.usedTypes)
 		{
 			std::string typeCode = "";
 
-			if (std::find(p_structures.begin(), p_structures.end(), type) != p_structures.end())
-			{
-				typeCode = _compileTypeImpl("struct", type) + "\n\n";
-			}
-			else if (std::find(p_attributes.begin(), p_attributes.end(), type) != p_attributes.end())
+			if (std::find(p_attributes.begin(), p_attributes.end(), type) != p_attributes.end())
 			{
 				typeCode = _compileTypeImpl("layout(attributes) uniform", type) + " " + type.name.substr(0, type.name.size() - 5) + ";\n\n";
 
