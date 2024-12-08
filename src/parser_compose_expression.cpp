@@ -124,14 +124,14 @@ namespace Lumina
 
 		if (leftExpressionType.arraySizes.size() != 0)
 		{
-			throw TokenBasedError("Can't execute operation on array [" + leftExpressionType.type.name + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.left)));
+			throw TokenBasedError("Can't execute operation on array [" + leftExpressionType.type.name + Lumina::arraySizeToString(leftExpressionType.arraySizes) + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.left)));
 		}
 
 		FunctionImpl operatorFunction = _findOperatorFunction(p_variables, leftExpressionType, op, rightExpressionType);
 
 		if (operatorFunction.name.size() == 0)
 		{
-			throw TokenBasedError("No operator [" + op + "] for type [" + leftExpressionType.type.name + "] with parameter [" + rightExpressionType.type.name + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
+			throw TokenBasedError("No operator [" + op + "] for type [" + leftExpressionType.type.name + Lumina::arraySizeToString(leftExpressionType.arraySizes) + "] with parameter [" + rightExpressionType.type.name + Lumina::arraySizeToString(rightExpressionType.arraySizes) + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
 		}
 
 		if (operatorFunction.body.code == "")
@@ -153,14 +153,14 @@ namespace Lumina
 
 		if (operandExpressionType.arraySizes.size() != 0)
 		{
-			throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.operand)));
+			throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + Lumina::arraySizeToString(operandExpressionType.arraySizes) + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.operand)));
 		}
 
 		FunctionImpl operatorFunction = _findUnaryOperatorFunction(p_variables, op, operandExpressionType);
 
 		if (operatorFunction.name.size() == 0)
 		{
-			throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
+			throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + Lumina::arraySizeToString(operandExpressionType.arraySizes) + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
 		}
 
 		if (operatorFunction.body.code == "")
@@ -181,14 +181,14 @@ namespace Lumina
 
 		if (operandExpressionType.arraySizes.size() != 0)
 		{
-			throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.operand)));
+			throw TokenBasedError("Can't execute operation on array [" + operandExpressionType.type.name + Lumina::arraySizeToString(operandExpressionType.arraySizes) + "] object" + DEBUG_INFORMATION, _getExpressionToken(*(p_expr.operand)));
 		}
 
 		FunctionImpl operatorFunction = _findPostfixOperatorFunction(p_variables, op, operandExpressionType);
 
 		if (operatorFunction.name.size() == 0)
 		{
-			throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
+			throw TokenBasedError("No operator [" + op + "] for type [" + operandExpressionType.type.name + Lumina::arraySizeToString(operandExpressionType.arraySizes) + "]" + DEBUG_INFORMATION, _getExpressionToken(p_expr));
 		}
 
 		if (operatorFunction.body.code == "")
@@ -237,11 +237,7 @@ namespace Lumina
 				{
 					parameterString += ", ";
 				}
-				parameterString += argumentTypes[i].type.name;
-				for (const auto& size : argumentTypes[i].arraySizes)
-				{
-					parameterString += "[" + std::to_string(size) + "]";
-				}
+				parameterString += argumentTypes[i].type.name + Lumina::arraySizeToString(argumentTypes[i].arraySizes);
 			}
 
 			throw TokenBasedError(
@@ -445,17 +441,13 @@ namespace Lumina
 					parameterString += ", ";
 				}
 
-				parameterString += argumentTypes[i].type.name;
-				for (const auto& size : argumentTypes[i].arraySizes)
-				{
-					parameterString += "[" + std::to_string(size) + "]";
-				}
+				parameterString += argumentTypes[i].type.name + Lumina::arraySizeToString(argumentTypes[i].arraySizes);
 			}
 
 			Token errorToken = _getExpressionToken(*(p_expr.object)) + p_expr.name + _getExpressionToken(*(p_expr.arguments).front());
 
 			throw TokenBasedError(
-				"No method [" + p_expr.name.content + "] for type [" + objectType.type.name + "] with parameters [" + parameterString + "]",
+				"No method [" + p_expr.name.content + "] for type [" + objectType.type.name + Lumina::arraySizeToString(objectType.arraySizes) + "] with parameters [" + parameterString + "]",
 				errorToken
 			);
 		}
@@ -477,7 +469,7 @@ namespace Lumina
 				{
 					Token errorToken = _getExpressionToken(*(p_expr.object));
 					throw TokenBasedError(
-						"Cannot convert type [" + argType.type.name + "] to [" + param.type.name + "] for parameter " + std::to_string(i),
+						"Cannot convert type [" + argType.type.name + Lumina::arraySizeToString(argType.arraySizes) + "] to [" + param.type.name + Lumina::arraySizeToString(param.arraySizes) + "] for parameter " + std::to_string(i),
 						errorToken
 					);
 				}
@@ -506,7 +498,10 @@ namespace Lumina
 			objectType.type.name == "Vector4" ||
 			objectType.type.name == "Vector4Int" ||
 			objectType.type.name == "Vector4UInt" ||
-			objectType.type.name == "Color")
+			objectType.type.name == "Color" ||
+			objectType.type.name == "Matrix2x2" ||
+			objectType.type.name == "Matrix3x3" ||
+			objectType.type.name == "Matrix4x4")
 		{
 			return (p_expr.name.content + "(" + parameters + ")");
 		}

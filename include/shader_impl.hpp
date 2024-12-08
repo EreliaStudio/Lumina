@@ -5,6 +5,8 @@
 #include <vector>
 #include <iostream>
 
+#include "utils.hpp"
+
 namespace Lumina
 {
 	struct VariableImpl;
@@ -48,7 +50,6 @@ namespace Lumina
 		TypeImpl type;
 		std::vector<size_t> arraySizes;
 
-
 		bool operator < (const ExpressionTypeImpl& p_other) const
 		{
 			if (type < p_other.type)
@@ -85,11 +86,7 @@ namespace Lumina
 
 		friend std::ostream& operator << (std::ostream& p_os, const ExpressionTypeImpl& p_toPrint)
 		{
-			p_os << p_toPrint.type.name;
-			for (const auto& dim : p_toPrint.arraySizes)
-			{
-				p_os << "[" << dim << "]";
-			}
+			p_os << p_toPrint.type.name + arraySizeToString(p_toPrint.arraySizes);
 			return (p_os);
 		}
 	};

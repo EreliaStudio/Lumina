@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "utils.hpp"
+
 namespace Lumina
 {
 	SymbolBodyImpl Parser::_composeSymbolBody(std::set<VariableImpl>& p_variables, const SymbolBodyInfo& p_symbolBodyInfo, size_t depth)
@@ -87,11 +89,12 @@ namespace Lumina
 	{
 		VariableImpl var = _composeVariable(p_stmt.variable);
 
-		std::string code = var.type.name + " " + var.name;
+		std::string code = var.type.name + " " + var.name + arraySizeToString(var.arraySizes);
 
-		for (const auto& dim : var.arraySizes)
+		std::vector<ExpressionTypeImpl> variableTypes;
+		for (const auto& variable : p_variables)
 		{
-			code += "[" + std::to_string(dim) + "]";
+			variableTypes.push_back({variable.type, variable.arraySizes});
 		}
 
 		if (p_stmt.initializer)
@@ -99,26 +102,6 @@ namespace Lumina
 			ExpressionTypeImpl variableType = { var.type, var.arraySizes };
 
 			ExpressionTypeImpl initializerType = _deduceExpressionType(p_variables, *p_stmt.initializer);
-
-			if (variableType.arraySizes != initializerType.arraySizes)
-			{
-				std::string variableTypeString = variableType.type.name;
-				for (const auto& dim : variableType.arraySizes)
-				{
-					variableTypeString += "[" + std::to_string(dim) + "]";
-				}
-				std::string initializerTypeString = initializerType.type.name;
-				for (const auto& dim : initializerType.arraySizes)
-				{
-					initializerTypeString += "[" + std::to_string(dim) + "]";
-				}
-
-				Token errorToken = _getExpressionToken(*p_stmt.initializer);
-				throw TokenBasedError(
-					"Cannot assign type [" + initializerTypeString + "] to type [" + variableTypeString + "] : array sizes doesn't match",
-					errorToken
-				);
-			}
 
 			bool conversionAvailable = false;
 
@@ -128,16 +111,15 @@ namespace Lumina
 			}
 			else
 			{
-				auto convIt = _convertionTable.find(initializerType);
-				if (convIt != _convertionTable.end() && convIt->second.count(variableType) > 0)
+				auto convIt = _convertionTable.find(variableType);
+
+				if (convIt != _convertionTable.end() && convIt->second.count(initializerType) > 0)
 				{
 					conversionAvailable = true;
 				}
 			}
 
 			std::string initializerCode = _composeExpression(p_variables, *p_stmt.initializer, calledFunctions, usedTypes);
-
-
 
 			if (conversionAvailable)
 			{
@@ -161,7 +143,7 @@ namespace Lumina
 				{
 					Token errorToken = _getExpressionToken(*p_stmt.initializer);
 					throw TokenBasedError(
-						"Cannot assign type [" + initializerType.type.name + "] to variable of type [" + variableType.type.name + "]",
+						"Cannot assign type [" + initializerType.type.name + arraySizeToString(initializerType.arraySizes) + "] to variable of type [" + variableType.type.name + "]",
 						errorToken
 					);
 				}
@@ -356,7 +338,7 @@ namespace Lumina
 
 			toTest.parameters.push_back({
 					.type = convertedType.type,
-					.arraySizes = p_rhs.arraySizes
+					.arraySizes = convertedType.arraySizes
 				});
 
 			auto funcIt = _availibleFunctions.find(toTest);

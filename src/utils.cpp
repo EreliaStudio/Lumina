@@ -107,4 +107,16 @@ namespace Lumina
 		// File not found
 		return std::filesystem::path();
 	}
+
+	std::string arraySizeToString(const std::vector<size_t>& p_arraySize)
+	{
+		std::string result;
+
+		for (const auto& size : p_arraySize)
+		{
+			result += "[" + std::to_string(size) + "]";
+		}
+
+		return (result);
+	}
 }

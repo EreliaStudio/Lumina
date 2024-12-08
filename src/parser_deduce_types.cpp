@@ -357,15 +357,17 @@ namespace Lumina
 						}
 					);
 
-					if (it != objectType.type.attributes.end())
+					if (it == objectType.type.attributes.end())
 					{
-						return { it->type, {memberName.size()} };
+						error = true;
 					}
 				}
-
+				
 				if (error == false)
 				{
 					std::string expectedType = objectType.type.name;
+					if (expectedType == "Color")
+						expectedType = "Vector4";
 					expectedType[6] = '0' + static_cast<char>(memberName.size());
 					return { _getType(expectedType), {} };
 				}

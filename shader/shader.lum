@@ -1,51 +1,54 @@
-Input -> VertexPass : Vector2 modelPosition;
+Input -> VertexPass : Vector3 modelPosition;
 Input -> VertexPass : Vector2 modelUVs;
+Input -> VertexPass : Vector3 modelNormals;
 
 VertexPass -> FragmentPass : Vector2 fragmentUVs;
+VertexPass -> FragmentPass : Vector3 fragmentNormal;
 
-Texture fontTexture;
+Texture diffuseTexture;
+Texture specularTexture;
 
-AttributeBlock textInformations
+AttributeBlock modelInformations
 {
-	Color textColor;
-	Color outlineColor;
+    Matrix4x4 modelMatrix;
+    Matrix4x4 inverseModelMatrix;
+};
+
+ConstantBlock CameraConstants
+{
+    Matrix4x4 viewMatrix;
+    Matrix4x4 projectionMatrix;
 };
 
 VertexPass()
 {
-	pixelPosition = Vector4(modelPosition, 0, 1.0f);
+    Vector4 worldPosition = modelInformations.modelMatrix * Vector4(modelPosition, 1.0);
+    Vector4 viewPosition = CameraConstants.viewMatrix * worldPosition;
+    pixelPosition = CameraConstants.projectionMatrix * viewPosition;
 
-	fragmentUVs = modelUVs;
-}
+    fragmentUVs = modelUVs;
 
-float computeFormula(float x, float k) {
-    return (1.0 - exp(-k * x)) / (1.0 - exp(-k));
+    fragmentNormal = (modelInformations.inverseModelMatrix * Vector4(modelNormals, 0)).xyz;
 }
 
 FragmentPass()
 {
-    float grayscale = fontTexture.getPixel(fragmentUVs).r;
+    Vector3 lightDirection = Vector3(0.0, -1.0, 0.0).normalize();
 
-	if (grayscale == 0)
-	{
-		discard;
-	}
+    Vector3 normal = fragmentNormal.normalize();
 
-	float outlineToGlyphThreshold = 0.2f;
+    float diffuseIntensity = max(dot(normal, -lightDirection), 0.0);
 
-	if (grayscale <= outlineToGlyphThreshold)
-	{
-		pixelColor = textInformations.outlineColor;
-		pixelColor.a = computeFormula(smoothstep(0, outlineToGlyphThreshold, grayscale), 20);
-	}
-	else
-	{
-		float t = computeFormula(smoothstep(outlineToGlyphThreshold, 1.0, grayscale), -20);
-		//pixelColor = mix(textInformations.outlineColor, textInformations.textColor, t);
-		pixelColor = Color(t, t, t, 1.0f);
-		if (t <= 0)
-		{
-			pixelColor = Color(0, 0, 255, 1);
-		}
-	}
+    Vector3 viewDirection = Vector3(0.0, 0.0, 1.0).normalize(); // Assume camera looks down the Z-axis
+    Vector3 reflectionDirection = reflect(lightDirection, normal);
+    float specularIntensity = pow(max(dot(viewDirection, reflectionDirection), 0.0), 32.0); // shininess = 32
+
+    float ambientIntensity = 0.1;
+
+	Color texColor = diffuseTexture.getPixel(fragmentUVs);
+    Color specularColor = specularTexture.getPixel(fragmentUVs);
+
+    Color finalColor = texColor * (ambientIntensity + diffuseIntensity) + specularColor * specularIntensity;
+
+    pixelColor = Color(finalColor.rgb, texColor.a);
 }

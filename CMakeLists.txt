@@ -23,7 +23,7 @@ target_include_directories(Lumina PUBLIC ${LUMINA_INCLUDE_DIR})
 
 # Installation rules
 # Install the executable to 
-install(TARGETS Lumina DESTINATION)
+install(TARGETS Lumina DESTINATION .)
 
 # Install the contents of predefined_header to includes
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/predefined_header/ DESTINATION includes)
