@@ -467,7 +467,6 @@ namespace Lumina
 	void Lexer::parseInclude()
 	{
 		skipToken();
-
 		Lumina::Token includeToken = expect({ Lumina::Token::Type::IncludeLitteral, Lumina::Token::Type::StringLitteral }, "Expected a valid include path token.");
 
 		std::string fileRelativePath = includeToken.content.substr(1, includeToken.content.size() - 2);

@@ -1,0 +1,4 @@
+struct Material
+{
+	float shininess;
+};

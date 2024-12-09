@@ -50,29 +50,28 @@ namespace Lumina
 	// Updated composeFilePath function
 	std::filesystem::path composeFilePath(const std::string& p_fileName, const std::vector<std::filesystem::path>& p_additionalPaths)
 	{
-		const char* pathEnv = std::getenv("PATH");
+		// Get the PATH environment variable
+		const wchar_t* pathEnv = _wgetenv(L"PATH");
+
 		if (!pathEnv)
 		{
-			std::cerr << "PATH environment variable not found." << std::endl;
+			std::wcerr << L"PATH environment variable not found." << std::endl;
 			return std::filesystem::path();
 		}
-		std::string pathStr(pathEnv);
+
+		std::wstring pathStr(pathEnv);
 
 		std::vector<std::filesystem::path> paths;
-		std::stringstream ss(pathStr);
-		std::string path;
+		std::wstringstream ss(pathStr);
+		std::wstring path;
 
-	#ifdef _WIN32
-		const char delimiter = ';';
-	#else
-		const char delimiter = ':';
-	#endif
+		const wchar_t delimiter = L';';
 
 		// Split the PATH environment variable
 		while (std::getline(ss, path, delimiter))
 		{
 			std::filesystem::path dirPath(path);
-			dirPath /= "includes";  // Append "includes" to the path
+			dirPath /= L"includes"; // Append "includes" to the path
 			paths.push_back(dirPath);
 		}
 
