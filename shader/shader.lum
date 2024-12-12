@@ -1,9 +1,12 @@
 #include <Material>
+#include <DirectionalLight>
+#include <CameraConstants>
 
 Input -> VertexPass : Vector3 modelPosition;
 Input -> VertexPass : Vector2 modelUVs;
 Input -> VertexPass : Vector3 modelNormals;
 
+VertexPass -> FragmentPass : Vector3 fragmentPosition;
 VertexPass -> FragmentPass : Vector2 fragmentUVs;
 VertexPass -> FragmentPass : Vector3 fragmentNormal;
 
@@ -15,53 +18,32 @@ AttributeBlock modelInformations
     Matrix4x4 modelMatrix;
     Matrix4x4 inverseModelMatrix;
 
-	Material modelMaterial;
-};
-
-ConstantBlock CameraConstants
-{
-    Matrix4x4 viewMatrix;
-    Matrix4x4 projectionMatrix;
+	spk::Material modelMaterial;
+	spk::DirectionalLight directionalLight;
 };
 
 VertexPass()
 {
     Vector4 worldPosition = modelInformations.modelMatrix * Vector4(modelPosition, 1.0);
-    Vector4 viewPosition = CameraConstants.viewMatrix * worldPosition;
-    pixelPosition = CameraConstants.projectionMatrix * viewPosition;
+    Vector4 viewPosition = spk::CameraConstants.view * worldPosition;
+    pixelPosition = spk::CameraConstants.projection * viewPosition;
 
+	Vector4 worldNormal = modelInformations.modelMatrix * Vector4(modelNormals, 0);
+
+	fragmentPosition = worldPosition.xyz;
     fragmentUVs = modelUVs;
-
-    fragmentNormal = (modelInformations.inverseModelMatrix * Vector4(modelNormals, 0)).xyz;
+    fragmentNormal = worldNormal.xyz;
 }
 
 FragmentPass()
 {
-    Vector3 normalizedNormal = fragmentNormal.normalize();
+	if (spk::CameraConstants.position == Vector3(0, 0, 1))
+	{
+		
+	}
 
-    Vector3 lightDirection = Vector3(0.0, -1.0, -1.0).normalize();
-    Color lightColor = Color(1.0, 1.0, 1.0, 1.0);
-    float ambientStrength = 0.1;
-
-    Color ambient = ambientStrength * lightColor;
-
-    float diff = max(normalizedNormal.dot(-lightDirection), 0.0);
-    Color diffuse = diff * lightColor;
-
-    Vector3 viewDirection = Vector3(0.0, 0.0, 1.0).normalize();
-    Vector3 reflectDirection = reflect(lightDirection, normalizedNormal);
-
-    Color specularMap = specularTexture.getPixel(fragmentUVs);
-    float specIntensity = specularMap.r;
-
-    float spec = pow(max(viewDirection.dot(reflectDirection), 0.0), modelInformations.modelMaterial.shininess);
-    Color specular = specIntensity * spec * lightColor;
-
-    Color finalColor = ambient + diffuse + specular;
-
-    Color textureColor = diffuseTexture.getPixel(fragmentUVs);
-
-    finalColor *= Color(textureColor.rgb, 1.0);
-
-    pixelColor = Color(finalColor.rgb, textureColor.a);
+	if (modelInformations.modelMaterial.shininess == 1.0f)
+	{
+		
+	}
 }

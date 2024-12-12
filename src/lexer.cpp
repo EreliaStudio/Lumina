@@ -502,6 +502,8 @@ namespace Lumina
 	{
 		ShaderInfo result;
 
+		NamespaceInfo currentNamespace;
+
 		while (hasTokenLeft())
 		{
 			try
@@ -527,32 +529,34 @@ namespace Lumina
 				}
 				else if (currentToken().type == Lumina::Token::Type::Namespace)
 				{
-					result.anonymNamespace.nestedNamespaces.push_back(parseNamespaceInfo());
+					result.namespaces.push_back(currentNamespace);
+					result.namespaces.push_back(parseNamespaceInfo());
+					currentNamespace = NamespaceInfo();					
 				}
 				else if (currentToken().type == Lumina::Token::Type::StructureBlock)
 				{
-					result.anonymNamespace.structureBlocks.push_back(parseBlockInfo());
+					currentNamespace.structureBlocks.push_back(parseBlockInfo());
 				}
 				else if (currentToken().type == Lumina::Token::Type::AttributeBlock)
 				{
-					result.anonymNamespace.attributeBlocks.push_back(parseBlockInfo());
+					currentNamespace.attributeBlocks.push_back(parseBlockInfo());
 				}
 				else if (currentToken().type == Lumina::Token::Type::ConstantBlock)
 				{
-					result.anonymNamespace.constantBlocks.push_back(parseBlockInfo());
+					currentNamespace.constantBlocks.push_back(parseBlockInfo());
 				}
 				else if (currentToken().type == Lumina::Token::Type::Texture)
 				{
-					result.anonymNamespace.textureInfos.push_back(parseTextureInfo());
+					currentNamespace.textureInfos.push_back(parseTextureInfo());
 				}
 				else if (describeFunction() == true)
 				{
 					FunctionInfo functionInfo = parseFunctionInfo();
-					result.anonymNamespace.functionInfos[functionInfo.name.value.content].push_back(std::move(functionInfo));
+					currentNamespace.functionInfos[functionInfo.name.value.content].push_back(std::move(functionInfo));
 				}
 				else if (currentToken().type == Lumina::Token::Type::Namespace)
 				{
-					result.anonymNamespace = parseNamespaceInfo();
+					currentNamespace = parseNamespaceInfo();
 				}
 				else
 				{
@@ -565,6 +569,7 @@ namespace Lumina
 				skipLine();
 			}
 		}
+		result.namespaces.push_back(currentNamespace);
 
 		return result;
 	}

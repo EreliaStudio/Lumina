@@ -616,7 +616,27 @@ namespace Lumina
 			}
 		}
 
-		_parseNamespace(p_input.anonymNamespace);
+		for (const auto& nspace : p_input.namespaces)
+		{
+			if (nspace.name.value != "")
+			{
+				_nspaces.push_back(_composeName(nspace.name));
+			}
+
+			try
+			{
+				_parseNamespace(nspace);
+			}
+			catch (const Lumina::TokenBasedError& e)
+			{
+				_product.errors.push_back(e);
+			}
+
+			if (nspace.name.value != "")
+			{
+				_nspaces.pop_back();
+			}
+		}
 
 		for (const auto& pipelinePass : p_input.pipelinePasses)
 		{

@@ -297,6 +297,6 @@ namespace Lumina
 
 		std::vector<PipelinePassInfo> pipelinePasses;
 
-		NamespaceInfo anonymNamespace;
+		std::vector<NamespaceInfo> namespaces;
 	};
 }

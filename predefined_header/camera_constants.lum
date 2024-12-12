@@ -2,6 +2,7 @@ namespace spk
 {
 	ConstantBlock CameraConstants
 	{
+		Vector3 position;
 		Matrix4x4 view;
 		Matrix4x4 projection;
 	};

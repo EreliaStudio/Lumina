@@ -1,4 +1,7 @@
-struct Material
+namespace spk
 {
-	float shininess;
-};
+	struct Material
+	{
+		float shininess;
+	};
+}

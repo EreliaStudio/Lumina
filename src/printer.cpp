@@ -457,7 +457,10 @@ namespace
 		{
 			printPipelinePassInfo(pass, p_tabulationSize + 1);
 		}
-		printNamespaceInfo(p_toPrint.anonymNamespace, p_tabulationSize + 1);
+		for (const auto& nspace : p_toPrint.namespaces)
+		{
+			printNamespaceInfo(nspace, p_tabulationSize + 1);
+		}
 	}
 }
 
