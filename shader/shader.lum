@@ -13,13 +13,17 @@ VertexPass -> FragmentPass : Vector3 fragmentNormal;
 Texture diffuseTexture;
 Texture specularTexture;
 
+ConstantBlock WorldConstants
+{
+	spk::DirectionalLight directionalLight;
+};
+
 AttributeBlock modelInformations
 {
     Matrix4x4 modelMatrix;
     Matrix4x4 inverseModelMatrix;
 
 	spk::Material modelMaterial;
-	spk::DirectionalLight directionalLight;
 };
 
 VertexPass()
@@ -43,6 +47,11 @@ FragmentPass()
 	}
 
 	if (modelInformations.modelMaterial.shininess == 1.0f)
+	{
+		
+	}
+
+	if (WorldConstants.directionalLight.color == Color(1, 0, 0, 1))
 	{
 		
 	}

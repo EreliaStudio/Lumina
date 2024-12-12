@@ -4,5 +4,6 @@ namespace spk
 	{
 		Vector3 direction;
 		Color color;
+		float ambiantPower;
 	};
 }
