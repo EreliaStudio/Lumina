@@ -79,6 +79,7 @@
 		"xloctime": "cpp",
 		"xmemory": "cpp",
 		"xstring": "cpp",
-		"xutility": "cpp"
+		"xutility": "cpp",
+		"expected": "cpp"
 	}
 }

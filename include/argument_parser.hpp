@@ -1,160 +1,183 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <filesystem>
+#include <fstream>
+#include <vector>
+#include <iostream>
 
 class ArgumentParser
 {
-private:
-	bool _verboseMode = false;
-	std::filesystem::path _outputFile = "a.out";
-	std::filesystem::path _inputFile = "";
-	std::vector<std::filesystem::path> _additionalIncludePaths;
-
 public:
-	ArgumentParser()
+	struct Option
 	{
+		bool activated = false;
+		std::string name;
+		std::string reduceName;
+		std::string description;
+		size_t nbParameter = 0;
+		bool isOptional = false;
 
-	}
+		std::vector<std::string> parameters;
+	};
 
-	bool isVerboseMode() const
+	std::string _usage;
+	std::vector<std::string> _parameters;
+	std::vector<Option> _options;
+
+private:
+	void _parseArgument(char **argumentList, size_t argumentListSize, size_t& cursor)
 	{
-		return _verboseMode;
-	}
+		std::string currentArgument = argumentList[cursor];
 
-	const std::filesystem::path& inputFile() const
-	{
-		return _inputFile;
-	}
-
-	const std::filesystem::path& outputFile() const
-	{
-		return _outputFile;
-	}
-
-	const std::vector<std::filesystem::path>& additionalIncludePaths() const
-	{
-		return _additionalIncludePaths;
-	}
-
-	static void printHelp(const std::string& programName)
-	{
-		std::cout << "Usage : " << programName << " [path to your lumina shader code]" << std::endl;
-		std::cout << "Options :" << std::endl;
-		std::cout << "  -o, --output\t\tSpecify the output file for the compiled shader" << std::endl;
-		std::cout << "  -v, --verbose\t\tEnable verbose output" << std::endl;
-		std::cout << "  -h, --help\t\tShow this help message" << std::endl;
-		std::cout << "  -i, --includePath\tSpecify additionnal include paths for shader files" << std::endl;
-	}
-
-	void parseArgument(char **argumentList, int argumentListSize, int& counter)
-	{
-		std::string argument = argumentList[counter];
-		if (argumentList[counter][0] == '-')
+		if (contains(currentArgument) == true)
 		{
-			if (argument == "-v" || argument == "--verbose")
-			{
-				_verboseMode = true;
-			}
-			else if (argument == "-h" || argument == "--help")
-			{
-				printHelp(argumentList[0]);
-				exit(0);
-			}
-			else if (argument == "-o" || argument == "--output")
-			{
-				counter++;
+			Option& currentOption = option(currentArgument);
 
-				if (counter >= argumentListSize)
-				{
-					throw std::runtime_error("No output file specified after -o or --output option.");
-				}
-				else if (argumentList[counter][0] == '-')
-				{
-					throw std::runtime_error("Output file cannot start with a dash (-). Please specify a valid output file name.");
-				}
-				else
-				{
-					_outputFile = argumentList[counter];
-				}
-			}
-			else if (argument == "-i" || argument == "--includePath")
+			currentOption.activated = true;
+			if (currentOption.nbParameter > 0)
 			{
-				counter++;
+				if (cursor + currentOption.nbParameter >= argumentListSize)
+				{
+					throw std::runtime_error("Not enough parameters for option: " + currentArgument);
+				}
 
-				if (counter >= argumentListSize)
+				for (size_t i = 0; i < currentOption.nbParameter; ++i)
 				{
-					throw std::runtime_error("No include path specified after -i or --includePath option.");
+					currentOption.parameters.push_back(argumentList[cursor + i + 1]);
 				}
-				else if (argumentList[counter][0] == '-')
-				{
-					throw std::runtime_error("Include folder path cannot start with a dash (-). Please specify a valid folder path.");
-				}
-				else
-				{
-					_additionalIncludePaths.push_back(argumentList[counter]);
-				}
-			}
-			else
-			{
-				throw std::runtime_error("Unknown option: " + std::string(argumentList[counter]));
-			}
+				cursor += currentOption.nbParameter;
+			}			
 		}
 		else
 		{
-			if (_inputFile.empty())
+			if (currentArgument[0] == '-')
 			{
-				_inputFile = argumentList[counter];
+				throw std::runtime_error("Unknown option: " + currentArgument);
 			}
-			else
-			{
-				throw std::runtime_error("Multiple input files specified. Only one input file is allowed.");
-			}
+
+			_parameters.push_back(currentArgument);
 		}
 	}
 
-	void parseArguments(int argc, char ** argv)
+public:
+	void setUsage(const std::string& usage)
 	{
-		for (int i = 1; i < argc; i++)
+		_usage = usage;
+	}
+
+	const std::vector<std::string>& parameters() const
+	{
+		return _parameters;
+	}
+
+	void addOption(const std::string& name, const std::string& reduceName, const std::string& description, bool isOptional, size_t nbParameter)
+	{
+		Option arg;
+		arg.name = name;
+		arg.reduceName = reduceName;
+		arg.description = description;
+		arg.isOptional = isOptional;
+		arg.nbParameter = nbParameter;
+
+		_options.push_back(arg);
+	}
+
+	bool contains(const std::string& name) const
+	{
+		for (const auto& arg : _options)
 		{
-			parseArgument(argv, argc, i);
+			if (arg.name == name || arg.reduceName == name)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	Option& option(const std::string& name)
+	{
+		for (auto& arg : _options)
+		{
+			if (arg.name == name || arg.reduceName == name)
+			{
+				return arg;
+			}
+		}
+
+		throw std::runtime_error("Option not found: " + name);
+	}
+
+	const Option& option(const std::string& name) const
+	{
+		for (const auto& arg : _options)
+		{
+			if (arg.name == name || arg.reduceName == name)
+			{
+				return arg;
+			}
+		}
+
+		throw std::runtime_error("Option not found: " + name);
+	}
+
+	void parse(int argc, char** argv)
+	{
+		size_t cursor = 1;
+		while (cursor < argc)
+		{
+			_parseArgument(argv, argc, cursor);
+			cursor++;
 		}
 	}
 
-	void print()
+	void print() const
 	{
-		std::cout << " - Verbose mode: " << (isVerboseMode() ? "Enabled" : "Disabled") << std::endl;
-
-		std::cout << " - Input file: " << _inputFile << std::endl;
-		std::cout << " - Output file: " << _outputFile << std::endl;
-
-		if (_additionalIncludePaths.empty() == false)
+		std::cout << "Parameters:";
+		if (_parameters.empty())
 		{
-			std::cout << " - Additional include paths:" << std::endl;
-			for (const auto& path : _additionalIncludePaths)
+			std::cout << " <none>";
+		}
+		else
+		{
+			for (const auto& p : _parameters)
+				std::cout << ' ' << p;
+		}
+		std::cout << std::endl;
+
+		for (const auto& opt : _options)
+		{
+			std::cout << opt.name;
+			if (!opt.reduceName.empty())
+				std::cout << " (" << opt.reduceName << ')';
+
+			std::cout << " : " << (opt.activated ? "active" : "inactive");
+
+			if (!opt.parameters.empty())
 			{
-				std::cout << "   - " << path << std::endl;
+				std::cout << " | parameters:";
+				for (const auto& param : opt.parameters)
+					std::cout << ' ' << param;
 			}
+			std::cout << std::endl;
+		}
+	}
+
+	void printHelp() const
+	{
+		std::cout << "Usage : " << _usage << std::endl;
+		std::cout << "Options :" << std::endl;
+		for (const auto& option : _options)
+		{
+			std::cout << option.name << " (" << option.reduceName << ") : " << option.description;
+			if (option.isOptional)
+			{
+				std::cout << " [optional]";
+			}
+			if (option.nbParameter > 0)
+			{
+				std::cout << " [requires " << option.nbParameter << " parameters]";
+			}
+			std::cout << std::endl;
 		}
 	}
 };
-
-ArgumentParser readArguments(int argc, char **argv)
-{
-	ArgumentParser argumentParser;
-
-	for (int i = 1; i < argc; i++)
-	{
-		argumentParser.parseArgument(argv, argc, i);
-	}
-
-	if (argumentParser.isVerboseMode())
-	{
-		std::cout << "Compilation call : " << std::endl;
-		std::cout << "Arguments :" << std::endl;
-		argumentParser.print();
-	}
-
-	return argumentParser;
-}

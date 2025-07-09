@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 struct Token
 {
@@ -88,8 +89,8 @@ struct Token
 			case Type::StringLiteral    : return "StringLiteral";
 
 			// — keywords —
-			case Type::KwStruct         : return "struct";
-			case Type::KwNamespace      : return "namespace";
+			case Type::KwStruct         : return "Struct";
+			case Type::KwNamespace      : return "Namespace";
 			case Type::KwAttributeBlock : return "AttributeBlock";
 			case Type::KwConstantBlock  : return "ConstantBlock";
 			case Type::KwTexture        : return "Texture";
@@ -97,53 +98,55 @@ struct Token
 			case Type::KwVertexPass     : return "VertexPass";
 			case Type::KwFragmentPass   : return "FragmentPass";
 			case Type::KwOutput         : return "Output";
-			case Type::KwRaiseException : return "raiseException";
-			case Type::KwDiscard        : return "discard";
-			case Type::KwIf             : return "if";
-			case Type::KwElse           : return "else";
-			case Type::KwWhile          : return "while";
-			case Type::KwDo             : return "do";
-			case Type::KwReturn         : return "return";
-			case Type::KwInclude        : return "#include";
+			case Type::KwRaiseException : return "RaiseException";
+			case Type::KwDiscard        : return "Discard";
+			case Type::KwIf             : return "If";
+			case Type::KwElse           : return "Else";
+			case Type::KwWhile          : return "While";
+			case Type::KwDo             : return "Do";
+			case Type::KwReturn         : return "Return";
+			case Type::KwInclude        : return "Include";
 
 			// — operators & punctuation —
-			case Type::Plus             : return "+";
-			case Type::Minus            : return "-";
-			case Type::Star             : return "*";
-			case Type::Slash            : return "/";
-			case Type::Percent          : return "%";
-			case Type::PlusEqual        : return "+=";
-			case Type::MinusEqual       : return "-=";
-			case Type::StarEqual        : return "*=";
-			case Type::SlashEqual       : return "/=";
-			case Type::PercentEqual     : return "%=";
-			case Type::Increment        : return "++";
-			case Type::Decrement        : return "--";
-			case Type::Equal            : return "=";
-			case Type::EqualEqual       : return "==";
-			case Type::NotEqual         : return "!=";
-			case Type::Less             : return "<";
-			case Type::Greater          : return ">";
-			case Type::LessEqual        : return "<=";
-			case Type::GreaterEqual     : return ">=";
-			case Type::LogicalAnd       : return "&&";
-			case Type::LogicalOr        : return "||";
-			case Type::LogicalNot       : return "!";
-			case Type::Arrow            : return "->";
-			case Type::Colon            : return ":";
-			case Type::DoubleColon      : return "::";
-			case Type::Comma            : return ",";
-			case Type::Semicolon        : return ";";
-			case Type::Dot              : return ".";
-			case Type::LeftParen        : return "(";
-			case Type::RightParen       : return ")";
-			case Type::LeftBrace        : return "{";
-			case Type::RightBrace       : return "}";
-			case Type::LeftBracket      : return "[";
-			case Type::RightBracket     : return "]";
-			case Type::Hash             : return "#";
+			case Type::Plus             : return "Plus";
+			case Type::Minus            : return "Minus";
+			case Type::Star             : return "Star";
+			case Type::Slash            : return "Slash";
+			case Type::Percent          : return "Percent";
+			case Type::PlusEqual        : return "PlusEqual";
+			case Type::MinusEqual       : return "MinusEqual";
+			case Type::StarEqual        : return "StarEqual";
+			case Type::SlashEqual       : return "SlashEqual";
+			case Type::PercentEqual     : return "PercentEqual";
+			case Type::Increment        : return "Increment";
+			case Type::Decrement        : return "Decrement";
+			case Type::Equal            : return "Equal";
+			case Type::EqualEqual       : return "EqualEqual";
+			case Type::NotEqual         : return "NotEqual";
+			case Type::Less             : return "Less";
+			case Type::Greater          : return "Greater";
+			case Type::LessEqual        : return "LessEqual";
+			case Type::GreaterEqual     : return "GreaterEqual";
+			case Type::LogicalAnd       : return "LogicalAnd";
+			case Type::LogicalOr        : return "LogicalOr";
+			case Type::LogicalNot       : return "LogicalNot";
+			case Type::Arrow            : return "Arrow";
+			case Type::Colon            : return "Colon";
+			case Type::DoubleColon      : return "DoubleColon";
+			case Type::Comma            : return "Comma";
+			case Type::Semicolon        : return "Semicolon";
+			case Type::Dot              : return "Dot";
+			case Type::LeftParen        : return "LeftParen";
+			case Type::RightParen       : return "RightParen";
+			case Type::LeftBrace        : return "LeftBrace";
+			case Type::RightBrace       : return "RightBrace";
+			case Type::LeftBracket      : return "LeftBracket";
+			case Type::RightBracket     : return "RightBracket";
+			case Type::Hash             : return "Hash";
 
 			default                     : return "Unknown";
 		}
 	}
 };
+
+using TokenList = std::vector<Token>;
