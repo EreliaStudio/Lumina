@@ -271,11 +271,419 @@ public:
 		_isVerbose = verbose;
 	}
 	TokenListResult tokenize(const std::string& source)
-	{
-		TokenList result;
+        {
+			TokenList result;
 
-		return result;
-	}
+			const auto addToken = [&](Token::Type type, const std::string &lex,
+									  size_t row, size_t col, size_t offset)
+			{
+				result.push_back(Token{type, lex, row, col,
+									   SourceLocation{SourceManager::FileID{0}, offset}});
+			};
+
+			std::size_t index = 0;
+			std::size_t row = 1;
+			std::size_t col = 1;
+
+			auto advance = [&](char &c)
+			{
+				c = source[index++];
+				if (c == '\n')
+				{
+					row++;
+					col = 1;
+				}
+				else
+				{
+					col++;
+				}
+			};
+
+			auto peek = [&](std::size_t off = 0) -> char
+			{
+				if (index + off >= source.size())
+					return '\0';
+				return source[index + off];
+			};
+
+			static const std::unordered_map<std::string, Token::Type> keywords{
+				{"struct", Token::Type::KwStruct},
+				{"namespace", Token::Type::KwNamespace},
+				{"AttributeBlock", Token::Type::KwAttributeBlock},
+				{"ConstantBlock", Token::Type::KwConstantBlock},
+				{"Texture", Token::Type::KwTexture},
+				{"Input", Token::Type::KwInput},
+				{"VertexPass", Token::Type::KwVertexPass},
+				{"FragmentPass", Token::Type::KwFragmentPass},
+				{"Output", Token::Type::KwOutput},
+				{"raiseException", Token::Type::KwRaiseException},
+				{"discard", Token::Type::KwDiscard},
+				{"if", Token::Type::KwIf},
+				{"else", Token::Type::KwElse},
+				{"while", Token::Type::KwWhile},
+				{"do", Token::Type::KwDo},
+				{"return", Token::Type::KwReturn},
+				{"include", Token::Type::KwInclude},
+			};
+
+			while (index < source.size())
+			{
+				char c = peek();
+
+				if (std::isspace(static_cast<unsigned char>(c)))
+				{
+					advance(c);
+					continue;
+				}
+
+				// Comments
+				if (c == '/' && peek(1) == '/')
+				{
+					advance(c);
+					advance(c); // skip '//'
+					while (index < source.size() && peek() != '\n')
+						advance(c);
+					continue;
+				}
+				if (c == '/' && peek(1) == '*')
+				{
+					advance(c);
+					advance(c); // skip '/*'
+					while (index < source.size())
+					{
+						if (peek() == '*' && peek(1) == '/')
+						{
+							advance(c);
+							advance(c);
+							break;
+						}
+						advance(c);
+					}
+					continue;
+				}
+
+				std::size_t tokRow = row;
+				std::size_t tokCol = col;
+				std::size_t startIndex = index;
+
+				// Numbers
+				if (std::isdigit(static_cast<unsigned char>(c)))
+				{
+					std::string lex;
+					bool isFloat = false;
+					while (std::isdigit(static_cast<unsigned char>(peek())))
+					{
+						advance(c);
+						lex.push_back(c);
+					}
+					if (peek() == '.')
+					{
+						isFloat = true;
+						advance(c); // consume '.'
+						lex.push_back('.');
+						while (std::isdigit(static_cast<unsigned char>(peek())))
+						{
+							advance(c);
+							lex.push_back(c);
+						}
+					}
+					addToken(isFloat ? Token::Type::FloatLiteral
+									 : Token::Type::IntLiteral,
+							 lex, tokRow, tokCol, startIndex);
+					continue;
+				}
+
+				// Identifier or keyword or bool
+				if (std::isalpha(static_cast<unsigned char>(c)) || c == '_')
+				{
+					std::string lex;
+					advance(c);
+					lex.push_back(c);
+					while (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')
+					{
+						advance(c);
+						lex.push_back(c);
+					}
+					if (lex == "true" || lex == "false")
+					{
+						addToken(Token::Type::BoolLiteral, lex, tokRow, tokCol, startIndex);
+					}
+					else if (auto it = keywords.find(lex); it != keywords.end())
+					{
+						addToken(it->second, lex, tokRow, tokCol, startIndex);
+					}
+					else
+					{
+						addToken(Token::Type::Identifier, lex, tokRow, tokCol, startIndex);
+					}
+					continue;
+				}
+
+				// String literal
+				if (c == '"')
+				{
+					std::string lex;
+					advance(c); // consume opening quote
+					while (index < source.size() && peek() != '"')
+					{
+						if (peek() == '\\' && index + 1 < source.size())
+						{
+							advance(c);
+							lex.push_back(c);
+							advance(c);
+							lex.push_back(c);
+							continue;
+						}
+						advance(c);
+						lex.push_back(c);
+					}
+					if (peek() == '"')
+					{
+						advance(c); // closing quote
+					}
+					addToken(Token::Type::StringLiteral, lex, tokRow, tokCol, startIndex);
+					continue;
+				}
+
+				// Operators and punctuation
+				switch (c)
+				{
+				case '+':
+					if (peek(1) == '+')
+					{
+						addToken(Token::Type::Increment, "++", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::PlusEqual, "+=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Plus, "+", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '-':
+					if (peek(1) == '-')
+					{
+						addToken(Token::Type::Decrement, "--", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::MinusEqual, "-=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					if (peek(1) == '>')
+					{
+						addToken(Token::Type::Arrow, "->", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Minus, "-", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '*':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::StarEqual, "*=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Star, "*", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '/':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::SlashEqual, "/=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Slash, "/", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '%':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::PercentEqual, "%=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Percent, "%", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '=':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::EqualEqual, "==", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Equal, "=", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '!':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::NotEqual, "!=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::LogicalNot, "!", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '<':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::LessEqual, "<=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Less, "<", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '>':
+					if (peek(1) == '=')
+					{
+						addToken(Token::Type::GreaterEqual, ">=", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Greater, ">", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '&':
+					if (peek(1) == '&')
+					{
+						addToken(Token::Type::LogicalAnd, "&&", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Unknown, "&", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '|':
+					if (peek(1) == '|')
+					{
+						addToken(Token::Type::LogicalOr, "||", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Unknown, "|", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case ':':
+					if (peek(1) == ':')
+					{
+						addToken(Token::Type::DoubleColon, "::", tokRow, tokCol, startIndex);
+						advance(c);
+						advance(c);
+						break;
+					}
+					addToken(Token::Type::Colon, ":", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case ',':
+					addToken(Token::Type::Comma, ",", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case ';':
+					addToken(Token::Type::Semicolon, ";", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '.':
+					addToken(Token::Type::Dot, ".", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '(':
+					addToken(Token::Type::LeftParen, "(", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case ')':
+					addToken(Token::Type::RightParen, ")", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '{':
+					addToken(Token::Type::LeftBrace, "{", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '}':
+					addToken(Token::Type::RightBrace, "}", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '[':
+					addToken(Token::Type::LeftBracket, "[", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case ']':
+					addToken(Token::Type::RightBracket, "]", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				case '#':
+					addToken(Token::Type::Hash, "#", tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				default:
+					addToken(Token::Type::Unknown, std::string(1, c), tokRow, tokCol, startIndex);
+					advance(c);
+					break;
+				}
+			}
+
+			addToken(Token::Type::EndOfFile, "", row, col, index);
+
+			if (_isVerbose)
+			{
+				std::size_t rowW = 0, colW = 0, typeW = 0, lexW = 0;
+				for (const auto& tok : result)
+				{
+					rowW  = std::max(rowW,  std::to_string(tok.row).size());
+					colW  = std::max(colW,  std::to_string(tok.col).size());
+					typeW = std::max(typeW, Token::to_string(tok.type).size());
+					lexW  = std::max(lexW,  tok.lexeme.size());
+				}
+
+				std::cout << '|' << std::setw(rowW)  << "Row"
+						<< " | " << std::setw(colW)  << "Col"
+						<< " | " << std::setw(typeW) << "Type"
+						<< " | " << std::setw(lexW)  << "Content"
+						<< " |\n";
+
+				std::cout << '|' << std::string(rowW,  '-') << "-|-"
+						<< std::string(colW,  '-') << "-|-"
+						<< std::string(typeW, '-') << "-|-"
+						<< std::string(lexW,  '-') << "-|\n";
+
+				for (const auto& tok : result)
+				{
+					std::cout << '|' << std::setw(rowW)  << tok.row
+							<< " | " << std::setw(colW)  << tok.col
+							<< " | " << std::setw(typeW) << Token::to_string(tok.type)
+							<< " | " << std::setw(lexW)  << tok.lexeme
+							<< " |\n";
+				}
+			}
+
+			return TokenListResult(result);
+		}
 };
 
 struct ASTNode
