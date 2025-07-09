@@ -11,17 +11,62 @@ struct SourceLocation;
 class SourceManager
 {
 public:
-    struct FileID { std::size_t value; };
+    struct FileID { size_t value; };
 
 private:
 	std::vector<std::filesystem::path> _includeFolderPaths;
-	std::unordered_map<std::filesystem::path, FileID> _fileIDs;
-	std::unordered_map<FileID, std::string> _fileContents;
+
+	static constexpr char pathSeparator()
+    {
+    #ifdef _WIN32
+        return ';';
+    #else
+        return ':';
+    #endif
+    }
+
 
 public:
 	SourceManager()
 	{
-		
+		_includeFolderPaths.push_back(".");
+
+        if (const char* env = std::getenv("PATH"))
+        {
+            std::stringstream ss{env};
+            std::string token;
+            const char sep = pathSeparator();
+
+            while (std::getline(ss, token, sep))
+            {
+                if (!token.empty())
+                    _includeFolderPaths.emplace_back(token);
+            }
+        }
+	}
+
+	void addIncludeFolder(const std::filesystem::path& includeFolderPath)
+	{
+		_includeFolderPaths.push_back(includeFolderPath);
+	}
+
+	std::filesystem::path getFileFullPath(const std::filesystem::path& includeFile)
+	{
+		if (std::filesystem::exists(includeFile))
+		{
+            return std::filesystem::canonical(includeFile);
+		}
+
+        for (const auto& dir : _includeFolderPaths)
+        {
+            std::filesystem::path candidate = dir / includeFile;
+            if (std::filesystem::exists(candidate))
+			{
+                return std::filesystem::canonical(candidate);
+			}
+        }
+
+        throw std::runtime_error("SourceManager: could not locate file \"" + includeFile.string() + "\" in any include path.");
 	}
 };
 
@@ -235,7 +280,7 @@ public:
 
 struct ASTNode
 {
-	std::vector<std::unique_ptr<ASTNode>> children;
+	std::vector<std::shared_ptr<ASTNode>> children;
 };
 
 class Parser
@@ -326,7 +371,6 @@ private:
 
 	std::string _inputFile;
 	std::string _outputFile;
-	std::vector<std::string> _includeFolders;
 
 	Expected<State> _parseArguments(int argc, char** argv)
 	{
@@ -385,7 +429,10 @@ private:
 		const ArgumentParser::Option& includeFolderOption = argumentParser.option("--includeFolders");
 		if (includeFolderOption.activated)
 		{
-			_includeFolders = includeFolderOption.parameters;
+			for (const auto& path : includeFolderOption.parameters)
+			{
+				sourceManager.addIncludeFolder(path);
+			}
 		}
 
 		if (argumentParser.parameters().size() == 1)
