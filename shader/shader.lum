@@ -1,58 +1,21 @@
-#include <Material>
-#include <DirectionalLight>
-#include <CameraConstants>
 
 Input -> VertexPass : Vector3 modelPosition;
-Input -> VertexPass : Vector2 modelUVs;
-Input -> VertexPass : Vector3 modelNormals;
+Input -> VertexPass : Color modelColor;
 
-VertexPass -> FragmentPass : Vector3 fragmentPosition;
-VertexPass -> FragmentPass : Vector2 fragmentUVs;
-VertexPass -> FragmentPass : Vector3 fragmentNormal;
+VertexPass -> FragmentPass : Color fragmentColor;
 
-Texture diffuseTexture;
-Texture specularTexture;
-
-ConstantBlock WorldConstants
-{
-	spk::DirectionalLight directionalLight;
-};
-
-AttributeBlock modelInformations
-{
-    Matrix4x4 modelMatrix;
-    Matrix4x4 inverseModelMatrix;
-
-	spk::Material modelMaterial;
-};
+FragmentPass -> Output : Color outputColor;
 
 VertexPass()
 {
-    Vector4 worldPosition = modelInformations.modelMatrix * Vector4(modelPosition, 1.0);
-    Vector4 viewPosition = spk::CameraConstants.view * worldPosition;
-    pixelPosition = spk::CameraConstants.projection * viewPosition;
-
-	Vector4 worldNormal = modelInformations.modelMatrix * Vector4(modelNormals, 0);
-
-	fragmentPosition = worldPosition.xyz;
-    fragmentUVs = modelUVs;
-    fragmentNormal = worldNormal.xyz;
+	pixelPosition = modelPosition;
+	fragmentColor = modelColor;
 }
 
 FragmentPass()
 {
-	if (spk::CameraConstants.position == Vector3(0, 0, 1))
-	{
-		
-	}
+	if (fragmentColor.a == 0)
+		discard;
 
-	if (modelInformations.modelMaterial.shininess == 1.0f)
-	{
-		
-	}
-
-	if (WorldConstants.directionalLight.color == Color(1, 0, 0, 1))
-	{
-		
-	}
+	outputColor = fragmentColor;
 }

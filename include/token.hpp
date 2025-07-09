@@ -1,100 +1,149 @@
 #pragma once
 
-#include <filesystem>
 #include <string>
-#include <iostream>
-#include <vector>
 
-namespace Lumina
+struct Token
 {
-	struct Token
+	enum class Type
 	{
-		struct Context
-		{
-			int line = 0;
-			int column = 0;
-			std::filesystem::path originFile = "";
-			std::string inputLine = "";
-		};
+		EndOfFile,
+		Identifier,
+		IntLiteral,
+		FloatLiteral,
+		BoolLiteral,
+		StringLiteral,
 
-		enum class Type
-		{
-			Unknow,
-			Include, // "#include"
-			StringLitteral, // String contained inside a '"' on both sides
-			IncludeLitteral, // String contained between '<' and '>'
-			PipelineFlow, // "Input", "VertexPass", or "FragmentPass"
-			PipelineFlowSeparator, // '->'
-			NamespaceSeparator, // "::"
-			Separator, // ':'
-			Identifier, // Alphanumeric string
-			Number, // Numeric value
-			StructureBlock, // "struct"
-			ThisKeyword, // "this"
-			AttributeBlock, // "AttributeBlock"
-			ConstantBlock, // "ConstantBlock"
-			Texture, // "Texture"
-			Namespace, // "namespace"
-			OpenCurlyBracket, // '{'
-			CloseCurlyBracket, // '}'
-			OpenParenthesis, // '('
-			CloseParenthesis, // ')'
-			Accessor, // '.'
-			Comment, // Comments: "//" until end of line or "/* */"
-			OperatorKeyword, // "operator"
-			Operator, // Operators: +, -, *, /, etc.
-			Return, // "return"
-			Discard, // "discard"
-			BoolStatement, // "true" or "false"
-			ForStatement, // "for"
-			IfStatement, // "if"
-			WhileStatement, // "while"
-			ElseStatement, // "else"
-			EndOfSentence, // ';'
-			Assignator, // '=', "+=", "-=" etc
-			Incrementor, // '++', '--'
-			Comma, // ','
-			OpenBracket, // '['
-			CloseBracket, // ']'
-			Expression
-		};
+		KwStruct,
+		KwNamespace,
+		KwAttributeBlock,
+		KwConstantBlock,
+		KwTexture,
+		KwInput,
+		KwVertexPass,
+		KwFragmentPass,
+		KwOutput,
+		KwRaiseException,
+		KwDiscard,
+		KwIf,
+		KwElse,
+		KwWhile,
+		KwDo,
+		KwReturn,
+		KwInclude,
 
-		Type type = Type::Unknow;
-		std::string content = "";
-		Context context;
-
-		Token() = default;
-
-		Token(const std::string& p_content, Type p_type, int p_line, int p_column, const std::filesystem::path& p_originFile, const std::string& p_inputLine);
-		Token(Type p_type);
-		Token(const std::string& p_content, Type p_type, const Context& p_context);
-
-		bool operator == (const std::string& p_string) const;
-		bool operator != (const std::string& p_string) const;
-
-		friend std::ostream& operator << (std::ostream& p_os, const Token::Type& p_type);
-		friend std::ostream& operator << (std::ostream& p_os, const Token& p_token);
-
-		std::string to_string() const;
-		static std::string to_string(Token::Type p_type);
-
-		Lumina::Token operator + (const Lumina::Token& p_toAdd) const;
-		Lumina::Token operator += (const Lumina::Token& p_toAdd);
-		void append(const Lumina::Token& p_toAdd);
-		static Token merge(const std::vector<Token>& p_tokens, const Token::Type& p_type);
+		Plus,
+		Minus,
+		Star,
+		Slash,
+		Percent,
+		PlusEqual,
+		MinusEqual,
+		StarEqual,
+		SlashEqual,
+		PercentEqual,
+		Increment,
+		Decrement,
+		Equal,
+		EqualEqual,
+		NotEqual,
+		Less,
+		Greater,
+		LessEqual,
+		GreaterEqual,
+		LogicalAnd,
+		LogicalOr,
+		LogicalNot,
+		Arrow,
+		Colon,
+		DoubleColon,
+		Comma,
+		Semicolon,
+		Dot,
+		LeftParen,
+		RightParen,
+		LeftBrace,
+		RightBrace,
+		LeftBracket,
+		RightBracket,
+		Hash,
+		
+		Unknown
 	};
-}
 
-namespace Lumina
-{
-	class TokenBasedError : public std::exception
+	Type type;
+	std::string lexeme;
+	size_t row;
+	size_t col;
+
+	static std::string to_string(Type type)
 	{
-	private:
-		std::string _what;
+		switch (type)
+		{
+			// — literals & identifiers —
+			case Type::EndOfFile        : return "EndOfFile";
+			case Type::Identifier       : return "Identifier";
+			case Type::IntLiteral       : return "IntLiteral";
+			case Type::FloatLiteral     : return "FloatLiteral";
+			case Type::BoolLiteral      : return "BoolLiteral";
+			case Type::StringLiteral    : return "StringLiteral";
 
-	public:
-		TokenBasedError(const std::string& p_message, const Token& p_token);
+			// — keywords —
+			case Type::KwStruct         : return "struct";
+			case Type::KwNamespace      : return "namespace";
+			case Type::KwAttributeBlock : return "AttributeBlock";
+			case Type::KwConstantBlock  : return "ConstantBlock";
+			case Type::KwTexture        : return "Texture";
+			case Type::KwInput          : return "Input";
+			case Type::KwVertexPass     : return "VertexPass";
+			case Type::KwFragmentPass   : return "FragmentPass";
+			case Type::KwOutput         : return "Output";
+			case Type::KwRaiseException : return "raiseException";
+			case Type::KwDiscard        : return "discard";
+			case Type::KwIf             : return "if";
+			case Type::KwElse           : return "else";
+			case Type::KwWhile          : return "while";
+			case Type::KwDo             : return "do";
+			case Type::KwReturn         : return "return";
+			case Type::KwInclude        : return "#include";
 
-		virtual const char* what() const noexcept override;
-	};
-}
+			// — operators & punctuation —
+			case Type::Plus             : return "+";
+			case Type::Minus            : return "-";
+			case Type::Star             : return "*";
+			case Type::Slash            : return "/";
+			case Type::Percent          : return "%";
+			case Type::PlusEqual        : return "+=";
+			case Type::MinusEqual       : return "-=";
+			case Type::StarEqual        : return "*=";
+			case Type::SlashEqual       : return "/=";
+			case Type::PercentEqual     : return "%=";
+			case Type::Increment        : return "++";
+			case Type::Decrement        : return "--";
+			case Type::Equal            : return "=";
+			case Type::EqualEqual       : return "==";
+			case Type::NotEqual         : return "!=";
+			case Type::Less             : return "<";
+			case Type::Greater          : return ">";
+			case Type::LessEqual        : return "<=";
+			case Type::GreaterEqual     : return ">=";
+			case Type::LogicalAnd       : return "&&";
+			case Type::LogicalOr        : return "||";
+			case Type::LogicalNot       : return "!";
+			case Type::Arrow            : return "->";
+			case Type::Colon            : return ":";
+			case Type::DoubleColon      : return "::";
+			case Type::Comma            : return ",";
+			case Type::Semicolon        : return ";";
+			case Type::Dot              : return ".";
+			case Type::LeftParen        : return "(";
+			case Type::RightParen       : return ")";
+			case Type::LeftBrace        : return "{";
+			case Type::RightBrace       : return "}";
+			case Type::LeftBracket      : return "[";
+			case Type::RightBracket     : return "]";
+			case Type::Hash             : return "#";
+
+			default                     : return "Unknown";
+		}
+	}
+};

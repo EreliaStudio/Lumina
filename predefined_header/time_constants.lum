@@ -1,8 +1,0 @@
-namespace spk
-{
-	ConstantBlock TimeConstants
-	{
-		int s;
-		int ms;
-	};
-}
