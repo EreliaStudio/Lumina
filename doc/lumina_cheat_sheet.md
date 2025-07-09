@@ -65,6 +65,24 @@ Vector4 myFunction(float inputVariable)
 }
 ```
 
+### Exception management
+- Define a specific function `raiseException` that will allow the shader to indicate errors to the CPU
+- Exemple:
+```cpp
+raiseException("Invalid UV value : %v", myUV);
+```
+- List of possible format :
+	- %d : int
+	- %u : uint
+	- %d : float
+	- %v2 : Vector2
+	- %v3 : Vector3
+	- %v4 : Vector4
+	- %c : Color
+	- %m2 : Matrix2x2
+	- %m3 : Matrix3x3
+	- %m4 : Matrix4x4
+
 ### Structures
 - Define custom structures to group variables.
 - Much like in C++, structures can contain methods, constructors and operators.
@@ -102,7 +120,7 @@ AttributeBlock attributeBlockName
 - AttributeBlock share the same principle as structures for defining methods and operator overloads.
 
 ### Constant Blocks
-- Define uniform blocks for information shared across all calls.
+- Define uniform blocks for information shared across all calls of all lumina pipeline.
 - Constants are shared by both the Vertex and the Fragment passes.
 ```cpp
 ConstantBlock constantBlockName
@@ -119,7 +137,6 @@ ConstantBlock constantBlockName
 Texture myTexture;
 ```
 - You can then access the pixel stored inside the texture using the method `getPixel(Vector2)`
-- You can also access the texture size (in pixels), using the method `getSize()`
 ```cpp
 FragmentPass()
 {
