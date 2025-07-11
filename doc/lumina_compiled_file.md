@@ -40,18 +40,29 @@ The exception must be store as a JSON, such as follow :
 			"Format":"MyErrorText with format : %d",
 			"Parameter":[
 				{
-					"value":42
+					"Name": "A",
+					"Offset": 0,
+					"Size": 4,
+					"NestedElements": []
 				}
 			]
 		},
 		{
-			"Format":"MyOtherErrorText with format : %v2",
+			"Format":"MyOtherErrorText with format : %v2 - %f",
 			"Parameter":[
 				{
-					"value":{
-						"X":10,
-						"Y":42
-					}
+					"Name": "A",
+					"Offset": 0,
+					"Size": 8,
+					"NestedElements": [
+						{ "Name": "X",  "Offset": 0,   "Size": 4  },
+						{ "Name": "Y",  "Offset": 4,  "Size": 4  },]
+				},
+				{
+					"Name": "B",
+					"Offset": 0,
+					"Size": 4,
+					"NestedElements": []
 				}
 			]
 		}
