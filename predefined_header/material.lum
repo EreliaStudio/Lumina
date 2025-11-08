@@ -1,9 +1,0 @@
-namespace spk
-{
-	struct Material
-	{
-		bool hasDiffuseTexture;
-		bool hasSpecularTexture;
-		float shininess;
-	};
-}

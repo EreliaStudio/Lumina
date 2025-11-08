@@ -1,7 +1,0 @@
-namespace spk
-{
-	AttributeBlock WidgetAttributes
-	{
-		float layer;
-	};
-}

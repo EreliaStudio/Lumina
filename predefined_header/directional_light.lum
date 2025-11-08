@@ -1,9 +1,0 @@
-namespace spk
-{
-	struct DirectionalLight
-	{
-		Vector3 direction;
-		Color color;
-		float ambiantPower;
-	};
-}
