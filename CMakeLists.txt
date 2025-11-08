@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Base directories
-set(LUMINA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(LUMINA_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(LUMINA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/includes)
+set(LUMINA_SRC_DIR ${CMAKE_SOURCE_DIR}/srcs)
 
 # Collect all header and source files recursively
 file(GLOB_RECURSE LUMINA_HEADERS

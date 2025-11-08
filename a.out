@@ -1,169 +1,110 @@
-## LAYOUTS DEFINITION ##
-0 Vector3 modelPosition
-1 Vector2 modelUVs
-2 Vector3 modelNormals
-
-
-## FRAMEBUFFER DEFINITION ##
-0 Color pixelColor
-
-
-## CONSTANTS DEFINITION ##
-spk_CameraConstants_Type spk::CameraConstants 140 144 {
-    position 0 12 0 12 1 4 {
-        x 0 4 0 4 1 0 {}
-        y 4 4 4 4 1 0 {}
-        z 8 4 8 4 1 0 {}
+{
+  "shader": {
+    "sources": {
+      "vertex": "#version 450 core\n\nlayout(location = 0) in vec2 modelPosition;\nlayout(location = 1) in vec2 modelUV;\n\nlayout(location = 0) out vec2 fragUV;\n\nstruct Data\n{\n\tint value;\n\tfloat test[2];\n};\n\nlayout(binding = CONSTANT_BINDING, std430) buffer myConstantBlock_Type\n{\n\tint value;\n\tData array[];\n} myConstantBlock;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform spk__myAttributeBlock_Type\n{\n\tint value;\n\tData array[(10 + 45)];\n} spk__myAttributeBlock;\n\n\nuniform sampler2D _tx0;\n\nvoid main()\n{\n\tgl_Position = vec4(modelPosition, 0, 1);\n\tfloat dotValue = distance(gl_Position, vec4(0, 0, 0, 0));\n\tfragUV = modelUV;\n}\n",
+      "fragment": "#version 450 core\n\nlayout(location = 0) in vec2 fragUV;\n\nlayout(location = 0) out vec4 pixelColor;\n\nstruct Data\n{\n\tint value;\n\tfloat test[2];\n};\n\nlayout(binding = CONSTANT_BINDING, std430) buffer myConstantBlock_Type\n{\n\tint value;\n\tData array[];\n} myConstantBlock;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform spk__myAttributeBlock_Type\n{\n\tint value;\n\tData array[(10 + 45)];\n} spk__myAttributeBlock;\n\n\nuniform sampler2D _tx0;\n\nvoid main()\n{\n\tpixelColor = texture(MyNamespace__MyNamespace__myTexture, fragUV);\n}\n"
     }
-    view 12 64 16 64 1 0 {}
-    projection 76 64 80 64 1 0 {}
-}
-WorldConstants_Type WorldConstants 32 36 {
-    directionalLight 0 32 0 36 1 12 {
-        direction 0 12 0 12 1 4 {
-            x 0 4 0 4 1 0 {}
-            y 4 4 4 4 1 0 {}
-            z 8 4 8 4 1 0 {}
+  },
+  "layouts": [
+    {
+      "location": 0,
+      "type": "Vector2",
+      "name": "modelPosition"
+    },
+    {
+      "location": 1,
+      "type": "Vector2",
+      "name": "modelUV"
+    }
+  ],
+  "framebuffers": [
+    {
+      "location": 0,
+      "type": "Vector4",
+      "name": "pixelColor"
+    }
+  ],
+  "textures": [
+    {
+      "luminaName": "myTexture",
+      "glslName": "_tx0",
+      "type": "sampler2D"
+    }
+  ],
+  "constants": [
+    {
+      "name": "myConstantBlock",
+      "type": "SSBO",
+      "size": 16,
+      "members": [
+        {
+          "name": "value",
+          "offset": 0,
+          "type": "Element",
+          "size": 4
         }
-        color 12 16 16 16 1 0 {
-            r 0 4 0 4 1 0 {}
-            g 4 4 4 4 1 0 {}
-            b 8 4 8 4 1 0 {}
-            a 12 4 12 4 1 0 {}
+      ],
+      "dynamicArrayLayout":       {
+        "name": "array",
+        "offset": 16,
+        "elementStride": 48,
+        "elementPadding": 0,
+        "members": [
+          {
+            "name": "value",
+            "offset": 0,
+            "type": "Element",
+            "size": 4
+          },
+          {
+            "name": "test",
+            "offset": 16,
+            "type": "Array",
+            "size": 32,
+            "elementSize": 16,
+            "nbElements": 2
+          }
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "spk::myAttributeBlock",
+      "type": "UBO",
+      "size": 2656,
+      "members": [
+        {
+          "name": "value",
+          "offset": 0,
+          "type": "Element",
+          "size": 4
+        },
+        {
+          "name": "array",
+          "offset": 16,
+          "type": "Array",
+          "size": 2640,
+          "elementSize": 48,
+          "nbElements": 55,
+          "members": [
+            {
+              "name": "value",
+              "offset": 0,
+              "type": "Element",
+              "size": 4
+            },
+            {
+              "name": "test",
+              "offset": 16,
+              "type": "Array",
+              "size": 32,
+              "elementSize": 16,
+              "nbElements": 2
+            }
+          ]
         }
-        ambiantPower 28 4 32 4 1 0 {}
+      ]
     }
+  ]
 }
-
-
-## ATTRIBUTES DEFINITION ##
-modelInformations_Type modelInformations 140 140 {
-    modelMatrix 0 64 0 64 1 0 {}
-    inverseModelMatrix 64 64 64 64 1 0 {}
-    modelMaterial 128 12 128 12 1 4 {
-        hasDiffuseTexture 0 4 0 4 1 0 {}
-        hasSpecularTexture 4 4 4 4 1 0 {}
-        shininess 8 4 8 4 1 0 {}
-    }
-}
-
-
-## TEXTURES DEFINITION ##
-diffuseTexture Texture_diffuseTexture
-specularTexture Texture_specularTexture
-
-
-## VERTEX SHADER CODE ##
-#version 450
-
-layout (location = 0) in vec3 modelPosition;
-layout (location = 1) in vec2 modelUVs;
-layout (location = 2) in vec3 modelNormals;
-layout (location = 0) out flat int out_instanceID;
-layout (location = 1) out vec3 fragmentPosition;
-layout (location = 2) out vec2 fragmentUVs;
-layout (location = 3) out vec3 fragmentNormal;
-
-struct spk_Material
-{
-    bool hasDiffuseTexture;
-    bool hasSpecularTexture;
-    float shininess;
-};
-
-struct spk_DirectionalLight
-{
-    vec3 direction;
-    vec4 color;
-    float ambiantPower;
-};
-
-layout(attributes) uniform modelInformations_Type
-{
-    mat4 modelMatrix;
-    mat4 inverseModelMatrix;
-    spk_Material modelMaterial;
-} modelInformations;
-
-layout(constants) uniform spk_CameraConstants_Type
-{
-    vec3 position;
-    mat4 view;
-    mat4 projection;
-} spk_CameraConstants;
-
-uniform sampler2D Texture_diffuseTexture;
-
-uniform sampler2D Texture_specularTexture;
-
-void main()
-{
-    vec4 worldPosition = modelInformations.modelMatrix * (vec4(modelPosition, 1.0));
-    vec4 viewPosition = spk_CameraConstants.view * worldPosition;
-    gl_Position = (spk_CameraConstants.projection * viewPosition);
-    vec4 worldNormal = modelInformations.modelMatrix * (vec4(modelNormals, 0));
-    fragmentPosition = worldPosition.xyz;
-    fragmentUVs = modelUVs;
-    fragmentNormal = worldNormal.xyz;
-    out_instanceID = gl_InstanceID;
-}
-
-## FRAGMENT SHADER CODE ##
-#version 450
-
-layout (location = 0) in flat int instanceID;
-layout (location = 1) in vec3 fragmentPosition;
-layout (location = 2) in vec2 fragmentUVs;
-layout (location = 3) in vec3 fragmentNormal;
-layout (location = 0) out vec4 pixelColor;
-
-struct spk_Material
-{
-    bool hasDiffuseTexture;
-    bool hasSpecularTexture;
-    float shininess;
-};
-
-struct spk_DirectionalLight
-{
-    vec3 direction;
-    vec4 color;
-    float ambiantPower;
-};
-
-layout(constants) uniform spk_CameraConstants_Type
-{
-    vec3 position;
-    mat4 view;
-    mat4 projection;
-} spk_CameraConstants;
-
-layout(attributes) uniform modelInformations_Type
-{
-    mat4 modelMatrix;
-    mat4 inverseModelMatrix;
-    spk_Material modelMaterial;
-} modelInformations;
-
-layout(constants) uniform WorldConstants_Type
-{
-    spk_DirectionalLight directionalLight;
-} WorldConstants;
-
-uniform sampler2D Texture_diffuseTexture;
-
-uniform sampler2D Texture_specularTexture;
-
-void main()
-{
-    if (spk_CameraConstants.position == (vec3(0, 0, 1)))
-    {
-    }
-    if (modelInformations.modelMaterial.shininess == 1.0f)
-    {
-    }
-    if (WorldConstants.directionalLight.color == (vec4(1, 0, 0, 1)))
-    {
-    }
-}
-

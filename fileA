@@ -1,0 +1,6 @@
+#define VALUE 45
+
+void functionA()
+{
+
+}

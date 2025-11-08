@@ -1,0 +1,47 @@
+#include <fileA>
+#include "fileB.lum"
+
+Input -> VertexPass : Vector2 modelPosition;
+Input -> VertexPass : Vector2 modelUV;
+VertexPass -> FragmentPass : Vector2 fragUV;
+
+namespace MyNamespace
+{
+	namespace MyNamespace
+	{
+		Texture myTexture;
+	}
+}
+
+struct Data
+{
+	int value;
+	float test[2];
+};
+
+namespace spk
+{
+AttributeBlock myAttributeBlock
+{
+	int value;
+	Data array[10 + VALUE];
+};
+}
+
+ConstantBlock myConstantBlock
+{
+	int value;
+	Data array[];
+};
+
+VertexPass()
+{
+    pixelPosition = Vector4(modelPosition, 0, 1);
+	float dotValue = pixelPosition.distance(Vector4(0, 0, 0, 0));
+    fragUV = modelUV;
+}
+
+FragmentPass()
+{
+    pixelColor = MyNamespace::MyNamespace::myTexture.getPixel(fragUV);
+}
