@@ -26,7 +26,6 @@ struct ConverterInput
 	std::vector<StageIO> stageVaryings;
 	std::vector<StageIO> fragmentOutputs;
 	std::vector<TextureBinding> textures;
-	bool hasPixelColor = false;
 };
 
 struct ShaderSources

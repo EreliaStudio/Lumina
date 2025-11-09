@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstddef>
 #include <filesystem>
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -161,6 +162,13 @@ namespace
         {
                 return lhs.name == rhs.name && lhs.isConst == rhs.isConst && lhs.isReference == rhs.isReference &&
                        lhs.isArray == rhs.isArray && lhs.hasArraySize == rhs.hasArraySize && lhs.arraySize == rhs.arraySize;
+        }
+
+        bool typeAssignable(TypeInfo dest, TypeInfo src)
+        {
+                dest.isConst = false;
+                src.isConst = false;
+                return typeEquals(dest, src);
         }
 
         TypeInfo stripReference(TypeInfo type)
@@ -451,6 +459,21 @@ int componentIndex(char component)
 		return columns > 0 && rows > 0;
 	}
 
+	bool isFloatTypeName(const std::string &name)
+	{
+		return name == "float";
+	}
+
+	bool isFloatVectorTypeName(const std::string &name)
+	{
+		return name == "Vector2" || name == "Vector3" || name == "Vector4";
+	}
+
+	bool isColorTypeName(const std::string &name)
+	{
+		return name == "Color";
+	}
+
 	bool isMatrixTypeName(const std::string &name)
 	{
 		int cols = 0;
@@ -600,6 +623,7 @@ int componentIndex(char component)
                         std::unordered_map<std::string, Symbol> pipelineVariables;
                         std::array<std::unordered_map<std::string, Symbol>, 4> stageBuiltins;
                         std::array<std::unordered_map<std::string, Symbol>, 4> stagePipeline;
+			std::array<std::unordered_set<std::string>, 4> stageRequiredBuiltins;
                         StageState vertex;
                         StageState fragment;
                         std::vector<std::string> namespaceStack;
@@ -674,28 +698,24 @@ int componentIndex(char component)
 						expressionInfo[&expression] = std::move(info);
 				}
 
-				void resetStageBuiltins()
+		void resetStageBuiltins()
                 {
                         for (auto &builtins : state.stageBuiltins)
                         {
                                 builtins.clear();
                         }
+			for (auto &required : state.stageRequiredBuiltins)
+			{
+				required.clear();
+			}
 
                         Symbol pixelPosition;
                         pixelPosition.type = TypeInfo{"Vector4"};
                         pixelPosition.token = makeSyntheticStageToken(Stage::VertexPass);
                         state.stageBuiltins[stageIndex(Stage::VertexPass)]["pixelPosition"] = pixelPosition;
+			state.stageRequiredBuiltins[stageIndex(Stage::VertexPass)].insert("pixelPosition");
 
-                        Symbol pixelColor;
-                        pixelColor.type = TypeInfo{"Color"};
-                        pixelColor.token = makeSyntheticStageToken(Stage::FragmentPass);
-                        state.stageBuiltins[stageIndex(Stage::FragmentPass)]["pixelColor"] = pixelColor;
-
-                        Symbol bloomColor;
-                        bloomColor.type = TypeInfo{"Color"};
-                        bloomColor.token = makeSyntheticStageToken(Stage::FragmentPass);
-                        state.stageBuiltins[stageIndex(Stage::FragmentPass)]["bloomColor"] = bloomColor;
-                }
+		}
 
                 void registerBuiltinAggregates()
                 {
@@ -837,20 +857,27 @@ int componentIndex(char component)
                         return candidates;
                 }
 
-                std::vector<std::string> resolveQualifiedCandidates(const Name &name) const
-                {
-                        if (name.parts.empty())
-                        {
-                                return {};
-                        }
+				std::vector<std::string> resolveQualifiedCandidates(const Name &name) const
+				{
+						if (name.parts.empty())
+						{
+								return {};
+						}
 
-                        if (name.parts.size() > 1)
-                        {
-                                return {joinName(name)};
-                        }
+						if (name.parts.size() > 1)
+						{
+								const std::string joined = joinName(name);
+								const std::string current = currentNamespace();
+								if (!current.empty() && joined.rfind(current + "::", 0) == 0)
+								{
+										return {joined};
+								}
+								return namespaceCandidates(joined);
+						}
 
-                        return namespaceCandidates(name.parts.front().content);
-                }
+						return namespaceCandidates(name.parts.front().content);
+				}
+
 
                 void registerAggregateType(const AggregateInstruction &aggregate)
                 {
@@ -1290,19 +1317,24 @@ int componentIndex(char component)
                         std::unordered_map<std::string, Symbol> symbols;
                 };
 
-                struct FunctionContext
-                {
-                        std::vector<Scope> scopes;
-                        const AggregateInfo *aggregate = nullptr;
-                        bool methodConst = false;
+		struct FunctionContext
+		{
+			std::vector<Scope> scopes;
+			const AggregateInfo *aggregate = nullptr;
+			bool methodConst = false;
                         TypeInfo returnType;
                         bool returnsReference = false;
-                        bool requiresValue = false;
-                        bool sawReturn = false;
-                        Token ownerToken;
-                        std::string displayName;
-                        bool inConstructor = false;
-                };
+			bool requiresValue = false;
+			bool sawReturn = false;
+			Token ownerToken;
+			std::string displayName;
+			bool inConstructor = false;
+			std::unordered_map<std::string, bool> requiredBuiltins;
+		};
+
+		std::vector<std::string> collectFunctionSignatures(const std::string &qualifiedName) const;
+		std::string formatArgumentTypes(const std::vector<std::unique_ptr<Expression>> &arguments,
+		    FunctionContext &context);
 
                 void analyzeInstruction(const Instruction &instruction)
                 {
@@ -1375,7 +1407,7 @@ int componentIndex(char component)
                                         declareSymbol(context, declarator.name, type, !type.isConst);
                                         TypedValue value = evaluateExpression(*declarator.initializer, context, false);
                                         if (typeValid &&
-                                            !typeEquals(stripReference(type), stripReference(value.type)))
+                                            !typeAssignable(stripReference(type), stripReference(value.type)))
                                         {
                                                 emitError("Cannot assign type '" + typeToString(value.type) + "' to variable '" +
                                                           declarator.name.content + "' of type '" + typeToString(type) + "'",
@@ -1421,12 +1453,17 @@ int componentIndex(char component)
                                 return;
                         }
 
-                        FunctionContext context;
-                        context.returnType = TypeInfo{"void"};
-                        context.ownerToken = stageFunction.stageToken;
-                        context.displayName = stageToString(stageFunction.stage);
+			FunctionContext context;
+			context.returnType = TypeInfo{"void"};
+			context.ownerToken = stageFunction.stageToken;
+			context.displayName = stageToString(stageFunction.stage);
+			const auto &requiredBuiltins = state.stageRequiredBuiltins[stageIndex(stageFunction.stage)];
+			for (const std::string &name : requiredBuiltins)
+			{
+				context.requiredBuiltins[name] = false;
+			}
 
-                        pushScope(context);
+			pushScope(context);
 
                         const auto &builtins = state.stageBuiltins[stageIndex(stageFunction.stage)];
                         for (const auto &[name, symbol] : builtins)
@@ -1451,11 +1488,19 @@ int componentIndex(char component)
                                 declareSymbol(context, parameter.name, type, !type.isConst);
                         }
 
-                        if (stageFunction.body)
-                        {
-                                analyzeBlock(*stageFunction.body, context);
-                        }
-                }
+			if (stageFunction.body)
+			{
+				analyzeBlock(*stageFunction.body, context);
+			}
+
+			for (const auto &[name, assigned] : context.requiredBuiltins)
+			{
+				if (!assigned)
+				{
+					emitError("Stage '" + stageToString(stageFunction.stage) + "' must set " + name, stageFunction.stageToken);
+				}
+			}
+		}
 
                 void analyzeAggregate(const AggregateInstruction &aggregate)
                 {
@@ -1687,15 +1732,16 @@ int componentIndex(char component)
                         symbols.emplace(key, symbol);
                 }
 
-                Symbol *lookupSymbol(FunctionContext &context, const Name &name)
+		Symbol *lookupSymbol(FunctionContext &context, const Name &name)
                 {
                         if (name.parts.empty())
                         {
-                                return nullptr;
-                        }
+			return nullptr;
+		}
 
                         if (name.parts.size() == 1)
                         {
+                                const std::string simple = name.parts.front().content;
                                 const std::string key = qualify(name.parts.front());
                                 for (auto it = context.scopes.rbegin(); it != context.scopes.rend(); ++it)
                                 {
@@ -1704,17 +1750,21 @@ int componentIndex(char component)
                                         {
                                                 return &found->second;
                                         }
-                                        auto globalFound = it->symbols.find(name.parts.front().content);
-                                        if (globalFound != it->symbols.end())
+                                        auto unqualified = it->symbols.find(simple);
+                                        if (unqualified != it->symbols.end())
                                         {
-                                                return &globalFound->second;
+                                                return &unqualified->second;
                                         }
                                 }
 
-                                auto global = state.globals.find(key);
-                                if (global != state.globals.end())
+                                const auto candidates = namespaceCandidates(simple);
+                                for (const std::string &candidate : candidates)
                                 {
-                                        return &global->second;
+                                        auto global = state.globals.find(candidate);
+                                        if (global != state.globals.end())
+                                        {
+                                                return &global->second;
+                                        }
                                 }
                         }
                         else
@@ -1746,6 +1796,27 @@ int componentIndex(char component)
 
                         return nullptr;
                 }
+
+		void markStageBuiltinAssignment(FunctionContext &context, const Expression &target)
+		{
+			if (context.requiredBuiltins.empty() || target.kind != Expression::Kind::Identifier)
+			{
+				return;
+			}
+
+			const auto &identifier = static_cast<const IdentifierExpression &>(target);
+			if (identifier.name.parts.size() != 1)
+			{
+				return;
+			}
+
+			const std::string &name = identifier.name.parts.front().content;
+			auto it = context.requiredBuiltins.find(name);
+			if (it != context.requiredBuiltins.end())
+			{
+				it->second = true;
+			}
+		}
 
                 void analyzeBlock(const BlockStatement &block, FunctionContext &context)
                 {
@@ -1833,17 +1904,17 @@ int componentIndex(char component)
 
                                 declareSymbol(context, declarator.name, type, !type.isConst);
 
-                                if (typeValid && declarator.initializer)
+                        if (typeValid && declarator.initializer)
+                        {
+                                TypedValue value = evaluateExpression(*declarator.initializer, context, false);
+                                if (value.type.valid() &&
+                                    !typeAssignable(stripReference(type), stripReference(value.type)))
                                 {
-                                        TypedValue value = evaluateExpression(*declarator.initializer, context, false);
-                                        if (value.type.valid() &&
-                                            !typeEquals(stripReference(type), stripReference(value.type)))
-                                        {
-                                                emitError("Cannot assign type '" + typeToString(value.type) + "' to variable '" +
-                                                          declarator.name.content + "' of type '" + typeToString(type) + "'",
-                                                    declarator.name);
-                                        }
+                                        emitError("Cannot assign type '" + typeToString(value.type) + "' to variable '" +
+                                                  declarator.name.content + "' of type '" + typeToString(type) + "'",
+                                            declarator.name);
                                 }
+                        }
                         }
                 }
 
@@ -2276,7 +2347,7 @@ int componentIndex(char component)
 				case BinaryOperator::Modulo:
 					if (!isArithmeticTypeName(leftBase.name) || !isArithmeticTypeName(rightBase.name))
 					{
-						emitError("Arithmetic operators require numeric operands", binaryToken);
+						emitError("Arithmetic operators require homogenous operands", binaryToken);
 					}
 					break;
                                 case BinaryOperator::Less:
@@ -2355,26 +2426,30 @@ int componentIndex(char component)
                                 }
                         }
 
-                        if (!handledByUserOperator &&
-                            !typeEquals(stripReference(target.type), stripReference(value.type)))
-                        {
-                                emitError("Cannot assign type '" + typeToString(value.type) + "' to target of type '" +
-                                          typeToString(target.type) + "'",
+			if (!handledByUserOperator &&
+			    !typeEquals(stripReference(target.type), stripReference(value.type)))
+			{
+				emitError("Cannot assign type '" + typeToString(value.type) + "' to target of type '" +
+				          typeToString(target.type) + "'",
                                     operatorToken);
                                 typeMismatch = true;
                         }
                         if (!handledByUserOperator && !typeMismatch && assignment.op != AssignmentOperator::Assign)
                         {
                                 TypeInfo base = stripReference(target.type);
-                                if (!isNumericType(base.name))
-                                {
-                                        emitError("Compound assignments require numeric operands", operatorToken);
-                                }
-                        }
-                        TypedValue result = handledByUserOperator ? userOperatorResult : target;
-                        result.isLValue = false;
-                        return result;
-                }
+				if (!isArithmeticTypeName(base.name))
+			{
+				emitError("Compound assignments require arithmetic operands", operatorToken);
+			}
+		}
+		if (!typeMismatch && assignment.target)
+		{
+			markStageBuiltinAssignment(context, *assignment.target);
+		}
+		TypedValue result = handledByUserOperator ? userOperatorResult : target;
+		result.isLValue = false;
+		return result;
+	}
 
                 TypedValue evaluateConditional(const ConditionalExpression &conditional, FunctionContext &context)
                 {
@@ -2459,6 +2534,23 @@ int componentIndex(char component)
 
                         emitError("No overload of '" + calleeName + "' matches provided arguments",
                             identifier.name.parts.front());
+
+                        const std::string qualifiedName = joinName(identifier.name);
+                        const auto signatures = collectFunctionSignatures(qualifiedName);
+                        if (!signatures.empty())
+                        {
+                                std::cout << "  Expected overloads:\n";
+                                for (const std::string &sig : signatures)
+                                {
+                                        std::cout << "    " << sig << '\n';
+                                }
+                        }
+                        else
+                        {
+                                std::cout << "  No overloads were defined for '" << qualifiedName << "'\n";
+                        }
+
+                        std::cout << "  Provided: " << formatArgumentTypes(arguments, context) << '\n';
                         return {};
                 }
 
@@ -2542,6 +2634,153 @@ int componentIndex(char component)
                         return resolveCall(typeName, aggregateIt->second.constructors, arguments, context, token);
                 }
 
+		bool resolveFloatBuiltinMethod(
+		    const TypedValue &object,
+		    const MemberExpression &member,
+		    const std::vector<std::unique_ptr<Expression>> &arguments,
+		    FunctionContext &context,
+		    TypedValue &result)
+		{
+			TypeInfo base = stripReference(object.type);
+			if (!isFloatTypeName(base.name))
+			{
+				return false;
+			}
+
+			std::vector<TypedValue> evaluatedArgs;
+			evaluatedArgs.reserve(arguments.size());
+			for (const std::unique_ptr<Expression> &argument : arguments)
+			{
+				if (argument)
+				{
+					evaluatedArgs.push_back(evaluateExpression(*argument, context, false));
+				}
+				else
+				{
+					evaluatedArgs.push_back({});
+				}
+			}
+
+			const std::string methodName = member.member.content;
+			const auto emitArgError = [&](const std::string &message) -> bool {
+				emitError(message, member.member);
+				result = {};
+				return true;
+			};
+
+			const auto requireArgCount = [&](std::size_t expected) -> bool {
+				if (evaluatedArgs.size() != expected)
+				{
+					return emitArgError(
+					    methodName + "() expects " + std::to_string(expected) + " argument" +
+					    (expected == 1 ? "" : "s"));
+				}
+				return true;
+			};
+
+			const auto isFloatArg = [&](std::size_t index) -> bool {
+				if (index >= evaluatedArgs.size() || !evaluatedArgs[index].type.valid())
+				{
+					return false;
+				}
+				return stripReference(evaluatedArgs[index].type).name == "float";
+			};
+
+			const auto setResult = [&]() {
+				TypeInfo returnType;
+				returnType.name = "float";
+				result.type = returnType;
+				result.isLValue = false;
+			};
+
+			if (methodName == "abs" || methodName == "sign" || methodName == "floor" || methodName == "ceil" ||
+			    methodName == "fract" || methodName == "exp" || methodName == "log" || methodName == "exp2" ||
+			    methodName == "log2" || methodName == "sqrt" || methodName == "inversesqrt" ||
+			    methodName == "sin" || methodName == "cos" || methodName == "tan" || methodName == "asin" ||
+			    methodName == "acos" || methodName == "atan")
+			{
+				if (!requireArgCount(0))
+				{
+					return true;
+				}
+
+				setResult();
+				return true;
+			}
+
+			if (methodName == "mod" || methodName == "min" || methodName == "max" || methodName == "pow")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				if (!isFloatArg(0))
+				{
+					return emitArgError(methodName + "() argument must be float");
+				}
+				setResult();
+				return true;
+			}
+
+			if (methodName == "clamp")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!isFloatArg(0) || !isFloatArg(1))
+				{
+					return emitArgError("clamp() arguments must be float");
+				}
+				setResult();
+				return true;
+			}
+
+			if (methodName == "mix")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!isFloatArg(0) || !isFloatArg(1))
+				{
+					return emitArgError("mix() arguments must be float");
+				}
+				setResult();
+				return true;
+			}
+
+			if (methodName == "step")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				if (!isFloatArg(0))
+				{
+					return emitArgError("step() argument must be float");
+				}
+				setResult();
+				return true;
+			}
+
+			if (methodName == "smoothstep")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!isFloatArg(0) || !isFloatArg(1))
+				{
+					return emitArgError("smoothstep() arguments must be float");
+				}
+				setResult();
+				return true;
+			}
+
+			return false;
+		}
+
 		bool resolveVectorBuiltinMethod(
 		    const TypedValue &object,
 		    const MemberExpression &member,
@@ -2550,7 +2789,13 @@ int componentIndex(char component)
 		    TypedValue &result)
 		{
 			TypeInfo base = stripReference(object.type);
-			const auto descriptorIt = builtinSwizzleTypes.find(base.name);
+			const std::string typeName = base.name;
+			if (!isFloatVectorTypeName(typeName) && !isColorTypeName(typeName))
+			{
+				return false;
+			}
+
+			const auto descriptorIt = builtinSwizzleTypes.find(typeName);
 			if (descriptorIt == builtinSwizzleTypes.end())
 			{
 				return false;
@@ -2593,6 +2838,26 @@ int componentIndex(char component)
 				return true;
 			};
 
+			const auto matchesBaseType = [&](std::size_t index) -> bool {
+				if (index >= evaluatedArgs.size() || !evaluatedArgs[index].type.valid())
+				{
+					return false;
+				}
+				return stripReference(evaluatedArgs[index].type).name == typeName;
+			};
+
+			const auto isFloatArg = [&](std::size_t index) -> bool {
+				if (index >= evaluatedArgs.size() || !evaluatedArgs[index].type.valid())
+				{
+					return false;
+				}
+				return stripReference(evaluatedArgs[index].type).name == "float";
+			};
+
+			TypeInfo vectorResult = base;
+			vectorResult.isReference = false;
+			vectorResult.isConst = false;
+
 			if (methodName == "dot")
 			{
 				if (!requireArgCount(1))
@@ -2600,9 +2865,9 @@ int componentIndex(char component)
 					return true;
 				}
 
-				if (!typeEquals(stripReference(evaluatedArgs[0].type), base))
+				if (!matchesBaseType(0))
 				{
-					return emitArgError("dot() argument must be of type '" + base.name + "'");
+					return emitArgError("dot() argument must be of type '" + typeName + "'");
 				}
 
 				TypeInfo returnType;
@@ -2612,11 +2877,16 @@ int componentIndex(char component)
 				return true;
 			}
 
-			if (methodName == "length")
+			if (methodName == "length" || methodName == "distance")
 			{
-				if (!requireArgCount(0))
+				if (!requireArgCount(methodName == "length" ? 0 : 1))
 				{
 					return true;
+				}
+
+				if (methodName == "distance" && !matchesBaseType(0))
+				{
+					return emitArgError("distance() argument must be of type '" + typeName + "'");
 				}
 
 				TypeInfo returnType;
@@ -2633,34 +2903,170 @@ int componentIndex(char component)
 					return true;
 				}
 
-				TypeInfo returnType = base;
-				returnType.isReference = false;
-				returnType.isConst = false;
-				result.type = returnType;
+				result.type = vectorResult;
 				result.isLValue = false;
 				return true;
 			}
 
-			if (methodName == "distance")
+			if (methodName == "cross")
+			{
+				if (typeName != "Vector3")
+				{
+					return false;
+				}
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0))
+				{
+					return emitArgError("cross() argument must be of type 'Vector3'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "reflect")
 			{
 				if (!requireArgCount(1))
 				{
 					return true;
 				}
-
-				if (!typeEquals(stripReference(evaluatedArgs[0].type), base))
+				if (!matchesBaseType(0))
 				{
-					return emitArgError("distance() argument must be of type '" + base.name + "'");
+					return emitArgError("reflect() argument must be of type '" + typeName + "'");
 				}
 
-				TypeInfo returnType;
-				returnType.name = "float";
-				result.type = returnType;
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "abs" || methodName == "floor" || methodName == "ceil" || methodName == "fract" ||
+			    methodName == "exp" || methodName == "log" || methodName == "exp2" || methodName == "log2" ||
+			    methodName == "sqrt" || methodName == "inversesqrt" || methodName == "sin" || methodName == "cos" ||
+			    methodName == "tan" || methodName == "asin" || methodName == "acos" || methodName == "atan")
+			{
+				if (!requireArgCount(0))
+				{
+					return true;
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "mod" || methodName == "min" || methodName == "max" || methodName == "pow")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0))
+				{
+					return emitArgError(methodName + "() argument must be of type '" + typeName + "'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "clamp")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0) || !matchesBaseType(1))
+				{
+					return emitArgError("clamp() arguments must be of type '" + typeName + "'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "lerp")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0) || !isFloatArg(1))
+				{
+					return emitArgError("lerp() arguments must be '" + typeName + "' and 'float'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "step")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0))
+				{
+					return emitArgError("step() argument must be of type '" + typeName + "'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "smoothstep")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				if (!matchesBaseType(0) || !matchesBaseType(1))
+				{
+					return emitArgError("smoothstep() arguments must be of type '" + typeName + "'");
+				}
+
+				result.type = vectorResult;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (methodName == "saturate" && isColorTypeName(typeName))
+			{
+				if (!requireArgCount(0))
+				{
+					return true;
+				}
+
+				result.type = vectorResult;
 				result.isLValue = false;
 				return true;
 			}
 
 			return false;
+		}
+
+		bool resolveBuiltinMethod(
+		    const TypedValue &object,
+		    const MemberExpression &member,
+		    const std::vector<std::unique_ptr<Expression>> &arguments,
+		    FunctionContext &context,
+		    TypedValue &result)
+		{
+			const std::string typeName = stripReference(object.type).name;
+			if (isFloatTypeName(typeName))
+			{
+				return resolveFloatBuiltinMethod(object, member, arguments, context, result);
+			}
+			return resolveVectorBuiltinMethod(object, member, arguments, context, result);
 		}
 
 		TypedValue evaluateMemberCall(const MemberExpression &member,
@@ -2676,7 +3082,7 @@ int componentIndex(char component)
 		if (aggregateIt == state.aggregates.end())
 		{
 			TypedValue builtinResult;
-			if (resolveVectorBuiltinMethod(object, member, arguments, context, builtinResult))
+			if (resolveBuiltinMethod(object, member, arguments, context, builtinResult))
 			{
 				return builtinResult;
 			}
@@ -2756,13 +3162,65 @@ int componentIndex(char component)
                                 }
                         }
 
-                        if (!match)
-                        {
-                                emitError("No overload of '" + name + "' matches provided arguments", token);
-                                return {};
-                        }
+		if (!match)
+		{
+			 std::ostringstream provided;
+			 provided << "(";
+			 for (std::size_t i = 0; i < argumentTypes.size(); ++i)
+			 {
+				 if (i > 0)
+				 {
+					 provided << ", ";
+				 }
+				 if (argumentTypes[i].type.valid())
+				 {
+					 provided << typeToString(stripReference(argumentTypes[i].type));
+				 }
+				 else
+				 {
+					 provided << "?";
+				 }
+			 }
+			 provided << ")";
 
-                        TypedValue result;
+			 std::vector<std::string> candidates;
+			 candidates.reserve(overloads.size());
+			 for (const FunctionSignature &signature : overloads)
+			 {
+				 std::ostringstream candidate;
+				 candidate << "(";
+				 for (std::size_t i = 0; i < signature.parameters.size(); ++i)
+				 {
+					 if (i > 0)
+					 {
+						 candidate << ", ";
+					 }
+					 candidate << typeToString(signature.parameters[i]);
+				 }
+				 candidate << ")";
+				 candidates.push_back(candidate.str());
+			 }
+
+			 emitError("No overload of '" + name + "' matches provided arguments", token);
+
+			 if (!candidates.empty())
+			 {
+				 std::cout << "  Expected overloads:\n";
+				 for (const std::string &candidate : candidates)
+				 {
+					 std::cout << "    " << candidate << '\n';
+				 }
+			 }
+			 else
+			 {
+				 std::cout << "  No overloads were defined for '" << name << "'\n";
+			 }
+
+			 std::cout << "  Provided: " << provided.str() << '\n';
+			 return {};
+		}
+
+		TypedValue result;
                         result.type = match->returnType;
                         result.isLValue = match->returnsReference;
                         return result;
@@ -2815,6 +3273,7 @@ int componentIndex(char component)
                         return value;
                 }
 
+
                 TypedValue evaluateIndex(const IndexExpression &index, FunctionContext &context)
                 {
                         TypedValue object = evaluateExpression(*index.object, context, false);
@@ -2840,7 +3299,94 @@ int componentIndex(char component)
                         }
                         return operand;
                 }
+
         };
+
+std::vector<std::string> Analyzer::collectFunctionSignatures(const std::string &qualifiedName) const
+{
+	std::vector<std::string> signatures;
+	const auto appendSignatures = [&](const std::string &qualified, const std::vector<FunctionSignature> &overloads) {
+		for (const FunctionSignature &signature : overloads)
+		{
+			std::ostringstream oss;
+			oss << qualified << "(";
+			for (std::size_t i = 0; i < signature.parameters.size(); ++i)
+			{
+				if (i > 0)
+				{
+					oss << ", ";
+				}
+				oss << typeToString(signature.parameters[i]);
+			}
+			oss << ")";
+			signatures.push_back(oss.str());
+		}
+	};
+
+	if (auto it = state.functions.find(qualifiedName); it != state.functions.end())
+	{
+		appendSignatures(qualifiedName, it->second);
+	}
+
+	if (!signatures.empty())
+	{
+		return signatures;
+	}
+
+	const std::size_t lastSeparator = qualifiedName.rfind("::");
+	const std::string_view simple = (lastSeparator == std::string::npos) ?
+	    std::string_view(qualifiedName) : std::string_view(qualifiedName).substr(lastSeparator + 2);
+
+	for (const auto &[qualified, overloads] : state.functions)
+	{
+		if (overloads.empty())
+		{
+			continue;
+		}
+
+		std::string_view base = qualified;
+		const std::size_t sep = qualified.rfind("::");
+		if (sep != std::string::npos)
+		{
+			base.remove_prefix(sep + 2);
+		}
+
+		if (base != simple)
+		{
+			continue;
+		}
+
+		appendSignatures(qualified, overloads);
+	}
+
+	return signatures;
+}
+
+std::string Analyzer::formatArgumentTypes(const std::vector<std::unique_ptr<Expression>> &arguments,
+    Analyzer::FunctionContext &context)
+{
+        std::ostringstream oss;
+        oss << "(";
+        for (std::size_t i = 0; i < arguments.size(); ++i)
+        {
+                if (i > 0)
+                {
+                        oss << ", ";
+                }
+                if (arguments[i])
+                {
+                        TypedValue value = evaluateExpression(*arguments[i], context, false);
+                        if (value.type.valid())
+                        {
+                                oss << typeToString(stripReference(value.type));
+                                continue;
+                        }
+                }
+                oss << "?";
+        }
+        oss << ")";
+        return oss.str();
+}
 }
 
 SemanticParser::SemanticParser() = default;

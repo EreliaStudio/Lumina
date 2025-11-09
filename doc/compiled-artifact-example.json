@@ -1,0 +1,328 @@
+{
+  "shader": {
+    "sources": {
+      "vertex": "// vertex shader\nlayout(location = 0) in vec3 inPosition;\nlayout(location = 1) in vec3 inNormal;\nlayout(location = 2) in vec2 inUV;\nout VS_OUT {\n    vec3 normal;\n    vec2 uv;\n} vs_out;\nuniform mat4 uViewProj;\nvoid main() {\n    vs_out.normal = inNormal;\n    vs_out.uv = inUV;\n    gl_Position = uViewProj * vec4(inPosition, 1.0);\n}",
+      "fragment": "// fragment shader\nin VS_OUT {\n    vec3 normal;\n    vec2 uv;\n} fs_in;\nout vec4 outColor;\nuniform sampler2D _tx0;\nuniform sampler2D _tx1;\nvoid main() {\n    vec3 base = texture(_tx0, fs_in.uv).rgb;\n    vec3 emissive = texture(_tx1, fs_in.uv).rgb;\n    vec3 lighting = normalize(fs_in.normal) * base + emissive;\n    outColor = vec4(lighting, 1.0);\n}"
+    }
+  },
+  "layouts": [
+    {
+      "location": 0,
+      "type": "vec3",
+      "name": "inPosition"
+    },
+    {
+      "location": 1,
+      "type": "vec3",
+      "name": "inNormal"
+    },
+    {
+      "location": 2,
+      "type": "vec2",
+      "name": "inUV"
+    },
+    {
+      "location": 3,
+      "type": "mat4",
+      "name": "inInstanceTransform"
+    }
+  ],
+  "framebuffers": [
+    {
+      "location": 0,
+      "type": "vec4",
+      "name": "outColor"
+    },
+    {
+      "location": 1,
+      "type": "float",
+      "name": "outDepth"
+    }
+  ],
+  "textures": [
+    {
+      "luminaName": "baseColorTexture",
+      "glslName": "_tx0",
+      "type": "sampler2D"
+    },
+    {
+      "luminaName": "emissiveTexture",
+      "glslName": "_tx1",
+      "type": "sampler2D"
+    }
+  ],
+  "constants": [
+    {
+      "name": "CameraData",
+      "type": "UBO",
+      "size": 192,
+      "members": [
+        {
+          "name": "viewProj",
+          "offset": 0,
+          "size": 64,
+          "type": "Element"
+        },
+        {
+          "name": "view",
+          "offset": 64,
+          "size": 64,
+          "type": "Element"
+        },
+        {
+          "name": "camera",
+          "offset": 128,
+          "size": 64,
+          "members": [
+            {
+              "name": "position",
+              "offset": 0,
+              "size": 16,
+              "type": "Element"
+            },
+            {
+              "name": "direction",
+              "offset": 16,
+              "size": 16,
+              "type": "Element"
+            },
+            {
+              "name": "clipPlanes",
+              "offset": 32,
+              "size": 32,
+              "members": [
+                {
+                  "name": "nearPlane",
+                  "offset": 0,
+                  "size": 4,
+                  "type": "Element"
+                },
+                {
+                  "name": "farPlane",
+                  "offset": 4,
+                  "size": 4,
+                  "type": "Element"
+                }
+              ],
+              "type": "Element"
+            }
+          ],
+          "type": "Element"
+        }
+      ]
+    },
+    {
+      "name": "LightingData",
+      "type": "UBO",
+      "size": 160,
+      "members": [
+        {
+          "name": "ambientColor",
+          "offset": 0,
+          "size": 16,
+          "type": "Element"
+        },
+        {
+          "name": "sun",
+          "offset": 16,
+          "size": 48,
+          "members": [
+            {
+              "name": "direction",
+              "offset": 0,
+              "size": 16,
+              "type": "Element"
+            },
+            {
+              "name": "color",
+              "offset": 16,
+              "size": 16,
+              "type": "Element"
+            },
+            {
+              "name": "intensity",
+              "offset": 32,
+              "size": 16,
+              "type": "Element"
+            }
+          ],
+          "type": "Element"
+        },
+        {
+          "name": "clusterGrid",
+          "offset": 64,
+          "size": 96,
+          "members": [
+            {
+              "name": "gridSize",
+              "offset": 0,
+              "size": 12,
+              "type": "Element"
+            },
+            {
+              "name": "pad",
+              "offset": 12,
+              "size": 4,
+              "type": "Element"
+            },
+            {
+              "name": "cells",
+              "offset": 16,
+              "size": 80,
+              "members": [
+                {
+                  "name": "count",
+                  "offset": 0,
+                  "size": 4,
+                  "type": "Element"
+                },
+                {
+                  "name": "bounds",
+                  "offset": 16,
+                  "size": 64,
+                  "members": [
+                    {
+                      "name": "min",
+                      "offset": 0,
+                      "size": 16,
+                      "type": "Element"
+                    },
+                    {
+                      "name": "max",
+                      "offset": 16,
+                      "size": 16,
+                      "type": "Element"
+                    }
+                  ],
+                  "type": "Element"
+                }
+              ],
+              "type": "Element"
+            }
+          ],
+          "type": "Element"
+        }
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "name": "MeshAttributes",
+      "type": "UBO",
+      "size": 160,
+      "members": [
+        {
+          "name": "modelMatrix",
+          "offset": 0,
+          "size": 64,
+          "type": "Element"
+        },
+        {
+          "name": "normalMatrix",
+          "offset": 64,
+          "size": 64,
+          "type": "Element"
+        },
+        {
+          "name": "material",
+          "offset": 128,
+          "size": 32,
+          "members": [
+            {
+              "name": "roughness",
+              "offset": 0,
+              "size": 4,
+              "type": "Element"
+            },
+            {
+              "name": "metalness",
+              "offset": 4,
+              "size": 4,
+              "type": "Element"
+            },
+            {
+              "name": "emissiveStrength",
+              "offset": 8,
+              "size": 4,
+              "type": "Element"
+            }
+          ],
+          "type": "Element"
+        }
+      ]
+    },
+    {
+      "name": "VisibleLights",
+      "type": "SSBO",
+      "size": 128,
+      "members": [
+        {
+          "name": "header",
+          "offset": 0,
+          "size": 32,
+          "members": [
+            {
+              "name": "count",
+              "offset": 0,
+              "size": 4,
+              "type": "Element"
+            },
+            {
+              "name": "maxCount",
+              "offset": 4,
+              "size": 4,
+              "type": "Element"
+            }
+          ],
+          "type": "Element"
+        },
+        {
+          "name": "padding",
+          "offset": 32,
+          "size": 96,
+          "type": "Element"
+        }
+      ],
+      "dynamicArrayLayout": {
+        "name": "lights",
+        "offset": 128,
+        "elementStride": 48,
+        "elementPadding": 0,
+        "members": [
+          {
+            "name": "position",
+            "offset": 0,
+            "size": 16,
+            "type": "Element"
+          },
+          {
+            "name": "color",
+            "offset": 16,
+            "size": 16,
+            "type": "Element"
+          },
+          {
+            "name": "falloff",
+            "offset": 32,
+            "size": 16,
+            "members": [
+              {
+                "name": "radius",
+                "offset": 0,
+                "size": 4,
+                "type": "Element"
+              },
+              {
+                "name": "cutoff",
+                "offset": 4,
+                "size": 4,
+                "type": "Element"
+              }
+            ],
+            "type": "Element"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 #include "ast.hpp"
 
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -78,9 +79,19 @@ std::string convertLuminaType(const std::string &typeName)
 	return sanitizeIdentifier(typeName);
 }
 
+bool isFloatTypeName(const std::string &typeName)
+{
+	return typeName == "float";
+}
+
 bool isFloatVectorTypeName(const std::string &typeName)
 {
 	return typeName == "Vector2" || typeName == "Vector3" || typeName == "Vector4" || typeName == "Color";
+}
+
+bool isColorTypeName(const std::string &typeName)
+{
+	return typeName == "Color";
 }
 
 	std::string binaryOperatorSymbol(BinaryOperator op)
@@ -210,6 +221,11 @@ private:
 	std::string emitAssignment(const AssignmentExpression &assignment) const;
 	std::string emitConditional(const ConditionalExpression &conditional) const;
 	std::string emitCall(const CallExpression &call) const;
+	std::optional<std::string> emitBuiltinMemberCall(const MemberExpression &member, const CallExpression &call) const;
+	std::optional<std::string> emitFloatBuiltinCall(
+	    const std::string &method, const std::string &objectExpr, const std::vector<std::string> &arguments) const;
+	std::optional<std::string> emitVectorBuiltinCall(const std::string &typeName,
+	    const std::string &method, const std::string &objectExpr, const std::vector<std::string> &arguments) const;
 	std::string emitMember(const MemberExpression &member) const;
 	std::string emitIndex(const IndexExpression &index) const;
 	std::string emitPostfix(const PostfixExpression &postfix) const;
@@ -850,25 +866,9 @@ std::string ConverterImpl::emitCall(const CallExpression &call) const
 			return "texture(" + emitExpression(*member->object) + ", " + emitExpression(*call.arguments.front()) + ")";
 		}
 
-		if (isFloatVectorTypeName(objectType))
+		if (std::optional<std::string> builtin = emitBuiltinMemberCall(*member, call))
 		{
-			const std::string objectExpr = emitExpression(*member->object);
-			if (method == "dot" && call.arguments.size() == 1)
-			{
-				return "dot(" + objectExpr + ", " + emitExpression(*call.arguments.front()) + ")";
-			}
-			if (method == "length" && call.arguments.empty())
-			{
-				return "length(" + objectExpr + ")";
-			}
-			if (method == "normalize" && call.arguments.empty())
-			{
-				return "normalize(" + objectExpr + ")";
-			}
-			if (method == "distance" && call.arguments.size() == 1)
-			{
-				return "distance(" + objectExpr + ", " + emitExpression(*call.arguments.front()) + ")";
-			}
+			return *builtin;
 		}
 	}
 
@@ -911,6 +911,160 @@ std::string ConverterImpl::emitCall(const CallExpression &call) const
 	}
 
 	return {};
+}
+
+std::optional<std::string> ConverterImpl::emitBuiltinMemberCall(
+    const MemberExpression &member, const CallExpression &call) const
+{
+	const std::string method = safeTokenContent(member.member);
+	auto infoIt = expressionInfo.find(member.object.get());
+	if (infoIt == expressionInfo.end())
+	{
+		return std::nullopt;
+	}
+
+	const std::string objectType = infoIt->second.typeName;
+	const std::string objectExpr = emitExpression(*member.object);
+	std::vector<std::string> arguments;
+	arguments.reserve(call.arguments.size());
+	for (const std::unique_ptr<Expression> &argument : call.arguments)
+	{
+		if (argument)
+		{
+			arguments.push_back(emitExpression(*argument));
+		}
+		else
+		{
+			arguments.emplace_back();
+		}
+	}
+
+	if (isFloatTypeName(objectType))
+	{
+		return emitFloatBuiltinCall(method, objectExpr, arguments);
+	}
+
+	if (isFloatVectorTypeName(objectType))
+	{
+		return emitVectorBuiltinCall(objectType, method, objectExpr, arguments);
+	}
+
+	return std::nullopt;
+}
+
+std::optional<std::string> ConverterImpl::emitFloatBuiltinCall(
+    const std::string &method, const std::string &objectExpr, const std::vector<std::string> &arguments) const
+{
+	const auto hasArgs = [&](std::size_t expected) { return arguments.size() == expected; };
+
+	auto wrap = [&](const std::string &name) { return name + "(" + objectExpr + ")"; };
+
+	if (method == "abs" || method == "sign" || method == "floor" || method == "ceil" || method == "fract" ||
+	    method == "exp" || method == "log" || method == "exp2" || method == "log2" || method == "sqrt" ||
+	    method == "inversesqrt" || method == "sin" || method == "cos" || method == "tan" || method == "asin" ||
+	    method == "acos" || method == "atan")
+	{
+		if (hasArgs(0))
+		{
+			return wrap(method);
+		}
+		return std::nullopt;
+	}
+
+	if ((method == "mod" || method == "min" || method == "max" || method == "pow") && hasArgs(1))
+	{
+		return method + "(" + objectExpr + ", " + arguments[0] + ")";
+	}
+
+	if (method == "clamp" && hasArgs(2))
+	{
+		return "clamp(" + objectExpr + ", " + arguments[0] + ", " + arguments[1] + ")";
+	}
+
+	if (method == "mix" && hasArgs(2))
+	{
+		return "mix(" + objectExpr + ", " + arguments[0] + ", " + arguments[1] + ")";
+	}
+
+	if (method == "step" && hasArgs(1))
+	{
+		return "step(" + arguments[0] + ", " + objectExpr + ")";
+	}
+
+	if (method == "smoothstep" && hasArgs(2))
+	{
+		return "smoothstep(" + arguments[0] + ", " + arguments[1] + ", " + objectExpr + ")";
+	}
+
+	return std::nullopt;
+}
+
+std::optional<std::string> ConverterImpl::emitVectorBuiltinCall(
+    const std::string &typeName,
+    const std::string &method,
+    const std::string &objectExpr,
+    const std::vector<std::string> &arguments) const
+{
+	const auto hasArgs = [&](std::size_t expected) { return arguments.size() == expected; };
+
+	if (method == "dot" && hasArgs(1))
+	{
+		return "dot(" + objectExpr + ", " + arguments[0] + ")";
+	}
+	if (method == "length" && hasArgs(0))
+	{
+		return "length(" + objectExpr + ")";
+	}
+	if (method == "distance" && hasArgs(1))
+	{
+		return "distance(" + objectExpr + ", " + arguments[0] + ")";
+	}
+	if (method == "normalize" && hasArgs(0))
+	{
+		return "normalize(" + objectExpr + ")";
+	}
+	if (method == "cross" && typeName == "Vector3" && hasArgs(1))
+	{
+		return "cross(" + objectExpr + ", " + arguments[0] + ")";
+	}
+	if (method == "reflect" && hasArgs(1))
+	{
+		return "reflect(" + objectExpr + ", " + arguments[0] + ")";
+	}
+	if ((method == "abs" || method == "floor" || method == "ceil" || method == "fract" || method == "exp" ||
+	        method == "log" || method == "exp2" || method == "log2" || method == "sqrt" || method == "inversesqrt" ||
+	        method == "sin" || method == "cos" || method == "tan" || method == "asin" || method == "acos" ||
+	        method == "atan") &&
+	    hasArgs(0))
+	{
+		return method + "(" + objectExpr + ")";
+	}
+	if ((method == "mod" || method == "min" || method == "max" || method == "pow") && hasArgs(1))
+	{
+		return method + "(" + objectExpr + ", " + arguments[0] + ")";
+	}
+	if (method == "clamp" && hasArgs(2))
+	{
+		return "clamp(" + objectExpr + ", " + arguments[0] + ", " + arguments[1] + ")";
+	}
+	if (method == "lerp" && hasArgs(2))
+	{
+		return "mix(" + objectExpr + ", " + arguments[0] + ", " + arguments[1] + ")";
+	}
+	if (method == "step" && hasArgs(1))
+	{
+		return "step(" + arguments[0] + ", " + objectExpr + ")";
+	}
+	if (method == "smoothstep" && hasArgs(2))
+	{
+		return "smoothstep(" + arguments[0] + ", " + arguments[1] + ", " + objectExpr + ")";
+	}
+	if (method == "saturate" && isColorTypeName(typeName) && hasArgs(0))
+	{
+		return "clamp(" + objectExpr + ", 0.0, 1.0)";
+	}
+
+	return std::nullopt;
 }
 
 std::string ConverterImpl::emitMember(const MemberExpression &member) const

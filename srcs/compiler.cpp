@@ -624,7 +624,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 		{
 			BlockDefinition block;
 			block.name = qualify(aggregate.name);
-			block.type = "UBO";
+			block.type = aggregateHasUnsizedArray(aggregate) ? "SSBO" : "UBO";
 			block.size = 0;
 
 			std::vector<std::string> recursion;
@@ -788,6 +788,8 @@ void writeIndent(std::ostringstream &oss, int indent)
 		    const AggregateInstruction &aggregate,
 		    MemoryLayout layout,
 		    std::vector<std::string> &recursion) const;
+
+		bool aggregateHasUnsizedArray(const AggregateInstruction &aggregate) const;
 	};
 
 	FieldLayoutInfo CompilerContext::layoutField(
@@ -905,11 +907,11 @@ void writeIndent(std::ostringstream &oss, int indent)
 		return info;
 	}
 
-	TypeLayoutInfo CompilerContext::layoutAggregateType(
-	    const AggregateInstruction &aggregate,
-	    MemoryLayout layout,
-	    std::vector<std::string> &recursion) const
-	{
+TypeLayoutInfo CompilerContext::layoutAggregateType(
+    const AggregateInstruction &aggregate,
+    MemoryLayout layout,
+    std::vector<std::string> &recursion) const
+{
 		TypeLayoutInfo info;
 		int currentOffset = 0;
 		int maxAlign = 1;
@@ -940,10 +942,32 @@ void writeIndent(std::ostringstream &oss, int indent)
 			structAlignment = roundUp(structAlignment, 16);
 		}
 
-		info.size = roundUp(currentOffset, structAlignment);
-		info.alignment = structAlignment;
-		return info;
+	info.size = roundUp(currentOffset, structAlignment);
+	info.alignment = structAlignment;
+	return info;
+}
+
+bool CompilerContext::aggregateHasUnsizedArray(const AggregateInstruction &aggregate) const
+{
+	for (const std::unique_ptr<StructMember> &member : aggregate.members)
+	{
+		if (!member || member->kind != StructMember::Kind::Field)
+		{
+			continue;
+		}
+
+		const auto &field = static_cast<const FieldMember &>(*member);
+		for (const VariableDeclarator &declarator : field.declaration.declarators)
+		{
+			if (declarator.hasArraySuffix && !declarator.hasArraySize)
+			{
+				return true;
+			}
+		}
 	}
+
+	return false;
+}
 
 std::string emitJson(const CompilerContext &context)
 {
@@ -1208,44 +1232,12 @@ std::string Compiler::operator()(const SemanticParseResult &result) const
 	context.collectStructs(result.instructions);
 	context.namespaceStack.clear();
 	context.process(result.instructions);
-	bool hasPixelColor = std::any_of(
-	    context.framebuffers.begin(),
-	    context.framebuffers.end(),
-	    [](const StageIO &entry)
-	    {
-		    return entry.name == "pixelColor";
-	    });
-
+	// Reassign locations to keep them sequential starting at zero.
+	for (std::size_t i = 0; i < context.framebuffers.size(); ++i)
 	{
-		auto it = std::find_if(
-		    context.framebuffers.begin(),
-		    context.framebuffers.end(),
-		    [](const StageIO &entry)
-		    {
-			    return entry.name == "pixelColor";
-		    });
-
-		if (it != context.framebuffers.end())
-		{
-			std::swap(*context.framebuffers.begin(), *it);
-		}
-		else
-		{
-			FramebufferEntry pixel;
-			pixel.location = 0;
-			pixel.type = "Vector4";
-			pixel.name = "pixelColor";
-			context.framebuffers.insert(context.framebuffers.begin(), pixel);
-			hasPixelColor = true;
-		}
-
-		// Reassign locations to keep them sequential starting at zero.
-		for (std::size_t i = 0; i < context.framebuffers.size(); ++i)
-		{
-			context.framebuffers[i].location = static_cast<int>(i);
-		}
-		context.nextFramebufferLocation = static_cast<int>(context.framebuffers.size());
+		context.framebuffers[i].location = static_cast<int>(i);
 	}
+	context.nextFramebufferLocation = static_cast<int>(context.framebuffers.size());
 
 	ConverterInput converterInput{
 	    .semantic = result,
@@ -1253,7 +1245,6 @@ std::string Compiler::operator()(const SemanticParseResult &result) const
 	    .stageVaryings = context.varyings,
 	    .fragmentOutputs = context.framebuffers,
 	    .textures = context.textures,
-	    .hasPixelColor = hasPixelColor,
 	};
 
 	Converter converter;

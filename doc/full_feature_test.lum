@@ -1,0 +1,251 @@
+/*
+    Full feature coverage example for Lumina.
+*/
+
+// Stage interface declarations.
+Input -> VertexPass: Vector3 inPosition;
+Input -> VertexPass: Vector3 inNormal;
+Input -> VertexPass: Vector2 inUV;
+Input -> VertexPass: Color inVertexColor;
+VertexPass -> FragmentPass: Vector3 worldPosition;
+VertexPass -> FragmentPass: Vector3 worldNormal;
+VertexPass -> FragmentPass: Vector2 fragUV;
+VertexPass -> FragmentPass: Color vertexColor;
+VertexPass -> FragmentPass: float viewDistance;
+FragmentPass -> Output: Vector4 pixelColor;
+FragmentPass -> Output: Vector4 bloomColor;
+
+struct Material
+{
+    Color albedo;
+    float roughness;
+    float metallic;
+
+    Material()
+    {
+        albedo = Color(1.0, 1.0, 1.0, 1.0);
+        roughness = 0.5;
+        metallic = 0.0;
+    }
+
+    Material(Color base, float surfaceRoughness, float surfaceMetallic)
+    {
+        albedo = base;
+        roughness = surfaceRoughness.clamp(0.0, 1.0);
+        metallic = surfaceMetallic.clamp(0.0, 1.0);
+    }
+
+    void applyTint(Color tint)
+    {
+        this.albedo *= tint;
+        this.albedo = this.albedo.saturate();
+    }
+
+    Material operator+(Material rhs)
+    {
+        Material merged;
+        merged.albedo = (albedo + rhs.albedo) * 0.5;
+        merged.roughness = roughness.min(rhs.roughness);
+        merged.metallic = metallic.max(rhs.metallic);
+        return merged;
+    }
+};
+
+struct SkyGradient
+{
+    Color horizon;
+    Color zenith;
+    float intensity;
+
+    SkyGradient()
+    {
+        horizon = Color(0.25, 0.35, 0.55, 1.0);
+        zenith = Color(0.7, 0.85, 1.0, 1.0);
+        intensity = 1.0;
+    }
+
+    Color sample(float t)
+    {
+        float factor = t.clamp(0.0, 1.0);
+        Color blended = horizon.lerp(zenith, factor);
+        return blended * intensity;
+    }
+};
+
+AttributeBlock ModelData
+{
+    Matrix4x4 modelMatrix;
+    Matrix4x4 viewProjection;
+    Matrix3x3 normalMatrix;
+    Vector4 uvTransform;
+    Vector2 surfaceParams;
+
+    Vector2 transformUV(Vector2 uv)
+    {
+        return (uv * uvTransform.xy) + uvTransform.zw;
+    }
+
+    Vector4 toWorld4(Vector3 localPosition)
+    {
+        return modelMatrix * Vector4(localPosition, 1.0);
+    }
+
+    Vector3 toWorld(Vector3 localPosition)
+    {
+        return toWorld4(localPosition).xyz;
+    }
+
+    Vector3 toWorldNormal(Vector3 localNormal)
+    {
+        return (normalMatrix * localNormal).normalize();
+    }
+};
+
+ConstantBlock SceneData
+{
+    Vector3 lightPosition;
+    Color lightColor;
+    Vector3 cameraPosition;
+    float ambientIntensity;
+    Color fogColor;
+    float exposure;
+    SkyGradient skyGradient;
+
+    Vector3 viewDirection(Vector3 worldPos)
+    {
+        return (cameraPosition - worldPos).normalize();
+    }
+};
+
+Texture albedoTexture;
+Texture normalTexture;
+Texture emissiveTexture;
+
+const float INV_PI = 0.318309886;
+
+namespace Lighting
+{
+    namespace BRDF
+    {
+        float distributionGGX(float NdotH, float roughness)
+        {
+            float alpha = roughness * roughness;
+            float alpha2 = alpha * alpha;
+            float denom = (NdotH * NdotH) * (alpha2 - 1.0) + 1.0;
+            float denomSquared = denom * denom;
+            return alpha2 / denomSquared.max(0.0001);
+        }
+
+        float geometrySmith(float NdotV, float NdotL, float roughness)
+        {
+            float r = roughness + 1.0;
+            float k = (r * r) / 8.0;
+            float gV = NdotV / (NdotV * (1.0 - k) + k);
+            float gL = NdotL / (NdotL * (1.0 - k) + k);
+            return gV * gL;
+        }
+
+        Vector3 fresnelSchlick(float cosTheta, Vector3 F0)
+        {
+            Vector3 oneVec = Vector3(1.0, 1.0, 1.0);
+            float invAngle = 1.0 - cosTheta;
+            float fresnelFactor = invAngle.pow(5.0);
+            return F0 + (oneVec - F0) * fresnelFactor;
+        }
+    }
+
+    Color applyBRDF(Material material, Vector3 normal, Vector3 viewDir, Vector3 lightDir, Color lightColor)
+    {
+        Vector3 N = normal.normalize();
+        Vector3 V = viewDir.normalize();
+        Vector3 L = lightDir.normalize();
+        Vector3 H = (V + L).normalize();
+
+        float NdotL = N.dot(L).max(0.0);
+        float NdotV = N.dot(V).max(0.0);
+        float NdotH = N.dot(H).max(0.0);
+        float VdotH = V.dot(H).max(0.0);
+
+        Vector3 baseColor = Vector3(material.albedo.r, material.albedo.g, material.albedo.b);
+        Vector3 oneVec = Vector3(1.0, 1.0, 1.0);
+        Vector3 F0 = Vector3(0.04, 0.04, 0.04).lerp(baseColor, material.metallic);
+
+        float D = BRDF::distributionGGX(NdotH, material.roughness);
+        float G = BRDF::geometrySmith(NdotV, NdotL, material.roughness);
+        Vector3 F = BRDF::fresnelSchlick(VdotH, F0);
+
+        Vector3 numerator = D * G * F;
+        float denom = (4.0 * NdotV * NdotL).max(0.0001);
+        Vector3 specular = numerator / denom;
+
+        Vector3 kS = F;
+        Vector3 kD = (oneVec - kS) * (1.0 - material.metallic);
+        Vector3 diffuse = baseColor * kD * INV_PI;
+
+        Vector3 lightRGB = Vector3(lightColor.r, lightColor.g, lightColor.b);
+        Vector3 radiance = (diffuse + specular) * lightRGB * NdotL;
+        float alpha = material.albedo.a * lightColor.a;
+
+        return Color(radiance.x, radiance.y, radiance.z, alpha).saturate();
+    }
+}
+
+float computeAttenuation(float distanceValue)
+{
+    return 1.0 / (1.0 + distanceValue + distanceValue * distanceValue);
+}
+
+Color applyFog(Color color, float distanceValue)
+{
+    float exposure = SceneData.exposure.max(0.0001);
+    float fogFactor = distanceValue.smoothstep(0.0, exposure);
+    Color skyTint = SceneData.skyGradient.sample(distanceValue * 0.01);
+    Color fogMix = SceneData.fogColor.lerp(skyTint, fogFactor);
+    return color.lerp(fogMix, fogFactor);
+}
+
+VertexPass()
+{
+    Vector4 worldPosition4 = ModelData.toWorld4(inPosition);
+    worldPosition = worldPosition4.xyz;
+
+    worldNormal = ModelData.toWorldNormal(inNormal);
+    fragUV = ModelData.transformUV(inUV);
+    vertexColor = inVertexColor;
+    viewDistance = (SceneData.cameraPosition - worldPosition).length();
+
+    pixelPosition = ModelData.viewProjection * worldPosition4;
+}
+
+FragmentPass()
+{
+    float ambientIntensity = SceneData.ambientIntensity.clamp(0.0, 1.0);
+
+    Color albedo = albedoTexture.getPixel(fragUV);
+    Color emission = emissiveTexture.getPixel(fragUV);
+    Color normalSample = normalTexture.getPixel(fragUV);
+
+    if (albedo.a <= 0.001)
+    {
+        discard;
+    }
+
+    Vector3 sampledNormal = Vector3(normalSample.r * 2.0 - 1.0, normalSample.g * 2.0 - 1.0, normalSample.b * 2.0 - 1.0);
+    Vector3 blendedNormal = worldNormal.lerp(sampledNormal, 0.35).normalize();
+
+    Material baseMaterial = Material(albedo, ModelData.surfaceParams.x, ModelData.surfaceParams.y);
+    baseMaterial.applyTint(vertexColor);
+
+    Vector3 viewDir = SceneData.viewDirection(worldPosition);
+    Vector3 lightDir = SceneData.lightPosition - worldPosition;
+
+    Color lighting = Lighting::applyBRDF(baseMaterial, blendedNormal, viewDir, lightDir, SceneData.lightColor);
+    Color ambient = SceneData.lightColor * ambientIntensity;
+    Color litColor = (lighting + ambient).saturate();
+
+    float attenuation = computeAttenuation(viewDistance);
+    Color shaded = applyFog(litColor * attenuation + emission, viewDistance);
+
+    pixelColor = Vector4(shaded.r, shaded.g, shaded.b, shaded.a);
+    bloomColor = Vector4(emission.r, emission.g, emission.b, 1.0);
+}
