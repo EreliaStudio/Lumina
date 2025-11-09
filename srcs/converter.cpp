@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -62,6 +63,8 @@ namespace
 		return base + suffix;
 	}
 
+	constexpr const char kMethodSelfName[] = "_self";
+
 std::string convertLuminaType(const std::string &typeName)
 {
 	static const std::unordered_map<std::string, std::string> mapping = {
@@ -76,7 +79,7 @@ std::string convertLuminaType(const std::string &typeName)
 	{
 		return it->second;
 	}
-	return sanitizeIdentifier(typeName);
+	return typeName;
 }
 
 bool isFloatTypeName(const std::string &typeName)
@@ -177,17 +180,31 @@ public:
 	ShaderSources run();
 
 private:
+	struct MethodHelper
+	{
+		std::string helperName;
+		const MethodMember *node = nullptr;
+		bool isConst = false;
+	};
+
 	struct AggregateInfo
 	{
 		std::string qualifiedName;
 		const AggregateInstruction *node = nullptr;
+		AggregateInstruction::Kind kind = AggregateInstruction::Kind::Struct;
 		bool isSSBO = false;
+		std::string glslTypeName;
+		std::string glslInstanceName;
+		std::vector<std::string> namespacePath;
+		std::unordered_set<std::string> fieldNames;
+		std::vector<MethodHelper> methods;
 	};
 
 	void collect(const std::vector<std::unique_ptr<Instruction>> &instructions);
 	void collectNamespace(const NamespaceInstruction &ns);
 	void collectAggregate(const AggregateInstruction &aggregate);
 	void collectVariable(const VariableInstruction &variable);
+	void collectFunction(const FunctionInstruction &function);
 	void collectStage(const StageFunctionInstruction &stageFunction);
 
 	std::string qualify(const Token &name) const;
@@ -199,8 +216,11 @@ private:
 	void emitStructs(std::ostringstream &oss) const;
 	void emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind) const;
 	void emitBlockMembers(std::ostringstream &oss, const AggregateInstruction &aggregate, int indent) const;
+	void emitStructMethods(std::ostringstream &oss) const;
+	void emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates) const;
 	void emitGlobalVariables(std::ostringstream &oss) const;
 	void emitTextures(std::ostringstream &oss) const;
+	void emitFunctions(std::ostringstream &oss) const;
 
 	void emitInterface(std::ostringstream &oss, const std::vector<StageIO> &entries, const char *qualifier) const;
 	void emitStage(std::ostringstream &oss, const StageFunctionInstruction *stage, Stage stageKind) const;
@@ -221,6 +241,8 @@ private:
 	std::string emitAssignment(const AssignmentExpression &assignment) const;
 	std::string emitConditional(const ConditionalExpression &conditional) const;
 	std::string emitCall(const CallExpression &call) const;
+	std::optional<std::string> emitUserMethodCall(const MemberExpression &member, const CallExpression &call) const;
+	std::optional<std::string> emitImplicitSelfCall(const IdentifierExpression &identifier, const CallExpression &call) const;
 	std::optional<std::string> emitBuiltinMemberCall(const MemberExpression &member, const CallExpression &call) const;
 	std::optional<std::string> emitFloatBuiltinCall(
 	    const std::string &method, const std::string &objectExpr, const std::vector<std::string> &arguments) const;
@@ -233,6 +255,21 @@ private:
 	std::string typeToGLSL(const TypeName &type) const;
 	std::string typeToGLSL(const std::string &typeName) const;
 	bool aggregateHasUnsizedArray(const AggregateInstruction &aggregate) const;
+	std::string aggregateTypeName(const AggregateInfo &info) const;
+	void emitMethodHelper(std::ostringstream &oss, const AggregateInfo &info, const MethodHelper &helper) const;
+	void emitFunction(std::ostringstream &oss, const FunctionInstruction &function, const std::string &name) const;
+	void emitParameters(std::ostringstream &oss, const std::vector<Parameter> &params) const;
+	std::string parameterName(const Token &token) const;
+	bool isMethodLocalName(const std::string &name) const;
+	const AggregateInfo *findAggregateInfo(const std::string &qualifiedName) const;
+	void pushEmissionNamespace(const std::vector<std::string> &ns) const;
+	void popEmissionNamespace() const;
+	const std::vector<std::string> &currentEmissionNamespace() const;
+	bool methodMutatesAggregate(const MethodMember &method, const AggregateInfo &info) const;
+	struct MethodAnalysisContext;
+	bool statementMutatesAggregate(const Statement &statement, MethodAnalysisContext &ctx, const AggregateInfo &info) const;
+	bool expressionMutatesAggregate(const Expression &expression, MethodAnalysisContext &ctx, const AggregateInfo &info) const;
+	bool expressionRefersToField(const Expression &expression, MethodAnalysisContext &ctx, const AggregateInfo &info) const;
 
 	const ConverterInput &input;
 	const SemanticParseResult &semantic;
@@ -242,12 +279,28 @@ private:
 	std::vector<AggregateInfo> structures;
 	std::vector<AggregateInfo> attributeBlocks;
 	std::vector<AggregateInfo> constantBlocks;
+	std::vector<const FunctionInstruction *> functions;
 	std::vector<const VariableInstruction *> globalVariables;
 	const StageFunctionInstruction *vertexStage = nullptr;
 	const StageFunctionInstruction *fragmentStage = nullptr;
 
 	std::unordered_map<std::string, std::string> remappedNames;
 	std::unordered_map<std::string, TextureBinding> textureLookup;
+	std::unordered_map<const FunctionInstruction *, std::string> functionNames;
+	std::unordered_map<const FunctionInstruction *, std::vector<std::string>> functionNamespaces;
+	std::unordered_map<const StageFunctionInstruction *, std::vector<std::string>> stageNamespaces;
+	struct MethodCallInfo
+	{
+		std::string helperName;
+	};
+	std::unordered_map<std::string, std::unordered_map<std::string, MethodCallInfo>> methodCallHelpers;
+	mutable std::vector<std::string> thisAliasStack;
+	mutable const AggregateInfo *currentMethodAggregate = nullptr;
+	mutable std::unordered_set<std::string> currentMethodParameters;
+	mutable std::vector<std::unordered_set<std::string>> methodLocalNameStack;
+	mutable std::vector<std::vector<std::string>> emissionNamespaceStack;
+	mutable std::string currentMethodSelfName;
+	mutable bool currentMethodUsesSelfParameter = false;
 };
 
 ConverterImpl::ConverterImpl(const ConverterInput &input)
@@ -279,6 +332,9 @@ void ConverterImpl::collect(const std::vector<std::unique_ptr<Instruction>> &ins
 			case Instruction::Type::Variable:
 				collectVariable(static_cast<const VariableInstruction &>(*instruction));
 				break;
+			case Instruction::Type::Function:
+				collectFunction(static_cast<const FunctionInstruction &>(*instruction));
+				break;
 			case Instruction::Type::Namespace:
 				collectNamespace(static_cast<const NamespaceInstruction &>(*instruction));
 				break;
@@ -303,7 +359,49 @@ void ConverterImpl::collectAggregate(const AggregateInstruction &aggregate)
 	AggregateInfo info;
 	info.qualifiedName = qualify(aggregate.name);
 	info.node = &aggregate;
+	info.kind = aggregate.kind;
 	info.isSSBO = aggregateHasUnsizedArray(aggregate);
+	info.namespacePath = namespaceStack;
+	const std::string baseName = sanitizeIdentifier(info.qualifiedName);
+	info.glslInstanceName = baseName;
+	info.glslTypeName = (aggregate.kind == AggregateInstruction::Kind::Struct) ? baseName : (baseName + "_Type");
+	for (const std::unique_ptr<StructMember> &member : aggregate.members)
+	{
+		if (!member)
+		{
+			continue;
+		}
+
+		if (member->kind == StructMember::Kind::Field)
+		{
+			const auto &field = static_cast<const FieldMember &>(*member);
+			for (const VariableDeclarator &declarator : field.declaration.declarators)
+			{
+				info.fieldNames.insert(safeTokenContent(declarator.name));
+			}
+			continue;
+		}
+
+		if (member->kind != StructMember::Kind::Method)
+		{
+			continue;
+		}
+
+		const auto &method = static_cast<const MethodMember &>(*member);
+		if (!method.body)
+		{
+			continue;
+		}
+
+		MethodHelper helper;
+		helper.node = &method;
+		const bool mutatesAggregate = methodMutatesAggregate(method, info);
+		helper.isConst = method.isConst || !mutatesAggregate;
+		const std::string sanitizedMethod = sanitizeIdentifier(safeTokenContent(method.name));
+		helper.helperName = info.glslTypeName + "__" + sanitizedMethod;
+		info.methods.push_back(std::move(helper));
+	}
+
 	const std::string sanitized = sanitizeIdentifier(info.qualifiedName);
 	remappedNames[info.qualifiedName] = sanitized;
 	if (namespaceStack.empty())
@@ -313,19 +411,40 @@ void ConverterImpl::collectAggregate(const AggregateInstruction &aggregate)
 	switch (aggregate.kind)
 	{
 		case AggregateInstruction::Kind::Struct:
-			structures.push_back(info);
+			structures.push_back(std::move(info));
+			for (const MethodHelper &method : structures.back().methods)
+			{
+				MethodCallInfo callInfo{method.helperName};
+				methodCallHelpers[structures.back().qualifiedName][safeTokenContent(method.node->name)] = std::move(callInfo);
+			}
 			break;
 		case AggregateInstruction::Kind::AttributeBlock:
-			attributeBlocks.push_back(info);
+			attributeBlocks.push_back(std::move(info));
+			for (const MethodHelper &method : attributeBlocks.back().methods)
+			{
+				MethodCallInfo callInfo{method.helperName};
+				methodCallHelpers[attributeBlocks.back().qualifiedName][safeTokenContent(method.node->name)] = std::move(callInfo);
+			}
 			break;
 		case AggregateInstruction::Kind::ConstantBlock:
-			constantBlocks.push_back(info);
+			constantBlocks.push_back(std::move(info));
+			for (const MethodHelper &method : constantBlocks.back().methods)
+			{
+				MethodCallInfo callInfo{method.helperName};
+				methodCallHelpers[constantBlocks.back().qualifiedName][safeTokenContent(method.node->name)] = std::move(callInfo);
+			}
 			break;
 	}
 }
 
 void ConverterImpl::collectVariable(const VariableInstruction &variable)
 {
+	const std::string declaredType = joinName(variable.declaration.type.name);
+	if (declaredType == "Texture")
+	{
+		return;
+	}
+
 	globalVariables.push_back(&variable);
 	for (const VariableDeclarator &declarator : variable.declaration.declarators)
 	{
@@ -339,8 +458,24 @@ void ConverterImpl::collectVariable(const VariableInstruction &variable)
 	}
 }
 
+void ConverterImpl::collectFunction(const FunctionInstruction &function)
+{
+	const std::string canonical = qualify(function.name);
+	const std::string sanitized = sanitizeIdentifier(canonical);
+	remappedNames[canonical] = sanitized;
+	if (namespaceStack.empty())
+	{
+		remappedNames[safeTokenContent(function.name)] = sanitized;
+	}
+
+	functions.push_back(&function);
+	functionNames[&function] = sanitized;
+	functionNamespaces[&function] = namespaceStack;
+}
+
 void ConverterImpl::collectStage(const StageFunctionInstruction &stageFunction)
 {
+	stageNamespaces[&stageFunction] = namespaceStack;
 	switch (stageFunction.stage)
 	{
 		case Stage::VertexPass:
@@ -416,6 +551,31 @@ std::string ConverterImpl::remapIdentifier(const Name &name) const
 	{
 		return it->second;
 	}
+	const std::vector<std::string> &context = currentEmissionNamespace();
+	if (!context.empty())
+	{
+		for (std::size_t depth = context.size(); depth > 0; --depth)
+		{
+			std::ostringstream oss;
+			for (std::size_t i = 0; i < depth; ++i)
+			{
+				if (i > 0)
+				{
+					oss << "::";
+				}
+				oss << context[i];
+			}
+			if (!canonical.empty())
+			{
+				oss << "::" << canonical;
+			}
+			const std::string qualified = oss.str();
+			if (auto ctxIt = remappedNames.find(qualified); ctxIt != remappedNames.end())
+			{
+				return ctxIt->second;
+			}
+		}
+	}
 	if (name.parts.size() == 1)
 	{
 		const std::string simple = safeTokenContent(name.parts.front());
@@ -454,9 +614,13 @@ std::string ConverterImpl::remapIdentifier(const std::string &canonical) const
 void ConverterImpl::emitCommon(std::ostringstream &oss) const
 {
 	emitStructs(oss);
+	emitStructMethods(oss);
 	emitBlocks(oss, AggregateInstruction::Kind::ConstantBlock);
+	emitBlockMethods(oss, constantBlocks);
 	emitBlocks(oss, AggregateInstruction::Kind::AttributeBlock);
+	emitBlockMethods(oss, attributeBlocks);
 	emitGlobalVariables(oss);
+	emitFunctions(oss);
 	emitTextures(oss);
 }
 
@@ -490,8 +654,8 @@ void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Ki
 			continue;
 		}
 		const bool ssbo = info.isSSBO;
-		const std::string blockName = sanitizeIdentifier(info.qualifiedName);
-		const std::string blockTypeName = blockName + "_Type";
+		const std::string &blockName = info.glslInstanceName;
+		const std::string &blockTypeName = info.glslTypeName;
 
 		oss << "layout(binding = " << bindingKeyword << ", " << (ssbo ? "std430" : "std140") << ") "
 		    << (ssbo ? "buffer" : "uniform") << " " << blockTypeName << "\n{\n";
@@ -525,6 +689,40 @@ void ConverterImpl::emitBlockMembers(std::ostringstream &oss, const AggregateIns
 			}
 			oss << ";\n";
 		}
+	}
+}
+
+void ConverterImpl::emitStructMethods(std::ostringstream &oss) const
+{
+	bool emitted = false;
+	for (const AggregateInfo &info : structures)
+	{
+		for (const MethodHelper &helper : info.methods)
+		{
+			emitMethodHelper(oss, info, helper);
+			emitted = true;
+		}
+	}
+	if (emitted)
+	{
+		oss << "\n";
+	}
+}
+
+void ConverterImpl::emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates) const
+{
+	bool emitted = false;
+	for (const AggregateInfo &info : aggregates)
+	{
+		for (const MethodHelper &helper : info.methods)
+		{
+			emitMethodHelper(oss, info, helper);
+			emitted = true;
+		}
+	}
+	if (emitted)
+	{
+		oss << "\n";
 	}
 }
 
@@ -571,6 +769,440 @@ void ConverterImpl::emitTextures(std::ostringstream &oss) const
 	}
 }
 
+void ConverterImpl::emitFunctions(std::ostringstream &oss) const
+{
+	bool emitted = false;
+	for (const FunctionInstruction *function : functions)
+	{
+		if (!function || !function->body)
+		{
+			continue;
+		}
+		const auto it = functionNames.find(function);
+		if (it == functionNames.end())
+		{
+			continue;
+		}
+		emitFunction(oss, *function, it->second);
+		emitted = true;
+	}
+	if (emitted)
+	{
+		oss << "\n";
+	}
+}
+
+void ConverterImpl::emitFunction(std::ostringstream &oss, const FunctionInstruction &function, const std::string &name) const
+{
+	oss << typeToGLSL(function.returnType) << " " << name << "(";
+	emitParameters(oss, function.parameters);
+	oss << ")\n";
+	if (function.body)
+	{
+		auto nsIt = functionNamespaces.find(&function);
+		if (nsIt != functionNamespaces.end())
+		{
+			pushEmissionNamespace(nsIt->second);
+		}
+		oss << "{\n";
+		emitBlockStatement(oss, *function.body, 1);
+		oss << "}\n";
+		if (nsIt != functionNamespaces.end())
+		{
+			popEmissionNamespace();
+		}
+	}
+	else
+	{
+		oss << "{ }\n";
+	}
+	oss << "\n";
+}
+
+void ConverterImpl::emitParameters(std::ostringstream &oss, const std::vector<Parameter> &params) const
+{
+	for (std::size_t i = 0; i < params.size(); ++i)
+	{
+		if (i > 0)
+		{
+			oss << ", ";
+		}
+		const Parameter &param = params[i];
+		if (param.isReference)
+		{
+			oss << "inout ";
+		}
+		else if (param.type.isConst)
+		{
+			oss << "const ";
+		}
+		oss << typeToGLSL(param.type) << " " << parameterName(param.name);
+	}
+}
+
+std::string ConverterImpl::parameterName(const Token &token) const
+{
+	return sanitizeIdentifier(safeTokenContent(token));
+}
+
+bool ConverterImpl::isMethodLocalName(const std::string &name) const
+{
+	for (auto it = methodLocalNameStack.rbegin(); it != methodLocalNameStack.rend(); ++it)
+	{
+		if (it->find(name) != it->end())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+const ConverterImpl::AggregateInfo *ConverterImpl::findAggregateInfo(const std::string &qualifiedName) const
+{
+	const auto finder = [&qualifiedName](const std::vector<AggregateInfo> &collection) -> const AggregateInfo * {
+		for (const AggregateInfo &info : collection)
+		{
+			if (info.qualifiedName == qualifiedName)
+			{
+				return &info;
+			}
+		}
+		return nullptr;
+	};
+
+	if (const AggregateInfo *info = finder(structures))
+	{
+		return info;
+	}
+	if (const AggregateInfo *info = finder(attributeBlocks))
+	{
+		return info;
+	}
+	if (const AggregateInfo *info = finder(constantBlocks))
+	{
+		return info;
+	}
+	return nullptr;
+}
+
+void ConverterImpl::pushEmissionNamespace(const std::vector<std::string> &ns) const
+{
+	emissionNamespaceStack.push_back(ns);
+}
+
+void ConverterImpl::popEmissionNamespace() const
+{
+	if (!emissionNamespaceStack.empty())
+	{
+		emissionNamespaceStack.pop_back();
+	}
+}
+
+const std::vector<std::string> &ConverterImpl::currentEmissionNamespace() const
+{
+	static const std::vector<std::string> kEmptyNamespace;
+	if (emissionNamespaceStack.empty())
+	{
+		return kEmptyNamespace;
+	}
+	return emissionNamespaceStack.back();
+}
+
+struct ConverterImpl::MethodAnalysisContext
+{
+	MethodAnalysisContext()
+	{
+		scopes.emplace_back();
+	}
+
+	void pushScope()
+	{
+		scopes.emplace_back();
+	}
+
+	void popScope()
+	{
+		if (!scopes.empty())
+		{
+			scopes.pop_back();
+		}
+	}
+
+	void addName(const std::string &rawName)
+	{
+		if (scopes.empty())
+		{
+			scopes.emplace_back();
+		}
+		scopes.back().insert(sanitizeIdentifier(rawName));
+	}
+
+	bool isShadowed(const std::string &rawName) const
+	{
+		const std::string sanitized = sanitizeIdentifier(rawName);
+		for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
+		{
+			if (it->find(sanitized) != it->end())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::vector<std::unordered_set<std::string>> scopes;
+};
+
+bool ConverterImpl::methodMutatesAggregate(const MethodMember &method, const AggregateInfo &info) const
+{
+	if (!method.body)
+	{
+		return false;
+	}
+
+	MethodAnalysisContext ctx;
+	for (const Parameter &param : method.parameters)
+	{
+		ctx.addName(safeTokenContent(param.name));
+	}
+	return statementMutatesAggregate(*method.body, ctx, info);
+}
+
+bool ConverterImpl::statementMutatesAggregate(
+    const Statement &statement, MethodAnalysisContext &ctx, const AggregateInfo &info) const
+{
+	switch (statement.kind)
+	{
+		case Statement::Kind::Block:
+		{
+			const auto &block = static_cast<const BlockStatement &>(statement);
+			ctx.pushScope();
+			for (const std::unique_ptr<Statement> &stmt : block.statements)
+			{
+				if (stmt && statementMutatesAggregate(*stmt, ctx, info))
+				{
+					ctx.popScope();
+					return true;
+				}
+			}
+			ctx.popScope();
+			return false;
+		}
+		case Statement::Kind::Expression:
+		{
+			const auto &expr = static_cast<const ExpressionStatement &>(statement);
+			return expr.expression && expressionMutatesAggregate(*expr.expression, ctx, info);
+		}
+		case Statement::Kind::Variable:
+		{
+			const auto &var = static_cast<const VariableStatement &>(statement);
+			for (const VariableDeclarator &decl : var.declaration.declarators)
+			{
+				if (decl.initializer && expressionMutatesAggregate(*decl.initializer, ctx, info))
+				{
+					return true;
+				}
+				ctx.addName(safeTokenContent(decl.name));
+			}
+			return false;
+		}
+		case Statement::Kind::If:
+		{
+			const auto &ifStmt = static_cast<const IfStatement &>(statement);
+			if (ifStmt.condition && expressionMutatesAggregate(*ifStmt.condition, ctx, info))
+			{
+				return true;
+			}
+			if (ifStmt.thenBranch && statementMutatesAggregate(*ifStmt.thenBranch, ctx, info))
+			{
+				return true;
+			}
+			if (ifStmt.elseBranch && statementMutatesAggregate(*ifStmt.elseBranch, ctx, info))
+			{
+				return true;
+			}
+			return false;
+		}
+		case Statement::Kind::While:
+		{
+			const auto &whileStmt = static_cast<const WhileStatement &>(statement);
+			if (whileStmt.condition && expressionMutatesAggregate(*whileStmt.condition, ctx, info))
+			{
+				return true;
+			}
+			return whileStmt.body && statementMutatesAggregate(*whileStmt.body, ctx, info);
+		}
+		case Statement::Kind::DoWhile:
+		{
+			const auto &doStmt = static_cast<const DoWhileStatement &>(statement);
+			if (doStmt.body && statementMutatesAggregate(*doStmt.body, ctx, info))
+			{
+				return true;
+			}
+			return doStmt.condition && expressionMutatesAggregate(*doStmt.condition, ctx, info);
+		}
+		case Statement::Kind::For:
+		{
+			const auto &forStmt = static_cast<const ForStatement &>(statement);
+			ctx.pushScope();
+			if (forStmt.initializer && statementMutatesAggregate(*forStmt.initializer, ctx, info))
+			{
+				ctx.popScope();
+				return true;
+			}
+			if (forStmt.condition && expressionMutatesAggregate(*forStmt.condition, ctx, info))
+			{
+				ctx.popScope();
+				return true;
+			}
+			if (forStmt.increment && expressionMutatesAggregate(*forStmt.increment, ctx, info))
+			{
+				ctx.popScope();
+				return true;
+			}
+			const bool bodyResult = forStmt.body && statementMutatesAggregate(*forStmt.body, ctx, info);
+			ctx.popScope();
+			return bodyResult;
+		}
+		case Statement::Kind::Return:
+		{
+			const auto &ret = static_cast<const ReturnStatement &>(statement);
+			return ret.value && expressionMutatesAggregate(*ret.value, ctx, info);
+		}
+		case Statement::Kind::Break:
+		case Statement::Kind::Continue:
+		case Statement::Kind::Discard:
+			return false;
+	}
+	return false;
+}
+
+bool ConverterImpl::expressionMutatesAggregate(
+    const Expression &expression, MethodAnalysisContext &ctx, const AggregateInfo &info) const
+{
+	switch (expression.kind)
+	{
+		case Expression::Kind::Literal:
+			return false;
+		case Expression::Kind::Identifier:
+			return false;
+		case Expression::Kind::Unary:
+		{
+			const auto &unary = static_cast<const UnaryExpression &>(expression);
+			if (unary.op == UnaryOperator::PreIncrement || unary.op == UnaryOperator::PreDecrement)
+			{
+				if (unary.operand && expressionRefersToField(*unary.operand, ctx, info))
+				{
+					return true;
+				}
+			}
+			return unary.operand && expressionMutatesAggregate(*unary.operand, ctx, info);
+		}
+		case Expression::Kind::Binary:
+		{
+			const auto &binary = static_cast<const BinaryExpression &>(expression);
+			return (binary.left && expressionMutatesAggregate(*binary.left, ctx, info)) ||
+			       (binary.right && expressionMutatesAggregate(*binary.right, ctx, info));
+		}
+		case Expression::Kind::Assignment:
+		{
+			const auto &assign = static_cast<const AssignmentExpression &>(expression);
+			if (assign.target && expressionRefersToField(*assign.target, ctx, info))
+			{
+				return true;
+			}
+			return assign.value && expressionMutatesAggregate(*assign.value, ctx, info);
+		}
+		case Expression::Kind::Conditional:
+		{
+			const auto &conditional = static_cast<const ConditionalExpression &>(expression);
+			return (conditional.condition && expressionMutatesAggregate(*conditional.condition, ctx, info)) ||
+			       (conditional.thenBranch && expressionMutatesAggregate(*conditional.thenBranch, ctx, info)) ||
+			       (conditional.elseBranch && expressionMutatesAggregate(*conditional.elseBranch, ctx, info));
+		}
+		case Expression::Kind::Call:
+		{
+			const auto &call = static_cast<const CallExpression &>(expression);
+			if (call.callee && expressionMutatesAggregate(*call.callee, ctx, info))
+			{
+				return true;
+			}
+			for (const std::unique_ptr<Expression> &arg : call.arguments)
+			{
+				if (arg && expressionMutatesAggregate(*arg, ctx, info))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		case Expression::Kind::MemberAccess:
+		{
+			const auto &member = static_cast<const MemberExpression &>(expression);
+			return member.object && expressionMutatesAggregate(*member.object, ctx, info);
+		}
+		case Expression::Kind::IndexAccess:
+		{
+			const auto &index = static_cast<const IndexExpression &>(expression);
+			return (index.object && expressionMutatesAggregate(*index.object, ctx, info)) ||
+			       (index.index && expressionMutatesAggregate(*index.index, ctx, info));
+		}
+		case Expression::Kind::Postfix:
+		{
+			const auto &postfix = static_cast<const PostfixExpression &>(expression);
+			if (postfix.operand && expressionRefersToField(*postfix.operand, ctx, info))
+			{
+				return true;
+			}
+			return postfix.operand && expressionMutatesAggregate(*postfix.operand, ctx, info);
+		}
+	}
+	return false;
+}
+
+bool ConverterImpl::expressionRefersToField(
+    const Expression &expression, MethodAnalysisContext &ctx, const AggregateInfo &info) const
+{
+	switch (expression.kind)
+	{
+		case Expression::Kind::Identifier:
+		{
+			const auto &identifier = static_cast<const IdentifierExpression &>(expression);
+			if (identifier.name.parts.size() != 1)
+			{
+				return false;
+			}
+			const std::string simple = safeTokenContent(identifier.name.parts.front());
+			if (ctx.isShadowed(simple))
+			{
+				return false;
+			}
+			return info.fieldNames.find(sanitizeIdentifier(simple)) != info.fieldNames.end();
+		}
+		case Expression::Kind::MemberAccess:
+		{
+			const auto &member = static_cast<const MemberExpression &>(expression);
+			if (!member.object)
+			{
+				return false;
+			}
+			const auto *objectIdentifier = dynamic_cast<const IdentifierExpression *>(member.object.get());
+			if (!objectIdentifier || objectIdentifier->name.parts.size() != 1)
+			{
+				return false;
+			}
+			const std::string objectName = safeTokenContent(objectIdentifier->name.parts.front());
+			if (objectName != "this")
+			{
+				return false;
+			}
+			return info.fieldNames.find(sanitizeIdentifier(safeTokenContent(member.member))) != info.fieldNames.end();
+		}
+		default:
+			return false;
+	}
+}
+
 void ConverterImpl::emitInterface(std::ostringstream &oss, const std::vector<StageIO> &entries, const char *qualifier) const
 {
 	for (const StageIO &entry : entries)
@@ -592,19 +1224,38 @@ void ConverterImpl::emitStage(std::ostringstream &oss, const StageFunctionInstru
 		return;
 	}
 
+	const auto nsIt = stageNamespaces.find(stage);
+	if (nsIt != stageNamespaces.end())
+	{
+		pushEmissionNamespace(nsIt->second);
+	}
+
 	oss << "void main()\n{\n";
 	emitBlockStatement(oss, *stage->body, 1);
 	oss << "}\n";
+
+	if (nsIt != stageNamespaces.end())
+	{
+		popEmissionNamespace();
+	}
 }
 
 void ConverterImpl::emitBlockStatement(std::ostringstream &oss, const BlockStatement &block, int indent) const
 {
+	if (currentMethodAggregate)
+	{
+		methodLocalNameStack.emplace_back();
+	}
 	for (const std::unique_ptr<Statement> &statement : block.statements)
 	{
 		if (statement)
 		{
 			emitStatement(oss, *statement, indent);
 		}
+	}
+	if (currentMethodAggregate)
+	{
+		methodLocalNameStack.pop_back();
 	}
 }
 
@@ -671,8 +1322,10 @@ void ConverterImpl::emitVariableStatement(std::ostringstream &oss, const Variabl
 	const std::string type = typeToGLSL(statement.declaration.type);
 	for (const VariableDeclarator &declarator : statement.declaration.declarators)
 	{
+		const std::string originalName = safeTokenContent(declarator.name);
+		const std::string varName = sanitizeIdentifier(originalName);
 		writeIndent(oss, indent);
-		oss << type << " " << safeTokenContent(declarator.name);
+		oss << type << " " << varName;
 		if (declarator.hasArraySuffix && declarator.arraySize)
 		{
 			oss << "[" << emitExpression(*declarator.arraySize) << "]";
@@ -686,6 +1339,11 @@ void ConverterImpl::emitVariableStatement(std::ostringstream &oss, const Variabl
 			oss << " = " << emitExpression(*declarator.initializer);
 		}
 		oss << ";\n";
+
+		if (currentMethodAggregate && !methodLocalNameStack.empty())
+		{
+			methodLocalNameStack.back().insert(originalName);
+		}
 	}
 }
 
@@ -806,6 +1464,29 @@ std::string ConverterImpl::emitLiteral(const LiteralExpression &literal) const
 
 std::string ConverterImpl::emitIdentifier(const IdentifierExpression &identifier) const
 {
+	if (identifier.name.parts.size() == 1)
+	{
+		const std::string simple = identifier.name.parts.front().content;
+		if (!thisAliasStack.empty() && simple == "this")
+		{
+			return thisAliasStack.back();
+		}
+
+		if (currentMethodAggregate && !currentMethodSelfName.empty())
+		{
+			if (simple == currentMethodSelfName)
+			{
+				return currentMethodSelfName;
+			}
+			const std::string sanitizedField = sanitizeIdentifier(simple);
+			if (currentMethodParameters.find(simple) == currentMethodParameters.end() &&
+			    currentMethodAggregate->fieldNames.find(sanitizedField) != currentMethodAggregate->fieldNames.end() &&
+			    !isMethodLocalName(simple))
+			{
+				return currentMethodSelfName + "." + sanitizedField;
+			}
+		}
+	}
 	return remapIdentifier(identifier.name);
 }
 
@@ -870,10 +1551,20 @@ std::string ConverterImpl::emitCall(const CallExpression &call) const
 		{
 			return *builtin;
 		}
+
+		if (std::optional<std::string> userCall = emitUserMethodCall(*member, call))
+		{
+			return *userCall;
+		}
 	}
 
 	if (const auto *identifier = dynamic_cast<const IdentifierExpression *>(call.callee.get()))
 	{
+		if (std::optional<std::string> implicit = emitImplicitSelfCall(*identifier, call))
+		{
+			return *implicit;
+		}
+
 		const std::string name = joinName(identifier->name);
 		std::string callee = convertLuminaType(name);
 		if (callee == name)
@@ -1085,17 +1776,12 @@ std::string ConverterImpl::emitPostfix(const PostfixExpression &postfix) const
 
 std::string ConverterImpl::typeToGLSL(const TypeName &type) const
 {
-	std::string glsl = convertLuminaType(joinName(type.name));
-	if (type.isConst)
-	{
-		glsl = "const " + glsl;
-	}
-	return glsl;
+	return sanitizeIdentifier(convertLuminaType(joinName(type.name)));
 }
 
 std::string ConverterImpl::typeToGLSL(const std::string &typeName) const
 {
-	return convertLuminaType(typeName);
+	return sanitizeIdentifier(convertLuminaType(typeName));
 }
 
 bool ConverterImpl::aggregateHasUnsizedArray(const AggregateInstruction &aggregate) const
@@ -1117,6 +1803,162 @@ bool ConverterImpl::aggregateHasUnsizedArray(const AggregateInstruction &aggrega
 		}
 	}
 	return false;
+}
+
+std::string ConverterImpl::aggregateTypeName(const AggregateInfo &info) const
+{
+	return info.glslTypeName;
+}
+
+void ConverterImpl::emitMethodHelper(std::ostringstream &oss, const AggregateInfo &info, const MethodHelper &helper) const
+{
+	if (!helper.node || !helper.node->body)
+	{
+		return;
+	}
+
+	oss << typeToGLSL(helper.node->returnType) << " " << helper.helperName << "(";
+	bool first = true;
+	const bool isStructAggregate = info.kind == AggregateInstruction::Kind::Struct;
+	const bool needsSelfParameter = isStructAggregate;
+	const std::string aggregateType = aggregateTypeName(info);
+	if (needsSelfParameter)
+	{
+		if (!helper.isConst)
+		{
+			oss << "inout ";
+		}
+		else
+		{
+			oss << "const ";
+		}
+		oss << aggregateType << " " << kMethodSelfName;
+		first = false;
+	}
+	for (const Parameter &param : helper.node->parameters)
+	{
+		if (!first)
+		{
+			oss << ", ";
+		}
+		if (param.isReference)
+		{
+			oss << "inout ";
+		}
+		else if (param.type.isConst)
+		{
+			oss << "const ";
+		}
+		oss << typeToGLSL(param.type) << " " << parameterName(param.name);
+		first = false;
+	}
+	oss << ")\n{\n";
+	currentMethodAggregate = &info;
+	currentMethodParameters.clear();
+	methodLocalNameStack.clear();
+	currentMethodSelfName = needsSelfParameter ? std::string(kMethodSelfName) : info.glslInstanceName;
+	currentMethodUsesSelfParameter = needsSelfParameter;
+	for (const Parameter &param : helper.node->parameters)
+	{
+		currentMethodParameters.insert(safeTokenContent(param.name));
+	}
+	thisAliasStack.push_back(currentMethodSelfName);
+	pushEmissionNamespace(info.namespacePath);
+	emitBlockStatement(oss, *helper.node->body, 1);
+	popEmissionNamespace();
+	thisAliasStack.pop_back();
+	methodLocalNameStack.clear();
+	currentMethodParameters.clear();
+	currentMethodAggregate = nullptr;
+	currentMethodSelfName.clear();
+	currentMethodUsesSelfParameter = false;
+	oss << "}\n\n";
+}
+
+std::optional<std::string> ConverterImpl::emitUserMethodCall(const MemberExpression &member, const CallExpression &call) const
+{
+	auto infoIt = expressionInfo.find(member.object.get());
+	if (infoIt == expressionInfo.end())
+	{
+		return std::nullopt;
+	}
+
+	const std::string objectType = infoIt->second.typeName;
+	const std::string methodName = safeTokenContent(member.member);
+	auto typeIt = methodCallHelpers.find(objectType);
+	if (typeIt == methodCallHelpers.end())
+	{
+		return std::nullopt;
+	}
+	auto helperIt = typeIt->second.find(methodName);
+	if (helperIt == typeIt->second.end())
+	{
+		return std::nullopt;
+	}
+
+	const AggregateInfo *aggregateInfo = findAggregateInfo(objectType);
+	const bool needsSelfArgument =
+	    !aggregateInfo || aggregateInfo->kind == AggregateInstruction::Kind::Struct;
+
+	std::ostringstream oss;
+	oss << helperIt->second.helperName << "(";
+	bool first = true;
+	if (needsSelfArgument)
+	{
+		oss << emitExpression(*member.object);
+		first = false;
+	}
+	for (const std::unique_ptr<Expression> &argument : call.arguments)
+	{
+		if (!first)
+		{
+			oss << ", ";
+		}
+		oss << emitExpression(*argument);
+		first = false;
+	}
+	oss << ")";
+	return oss.str();
+}
+
+std::optional<std::string> ConverterImpl::emitImplicitSelfCall(const IdentifierExpression &identifier, const CallExpression &call) const
+{
+	if (!currentMethodAggregate || identifier.name.parts.size() != 1)
+	{
+		return std::nullopt;
+	}
+
+	const std::string methodName = identifier.name.parts.front().content;
+	auto typeIt = methodCallHelpers.find(currentMethodAggregate->qualifiedName);
+	if (typeIt == methodCallHelpers.end())
+	{
+		return std::nullopt;
+	}
+	auto helperIt = typeIt->second.find(methodName);
+	if (helperIt == typeIt->second.end())
+	{
+		return std::nullopt;
+	}
+
+	std::ostringstream oss;
+	oss << helperIt->second.helperName << "(";
+	bool first = true;
+	if (currentMethodUsesSelfParameter && !currentMethodSelfName.empty())
+	{
+		oss << currentMethodSelfName;
+		first = false;
+	}
+	for (const std::unique_ptr<Expression> &argument : call.arguments)
+	{
+		if (!first)
+		{
+			oss << ", ";
+		}
+		oss << emitExpression(*argument);
+		first = false;
+	}
+	oss << ")";
+	return oss.str();
 }
 
 ShaderSources ConverterImpl::run()
