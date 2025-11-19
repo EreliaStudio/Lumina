@@ -30,8 +30,10 @@ private:
     InstructionPtr parsePipelineInstruction();
     InstructionPtr parseStageFunction();
     InstructionPtr parseNamespaceInstruction();
-    InstructionPtr parseAggregateInstruction(AggregateInstruction::Kind kind);
-    InstructionPtr parseFunctionOrVariable();
+	InstructionPtr parseAggregateInstruction(AggregateInstruction::Kind kind);
+	InstructionPtr parseDataBlockInstruction();
+	InstructionPtr finishAggregateInstruction(AggregateInstruction::Kind kind, Token name);
+	InstructionPtr parseFunctionOrVariable();
     InstructionPtr parseFunctionDefinition(TypeName returnType, Token name, bool returnsReference);
     InstructionPtr parseVariableInstruction(TypeName type);
 
@@ -200,6 +202,9 @@ Parser::Impl::InstructionPtr Parser::Impl::parseInstruction()
         case Token::Type::KeywordConstantBlock:
             advance();
             return parseAggregateInstruction(AggregateInstruction::Kind::ConstantBlock);
+        case Token::Type::KeywordDataBlock:
+            advance();
+            return parseDataBlockInstruction();
         default:
             break;
     }
@@ -284,7 +289,33 @@ Parser::Impl::InstructionPtr Parser::Impl::parseNamespaceInstruction()
 Parser::Impl::InstructionPtr Parser::Impl::parseAggregateInstruction(AggregateInstruction::Kind kind)
 {
     Token name = consumeIdentifierToken(IdentifierContext::General, "Expected name after aggregate keyword");
+    return finishAggregateInstruction(kind, std::move(name));
+}
 
+Parser::Impl::InstructionPtr Parser::Impl::parseDataBlockInstruction()
+{
+    Token name = consumeIdentifierToken(IdentifierContext::General, "Expected name after 'DataBlock'");
+    AggregateInstruction::Kind kind = AggregateInstruction::Kind::ConstantBlock;
+    if (match(Token::Type::KeywordAs))
+    {
+        if (match(Token::Type::KeywordAttribute))
+        {
+            kind = AggregateInstruction::Kind::AttributeBlock;
+        }
+        else if (match(Token::Type::KeywordConstant))
+        {
+            kind = AggregateInstruction::Kind::ConstantBlock;
+        }
+        else
+        {
+            reportError("Expected 'constant' or 'attribute' after 'as'", peek());
+        }
+    }
+    return finishAggregateInstruction(kind, std::move(name));
+}
+
+Parser::Impl::InstructionPtr Parser::Impl::finishAggregateInstruction(AggregateInstruction::Kind kind, Token name)
+{
     auto result = std::make_unique<AggregateInstruction>(kind);
     result->name = std::move(name);
 

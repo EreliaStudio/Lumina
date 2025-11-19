@@ -21,14 +21,14 @@ struct Data
 
 namespace spk
 {
-AttributeBlock myAttributeBlock
+DataBlock myAttributeBlock as attribute
 {
 	int value;
 	Data array[10 + VALUE];
 };
 }
 
-ConstantBlock myConstantBlock
+DataBlock myConstantBlock
 {
 	int value;
 	Data array[];

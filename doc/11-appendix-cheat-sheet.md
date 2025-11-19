@@ -92,31 +92,25 @@ struct StructName
 };
 ```
 
-### Attribute Blocks
-- Define uniform blocks for information shared by every triangle in a single call.
-- Attributes are shared by both the Vertex and the Fragment passes.
+### DataBlocks
+- Describe uniform memory shared across both stages.
+- Use the `as` clause to decide whether the block is updated globally (`constant`, the default) or per draw call (`attribute`).
 ```cpp
-AttributeBlock attributeBlockName
+DataBlock constantBlockName               // implicit constant scope
+{
+    float variableName;
+};
+
+DataBlock attributeBlockName as attribute // per submission
 {
     int variableName;
 };
 ```
-- AttributeBlock share the same principle as structures for defining methods and operator overloads.
-
-### Constant Blocks
-- Define uniform blocks for information shared across all calls of all lumina pipeline.
-- Constants are shared by both the Vertex and the Fragment passes.
-```cpp
-ConstantBlock constantBlockName
-{
-    float variableName;
-};
-```
-- ConstantBlock share the same principle as structures for defining methods and operator overloads.
+- DataBlocks share the same capabilities as structures for defining methods and operator overloads.
 
 ### Texture variable
 - Define 2D texture object
-- Textures can't be placed inside a structure block, nor in an Attribute or Constant
+- Textures can't be placed inside a structure block or a DataBlock
 ```cpp
 Texture albedoTexture;              // constant by default
 Texture normalTexture as attribute; // per render submission
@@ -131,7 +125,7 @@ FragmentPass()
 ```
 
 ### Namespaces
-- Create namespaces to scope functions, structures, constants block, attributes block and texture.
+- Create namespaces to scope functions, structures, DataBlocks, and textures.
 ```cpp
 namespace NamespaceName
 {
@@ -244,15 +238,14 @@ struct Material
 // Define a texture
 Texture diffuseTexture;
 
-// Define attribute blocks
-AttributeBlock modelAttributes
+// Define DataBlocks
+DataBlock modelAttributes as attribute
 {
     Matrix4x4 modelMatrix;
     Matrix4x4 normalMatrix;
 };
 
-// Define constant blocks
-ConstantBlock lightingConstants
+DataBlock lightingConstants
 {
     Vector3 lightPosition;
     Vector3 lightColor;

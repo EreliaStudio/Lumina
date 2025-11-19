@@ -78,6 +78,7 @@ struct Token
 		KeywordNamespace,
 		KeywordAttributeBlock,
 		KeywordConstantBlock,
+		KeywordDataBlock,
 		KeywordTexture,
 		KeywordAs,
 		KeywordConstant,

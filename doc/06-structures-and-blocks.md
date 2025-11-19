@@ -16,22 +16,20 @@ struct Material
 };
 ```
 
-## AttributeBlock
-Per-draw-call uniforms shared by vertex and fragment.
+## DataBlock
+Uniform-style data described once and consumed by both stages. Declare a `DataBlock` and choose its scope with an optional `as` clause:
 ```cpp
-AttributeBlock Model
+DataBlock SceneConstants            // defaults to constant scope
+{
+    Vector3 sunDirection;
+    float exposure;
+};
+
+DataBlock ModelData as attribute    // per render submission
 {
     Matrix4x4 model;
     Matrix4x4 normal;
 };
 ```
-
-## ConstantBlock
-Application-wide constants shared across pipelines.
-```cpp
-ConstantBlock Globals
-{
-    Vector3 lightPos;
-    float ambient;
-};
-```
+- `constant` (default): the runtime binds the same data for every draw call that uses the shader (think camera or lighting parameters).
+- `attribute`: the runtime expects a distinct binding for each submission (similar to per-instance material data).

@@ -1278,7 +1278,7 @@ Texture normalMap as attribute; // per render item
 Texture emissive as constant;   // explicit constant scope
 ```
 - `constant`: the binding is shared across every pass that uses this shader (ideal for frame-level resources). This is the default when the qualifier is omitted.
-- `attribute`: the binding belongs to the render submission (similar to data provided by an AttributeBlock).
+- `attribute`: the binding belongs to the render submission (the same category as `DataBlock ... as attribute`).
 
 #### Constructors:
 	None.

@@ -72,7 +72,7 @@ struct SkyGradient
     }
 };
 
-AttributeBlock ModelData
+DataBlock ModelData as attribute
 {
     Matrix4x4 modelMatrix;
     Matrix4x4 viewProjection;
@@ -101,7 +101,7 @@ AttributeBlock ModelData
     }
 };
 
-ConstantBlock SceneData
+DataBlock SceneData
 {
     Vector3 lightPosition;
     Color lightColor;

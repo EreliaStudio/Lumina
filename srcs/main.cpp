@@ -69,9 +69,9 @@ namespace
 			case AggregateInstruction::Kind::Struct:
 				return "Struct";
 			case AggregateInstruction::Kind::AttributeBlock:
-				return "AttributeBlock";
+				return "DataBlock(attribute)";
 			case AggregateInstruction::Kind::ConstantBlock:
-				return "ConstantBlock";
+				return "DataBlock(constant)";
 		}
 		return "Aggregate";
 	}

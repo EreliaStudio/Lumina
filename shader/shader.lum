@@ -13,12 +13,12 @@ VertexPass -> FragmentPass : Vector3 fragmentNormal;
 Texture diffuseTexture;
 Texture specularTexture;
 
-ConstantBlock WorldConstants
+DataBlock WorldConstants
 {
 	spk::DirectionalLight directionalLight;
 };
 
-AttributeBlock modelInformations
+DataBlock modelInformations as attribute
 {
     Matrix4x4 modelMatrix;
     Matrix4x4 inverseModelMatrix;

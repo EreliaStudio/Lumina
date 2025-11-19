@@ -113,7 +113,7 @@ The `textures` array keeps the mapping between the identifier used in Lumina and
 See `docs/lumina/compiled-artifact-example.json` for a full sample artifact that exercises every field of the schema.
 
 ## Constants (UBO / SSBO)
-`constants` is a list of ConstantBlock definitions. Bindings are not stored in the artifact anymore; only the total block `size` and the memory layout are emitted. The compiler evaluates the block body to decide the `type`:
+`constants` is a list of `DataBlock` declarations that were left at the default `constant` scope (explicit `as constant` works too). Bindings are not stored in the artifact anymore; only the total block `size` and the memory layout are emitted. The compiler evaluates the block body to decide the `type`:
 - `UBO` when every field has a fixed size.
 - `SSBO` when the block contains exactly one unsized array (`[]`). Declaring more than one unsized array is illegal and aborts compilation.
 
@@ -126,7 +126,7 @@ Each `members` entry describes a field:
 - `nbElements` (optional): number of elements in the fixed-size array when it can be resolved at compile time.
 - `members`: optional array for nested structures.
 
-All offsets and sizes are emitted using OpenGL's standard layout rules: ConstantBlocks use **std140** (UBO) while SSBO-backed blocks use **std430**. This means the values already include the implicit padding that GLSL expects, so you can forward them directly to your buffer builders without reapplying the layout rules.
+All offsets and sizes are emitted using OpenGL's standard layout rules: constant DataBlocks use **std140** (UBO) while SSBO-backed blocks use **std430**. This means the values already include the implicit padding that GLSL expects, so you can forward them directly to your buffer builders without reapplying the layout rules.
 
 This recursion lets the artifact represent arbitrarily deep structures without duplicating intermediate JSON blocks.
 
@@ -137,8 +137,8 @@ If the block needs a runtime-sized array, the emitted object also carries a `dyn
 - `elementPadding`: explicit padding (if any) between elements.
 - `members`: layout of a single element, following the same recursive format used elsewhere.
 
-## Attributes (AttributeBlock -> UBO / SSBO)
-`attributes` follows the same structure as `constants` for AttributeBlock data. Just like constant blocks, AttributeBlocks default to `UBO` until they declare an unsized array, at which point the compiler switches the `type` to `SSBO` and emits the `dynamicArrayLayout` metadata described above. AttributeBlocks are also limited to a single unsized array.
+## Attributes (Attribute DataBlocks -> UBO / SSBO)
+`attributes` follows the same structure as `constants`, but for DataBlocks declared with `as attribute`. Just like constant blocks, attribute DataBlocks default to `UBO` until they declare an unsized array, at which point the compiler switches the `type` to `SSBO` and emits the `dynamicArrayLayout` metadata described above. Attribute-scope DataBlocks are also limited to a single unsized array.
 
 ## Shader sources
 The compiled GLSL for each stage is embedded directly in `shader.sources`. Consumers can load `vertex` and `fragment` strings (and any future stages) without scanning the file for manual markers.

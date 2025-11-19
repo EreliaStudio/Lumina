@@ -961,8 +961,7 @@ int componentIndex(char component)
                                 const bool unsizedArray = type.isArray && !type.hasArraySize;
                                 if (unsizedArray && !info.allowUnsizedArrays)
                                 {
-                                        emitError(
-                                            "Unsized arrays are only allowed inside AttributeBlock or ConstantBlock", declarator.name);
+                                        emitError("Unsized arrays are only allowed inside DataBlocks", declarator.name);
                                         continue;
                                 }
 
@@ -1088,8 +1087,7 @@ int componentIndex(char component)
                                 TypeInfo payloadType = resolveType(pipeline.payloadType, false, nullptr);
                                 if (payloadType.isArray && !payloadType.hasArraySize)
                                 {
-                                        emitError(
-                                            "Unsized arrays are only allowed inside AttributeBlock or ConstantBlock",
+                                        emitError("Unsized arrays are only allowed inside DataBlocks",
                                             pipeline.payloadType.name.parts.front());
                                 }
                                 const std::string name = pipeline.variable.content;
@@ -1414,8 +1412,7 @@ int componentIndex(char component)
 
                                 if (unsizedArray)
                                 {
-                                        emitError(
-                                            "Unsized arrays are only allowed inside AttributeBlock or ConstantBlock", declarator.name);
+                                        emitError("Unsized arrays are only allowed inside DataBlocks", declarator.name);
                                         continue;
                                 }
 
@@ -1902,8 +1899,7 @@ int componentIndex(char component)
                                 const bool unsizedArray = typeValid && type.isArray && !type.hasArraySize;
                                 if (unsizedArray)
                                 {
-                                        emitError(
-                                            "Unsized arrays are only allowed inside AttributeBlock or ConstantBlock", declarator.name);
+                                        emitError("Unsized arrays are only allowed inside DataBlocks", declarator.name);
                                         if (declarator.initializer)
                                         {
                                                 evaluateExpression(*declarator.initializer, context, false);

@@ -77,6 +77,7 @@ std::optional<Token::Type> lookupKeyword(std::string_view word)
 	    {"namespace", Token::Type::KeywordNamespace},
 	    {"AttributeBlock", Token::Type::KeywordAttributeBlock},
 	    {"ConstantBlock", Token::Type::KeywordConstantBlock},
+	    {"DataBlock", Token::Type::KeywordDataBlock},
 	    {"Texture", Token::Type::KeywordTexture},
 	    {"as", Token::Type::KeywordAs},
 	    {"constant", Token::Type::KeywordConstant},
