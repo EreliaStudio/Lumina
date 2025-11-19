@@ -177,6 +177,12 @@ struct PostfixExpression final : public Expression
 	std::unique_ptr<Expression> operand;
 };
 
+enum class TextureBindingScope
+{
+	Constant,
+	Attribute
+};
+
 struct VariableDeclarator
 {
 	Token name;
@@ -185,6 +191,9 @@ struct VariableDeclarator
 	bool hasArraySize = false;
 	std::unique_ptr<Expression> arraySize;
 	std::unique_ptr<Expression> initializer;
+	bool hasTextureBinding = false;
+	TextureBindingScope textureBindingScope = TextureBindingScope::Constant;
+	Token textureBindingToken;
 };
 
 struct VariableDeclaration

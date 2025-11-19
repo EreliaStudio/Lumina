@@ -73,14 +73,15 @@ private:
 
     bool looksLikeDeclaration() const;
 
-    VariableDeclarator parseSingleDeclarator(const TypeName &type, bool allowDirectInit);
-    VariableDeclarator parseDeclaratorWithConsumedName(Token nameToken, bool isReference, const TypeName &type,
-        bool allowDirectInit);
-    void parseArraySuffix(VariableDeclarator &decl);
-    void parseDeclaratorInitializer(VariableDeclarator &decl, const TypeName &type, bool allowDirectInit);
-    VariableDeclaration parseVariableDeclaration(TypeName type, bool allowDirectInit);
-    VariableDeclaration parseVariableDeclarationFromExisting(TypeName type, VariableDeclarator first,
-        bool allowDirectInit);
+	VariableDeclarator parseSingleDeclarator(const TypeName &type, bool allowDirectInit);
+	VariableDeclarator parseDeclaratorWithConsumedName(Token nameToken, bool isReference, const TypeName &type,
+	    bool allowDirectInit);
+	void parseArraySuffix(VariableDeclarator &decl);
+	void parseDeclaratorInitializer(VariableDeclarator &decl, const TypeName &type, bool allowDirectInit);
+	void parseTextureBindingQualifier(VariableDeclarator &decl);
+	VariableDeclaration parseVariableDeclaration(TypeName type, bool allowDirectInit);
+	VariableDeclaration parseVariableDeclarationFromExisting(TypeName type, VariableDeclarator first,
+	    bool allowDirectInit);
 
     ExpressionPtr parseExpression();
     ExpressionPtr parseAssignment();
@@ -954,11 +955,12 @@ VariableDeclarator Parser::Impl::parseDeclaratorWithConsumedName(Token nameToken
     const TypeName &type, bool allowDirectInit)
 {
     VariableDeclarator declarator;
-    declarator.name = std::move(nameToken);
-    declarator.isReference = isReference;
-    parseArraySuffix(declarator);
-    parseDeclaratorInitializer(declarator, type, allowDirectInit);
-    return declarator;
+	declarator.name = std::move(nameToken);
+	declarator.isReference = isReference;
+	parseArraySuffix(declarator);
+	parseDeclaratorInitializer(declarator, type, allowDirectInit);
+	parseTextureBindingQualifier(declarator);
+	return declarator;
 }
 
 void Parser::Impl::parseArraySuffix(VariableDeclarator &decl)
@@ -987,6 +989,30 @@ void Parser::Impl::parseDeclaratorInitializer(VariableDeclarator &decl, const Ty
     {
         decl.initializer = parseDirectInitializer(type);
     }
+}
+
+void Parser::Impl::parseTextureBindingQualifier(VariableDeclarator &decl)
+{
+    if (!match(Token::Type::KeywordAs))
+    {
+        return;
+    }
+
+    decl.hasTextureBinding = true;
+    if (match(Token::Type::KeywordConstant))
+    {
+        decl.textureBindingScope = TextureBindingScope::Constant;
+        decl.textureBindingToken = previous();
+        return;
+    }
+    if (match(Token::Type::KeywordAttribute))
+    {
+        decl.textureBindingScope = TextureBindingScope::Attribute;
+        decl.textureBindingToken = previous();
+        return;
+    }
+
+    reportError("Expected 'constant' or 'attribute' after 'as'", peek());
 }
 
 VariableDeclaration Parser::Impl::parseVariableDeclaration(TypeName type, bool allowDirectInit)

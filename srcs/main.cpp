@@ -146,6 +146,11 @@ namespace
 				text += "<expr>";
 			}
 		}
+		if (declarator.hasTextureBinding)
+		{
+			text += " as ";
+			text += (declarator.textureBindingScope == TextureBindingScope::Attribute) ? "attribute" : "constant";
+		}
 		return text;
 	}
 

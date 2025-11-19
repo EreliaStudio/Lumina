@@ -1270,6 +1270,16 @@ Texture object for sampling colors.
 #### Description:
   The `Texture` type represents a texture resource that can be sampled to retrieve color information. Textures are sampled using UV coordinates, where `(0.0f, 0.0f)` corresponds to the bottom-left corner and `(1.0f, 1.0f)` corresponds to the top-right corner.
 
+#### Declaration:
+Textures are declared at the global scope with an optional storage qualifier that controls how the runtime drives the binding.
+```cpp
+Texture baseColor;              // defaults to constant scope
+Texture normalMap as attribute; // per render item
+Texture emissive as constant;   // explicit constant scope
+```
+- `constant`: the binding is shared across every pass that uses this shader (ideal for frame-level resources). This is the default when the qualifier is omitted.
+- `attribute`: the binding belongs to the render submission (similar to data provided by an AttributeBlock).
+
 #### Constructors:
 	None.
 

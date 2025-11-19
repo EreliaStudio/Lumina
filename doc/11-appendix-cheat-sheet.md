@@ -118,8 +118,10 @@ ConstantBlock constantBlockName
 - Define 2D texture object
 - Textures can't be placed inside a structure block, nor in an Attribute or Constant
 ```cpp
-Texture myTexture;
+Texture albedoTexture;              // constant by default
+Texture normalTexture as attribute; // per render submission
 ```
+- Use the `as` clause to specify whether the binding is shared (`constant`, the default) or unique (`attribute`).
 - You can then access the pixel stored inside the texture using the method `getPixel(Vector2)`
 ```cpp
 FragmentPass()

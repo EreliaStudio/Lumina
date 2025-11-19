@@ -698,6 +698,15 @@ int componentIndex(char component)
 						expressionInfo[&expression] = std::move(info);
 				}
 
+				const Token &textureBindingToken(const VariableDeclarator &declarator) const
+				{
+						if (!declarator.textureBindingToken.content.empty())
+						{
+								return declarator.textureBindingToken;
+						}
+						return declarator.name;
+				}
+
 		void resetStageBuiltins()
                 {
                         for (auto &builtins : state.stageBuiltins)
@@ -955,6 +964,13 @@ int componentIndex(char component)
                                         emitError(
                                             "Unsized arrays are only allowed inside AttributeBlock or ConstantBlock", declarator.name);
                                         continue;
+                                }
+
+                                if (declarator.hasTextureBinding && type.name != "Texture")
+                                {
+                                        emitError(
+                                            "Only Texture declarations can use 'as constant' or 'as attribute'",
+                                            textureBindingToken(declarator));
                                 }
 
                                 AggregateField entry;
@@ -1388,6 +1404,13 @@ int componentIndex(char component)
                                 const bool typeValid = type.valid();
                                 const bool isTexture = (type.name == "Texture");
                                 const bool unsizedArray = typeValid && type.isArray && !type.hasArraySize;
+
+                                if (declarator.hasTextureBinding && !isTexture)
+                                {
+                                        emitError(
+                                            "Only Texture declarations can use 'as constant' or 'as attribute'",
+                                            textureBindingToken(declarator));
+                                }
 
                                 if (unsizedArray)
                                 {
@@ -1886,6 +1909,12 @@ int componentIndex(char component)
                                                 evaluateExpression(*declarator.initializer, context, false);
                                         }
                                         continue;
+                                }
+                                if (declarator.hasTextureBinding && type.name != "Texture")
+                                {
+                                        emitError(
+                                            "Only Texture declarations can use 'as constant' or 'as attribute'",
+                                            textureBindingToken(declarator));
                                 }
                                 if (type.name == "Texture")
                                 {

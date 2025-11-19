@@ -582,6 +582,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 				entry.luminaName = safeTokenContent(declarator.name);
 				entry.glslName = "_tx" + std::to_string(nextTextureIndex++);
 				entry.type = "sampler2D";
+				entry.scope = declarator.textureBindingScope;
 				textures.push_back(std::move(entry));
 			}
 		}
@@ -1108,6 +1109,13 @@ std::string emitJson(const CompilerContext &context)
 			    writeJsonString(oss, "type");
 			    oss << ": ";
 			    writeJsonString(oss, entry.type);
+			    oss << ",\n";
+
+			    writeIndent(oss, entryIndent + 2);
+			    writeJsonString(oss, "scope");
+			    oss << ": ";
+			    const char *scope = (entry.scope == TextureBindingScope::Attribute) ? "attribute" : "constant";
+			    writeJsonString(oss, scope);
 			    oss << "\n";
 
 			    writeIndent(oss, entryIndent);

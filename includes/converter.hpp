@@ -17,6 +17,7 @@ struct TextureBinding
 	std::string luminaName;
 	std::string glslName;
 	std::string type;
+	TextureBindingScope scope = TextureBindingScope::Constant;
 };
 
 struct ConverterInput

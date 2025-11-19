@@ -245,6 +245,12 @@ std::string_view tokenTypeToString(Token::Type p_type)
 			return "KeywordConstantBlock";
 		case Token::Type::KeywordTexture:
 			return "KeywordTexture";
+		case Token::Type::KeywordAs:
+			return "KeywordAs";
+		case Token::Type::KeywordConstant:
+			return "KeywordConstant";
+		case Token::Type::KeywordAttribute:
+			return "KeywordAttribute";
 		case Token::Type::KeywordDefine:
 			return "KeywordDefine";
 		case Token::Type::KeywordReturn:

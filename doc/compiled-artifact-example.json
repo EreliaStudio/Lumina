@@ -39,16 +39,18 @@
       "name": "outDepth"
     }
   ],
-  "textures": [
+ "textures": [
     {
       "luminaName": "baseColorTexture",
       "glslName": "_tx0",
-      "type": "sampler2D"
+      "type": "sampler2D",
+      "scope": "constant"
     },
     {
       "luminaName": "emissiveTexture",
       "glslName": "_tx1",
-      "type": "sampler2D"
+      "type": "sampler2D",
+      "scope": "attribute"
     }
   ],
   "constants": [

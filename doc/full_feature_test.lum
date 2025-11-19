@@ -118,8 +118,8 @@ ConstantBlock SceneData
 };
 
 Texture albedoTexture;
-Texture normalTexture;
-Texture emissiveTexture;
+Texture normalTexture as attribute;
+Texture emissiveTexture as constant;
 
 const float INV_PI = 0.318309886;
 

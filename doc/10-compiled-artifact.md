@@ -22,7 +22,7 @@ The compiler now produces a single JSON document that contains every piece of in
     { "location": 0, "type": "vec4", "name": "outColor" }
   ],
   "textures": [
-    { "luminaName": "albedo", "glslName": "_tx0", "type": "sampler2D" }
+    { "luminaName": "albedo", "glslName": "_tx0", "type": "sampler2D", "scope": "constant" }
   ],
   "constants": [
     {
@@ -99,13 +99,14 @@ Each entry contains:
 `framebuffers` mirrors the layout structure but lists every color/depth attachment written by the fragment shader. Entries contain the layout `location`, output `type`, and generated `name`.
 
 ## Textures
-The `textures` array keeps the mapping between the identifier used in Lumina and the name emitted in GLSL so that the runtime can connect descriptors correctly.
+The `textures` array keeps the mapping between the identifier used in Lumina and the name emitted in GLSL so that the runtime can connect descriptors correctly. Each entry also carries the `scope` selected in the source file (`constant` or `attribute`), mirroring the `as` qualifier used during declaration.
 
 ```
 {
   "luminaName": "albedo",
   "glslName": "_tx0",
-  "type": "sampler2D"
+  "type": "sampler2D",
+  "scope": "constant"
 }
 ```
 
