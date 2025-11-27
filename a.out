@@ -1,169 +1,37 @@
 {
   "shader": {
     "sources": {
-      "vertex": "#version 450 core\n\nlayout(location = 0) in vec3 inPosition;\nlayout(location = 1) in vec3 inNormal;\nlayout(location = 2) in vec2 inUV;\nlayout(location = 3) in vec4 inVertexColor;\n\nlayout(location = 0) out vec3 worldPosition;\nlayout(location = 1) out vec3 worldNormal;\nlayout(location = 2) out vec2 fragUV;\nlayout(location = 3) out vec4 vertexColor;\nlayout(location = 4) out float viewDistance;\n\nstruct Material\n{\n\tvec4 albedo;\n\tfloat roughness;\n\tfloat metallic;\n};\n\nstruct SkyGradient\n{\n\tvec4 horizon;\n\tvec4 zenith;\n\tfloat intensity;\n};\n\nvoid Material__applyTint(inout Material _self, vec4 tint)\n{\n\t_self.albedo *= tint;\n\t_self.albedo = clamp(_self.albedo, 0.0, 1.0);\n}\n\nvec4 SkyGradient__sample(const SkyGradient _self, float t)\n{\n\tfloat factor = clamp(t, 0.0, 1.0);\n\tvec4 blended = mix(_self.horizon, _self.zenith, factor);\n\treturn (blended * _self.intensity);\n}\n\n\nlayout(binding = CONSTANT_BINDING, std140) uniform SceneData_Type\n{\n\tvec3 lightPosition;\n\tvec4 lightColor;\n\tvec3 cameraPosition;\n\tfloat ambientIntensity;\n\tvec4 fogColor;\n\tfloat exposure;\n\tSkyGradient skyGradient;\n} SceneData;\n\nvec3 SceneData_Type__viewDirection(vec3 worldPos)\n{\n\treturn normalize((SceneData.cameraPosition - worldPos));\n}\n\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform ModelData_Type\n{\n\tmat4 modelMatrix;\n\tmat4 viewProjection;\n\tmat3 normalMatrix;\n\tvec4 uvTransform;\n\tvec2 surfaceParams;\n} ModelData;\n\nvec2 ModelData_Type__transformUV(vec2 uv)\n{\n\treturn ((uv * ModelData.uvTransform.xy) + ModelData.uvTransform.zw);\n}\n\nvec4 ModelData_Type__toWorld4(vec3 localPosition)\n{\n\treturn (ModelData.modelMatrix * vec4(localPosition, 1.0));\n}\n\nvec3 ModelData_Type__toWorld(vec3 localPosition)\n{\n\treturn ModelData_Type__toWorld4(localPosition).xyz;\n}\n\nvec3 ModelData_Type__toWorldNormal(vec3 localNormal)\n{\n\treturn normalize((ModelData.normalMatrix * localNormal));\n}\n\n\nconst float INV_PI = 0.318309886;\n\nfloat Lighting__BRDF__distributionGGX(float NdotH, float roughness)\n{\n\tfloat alpha = (roughness * roughness);\n\tfloat alpha2 = (alpha * alpha);\n\tfloat denom = (((NdotH * NdotH) * (alpha2 - 1.0)) + 1.0);\n\tfloat denomSquared = (denom * denom);\n\treturn (alpha2 / max(denomSquared, 0.0001));\n}\n\nfloat Lighting__BRDF__geometrySmith(float NdotV, float NdotL, float roughness)\n{\n\tfloat r = (roughness + 1.0);\n\tfloat k = ((r * r) / 8.0);\n\tfloat gV = (NdotV / ((NdotV * (1.0 - k)) + k));\n\tfloat gL = (NdotL / ((NdotL * (1.0 - k)) + k));\n\treturn (gV * gL);\n}\n\nvec3 Lighting__BRDF__fresnelSchlick(float cosTheta, vec3 F0)\n{\n\tvec3 oneVec = vec3(1.0, 1.0, 1.0);\n\tfloat invAngle = (1.0 - cosTheta);\n\tfloat fresnelFactor = pow(invAngle, 5.0);\n\treturn (F0 + ((oneVec - F0) * fresnelFactor));\n}\n\nvec4 Lighting__applyBRDF(Material material, vec3 normal, vec3 viewDir, vec3 lightDir, vec4 lightColor)\n{\n\tvec3 N = normalize(normal);\n\tvec3 V = normalize(viewDir);\n\tvec3 L = normalize(lightDir);\n\tvec3 H = normalize((V + L));\n\tfloat NdotL = max(dot(N, L), 0.0);\n\tfloat NdotV = max(dot(N, V), 0.0);\n\tfloat NdotH = max(dot(N, H), 0.0);\n\tfloat VdotH = max(dot(V, H), 0.0);\n\tvec3 baseColor = vec3(material.albedo.r, material.albedo.g, material.albedo.b);\n\tvec3 oneVec = vec3(1.0, 1.0, 1.0);\n\tvec3 F0 = mix(vec3(0.04, 0.04, 0.04), baseColor, material.metallic);\n\tfloat D = Lighting__BRDF__distributionGGX(NdotH, material.roughness);\n\tfloat G = Lighting__BRDF__geometrySmith(NdotV, NdotL, material.roughness);\n\tvec3 F = Lighting__BRDF__fresnelSchlick(VdotH, F0);\n\tvec3 numerator = ((D * G) * F);\n\tfloat denom = max(((4.0 * NdotV) * NdotL), 0.0001);\n\tvec3 specular = (numerator / denom);\n\tvec3 kS = F;\n\tvec3 kD = ((oneVec - kS) * (1.0 - material.metallic));\n\tvec3 diffuse = ((baseColor * kD) * INV_PI);\n\tvec3 lightRGB = vec3(lightColor.r, lightColor.g, lightColor.b);\n\tvec3 radiance = (((diffuse + specular) * lightRGB) * NdotL);\n\tfloat alpha = (material.albedo.a * lightColor.a);\n\treturn clamp(vec4(radiance.x, radiance.y, radiance.z, alpha), 0.0, 1.0);\n}\n\nfloat computeAttenuation(float distanceValue)\n{\n\treturn (1.0 / ((1.0 + distanceValue) + (distanceValue * distanceValue)));\n}\n\nvec4 applyFog(vec4 color, float distanceValue)\n{\n\tfloat exposure = max(SceneData.exposure, 0.0001);\n\tfloat fogFactor = smoothstep(0.0, exposure, distanceValue);\n\tvec4 skyTint = SkyGradient__sample(SceneData.skyGradient, (distanceValue * 0.01));\n\tvec4 fogMix = mix(SceneData.fogColor, skyTint, fogFactor);\n\treturn mix(color, fogMix, fogFactor);\n}\n\n\nuniform sampler2D _tx0;\nuniform sampler2D _tx1;\nuniform sampler2D _tx2;\n\nvoid main()\n{\n\tvec4 worldPosition4 = ModelData_Type__toWorld4(inPosition);\n\tworldPosition = worldPosition4.xyz;\n\tworldNormal = ModelData_Type__toWorldNormal(inNormal);\n\tfragUV = ModelData_Type__transformUV(inUV);\n\tvertexColor = inVertexColor;\n\tviewDistance = length((SceneData.cameraPosition - worldPosition));\n\tgl_Position = (ModelData.viewProjection * worldPosition4);\n}\n",
-      "fragment": "#version 450 core\n\nlayout(location = 0) in vec3 worldPosition;\nlayout(location = 1) in vec3 worldNormal;\nlayout(location = 2) in vec2 fragUV;\nlayout(location = 3) in vec4 vertexColor;\nlayout(location = 4) in float viewDistance;\n\nlayout(location = 0) out vec4 pixelColor;\nlayout(location = 1) out vec4 bloomColor;\n\nstruct Material\n{\n\tvec4 albedo;\n\tfloat roughness;\n\tfloat metallic;\n};\n\nstruct SkyGradient\n{\n\tvec4 horizon;\n\tvec4 zenith;\n\tfloat intensity;\n};\n\nvoid Material__applyTint(inout Material _self, vec4 tint)\n{\n\t_self.albedo *= tint;\n\t_self.albedo = clamp(_self.albedo, 0.0, 1.0);\n}\n\nvec4 SkyGradient__sample(const SkyGradient _self, float t)\n{\n\tfloat factor = clamp(t, 0.0, 1.0);\n\tvec4 blended = mix(_self.horizon, _self.zenith, factor);\n\treturn (blended * _self.intensity);\n}\n\n\nlayout(binding = CONSTANT_BINDING, std140) uniform SceneData_Type\n{\n\tvec3 lightPosition;\n\tvec4 lightColor;\n\tvec3 cameraPosition;\n\tfloat ambientIntensity;\n\tvec4 fogColor;\n\tfloat exposure;\n\tSkyGradient skyGradient;\n} SceneData;\n\nvec3 SceneData_Type__viewDirection(vec3 worldPos)\n{\n\treturn normalize((SceneData.cameraPosition - worldPos));\n}\n\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform ModelData_Type\n{\n\tmat4 modelMatrix;\n\tmat4 viewProjection;\n\tmat3 normalMatrix;\n\tvec4 uvTransform;\n\tvec2 surfaceParams;\n} ModelData;\n\nvec2 ModelData_Type__transformUV(vec2 uv)\n{\n\treturn ((uv * ModelData.uvTransform.xy) + ModelData.uvTransform.zw);\n}\n\nvec4 ModelData_Type__toWorld4(vec3 localPosition)\n{\n\treturn (ModelData.modelMatrix * vec4(localPosition, 1.0));\n}\n\nvec3 ModelData_Type__toWorld(vec3 localPosition)\n{\n\treturn ModelData_Type__toWorld4(localPosition).xyz;\n}\n\nvec3 ModelData_Type__toWorldNormal(vec3 localNormal)\n{\n\treturn normalize((ModelData.normalMatrix * localNormal));\n}\n\n\nconst float INV_PI = 0.318309886;\n\nfloat Lighting__BRDF__distributionGGX(float NdotH, float roughness)\n{\n\tfloat alpha = (roughness * roughness);\n\tfloat alpha2 = (alpha * alpha);\n\tfloat denom = (((NdotH * NdotH) * (alpha2 - 1.0)) + 1.0);\n\tfloat denomSquared = (denom * denom);\n\treturn (alpha2 / max(denomSquared, 0.0001));\n}\n\nfloat Lighting__BRDF__geometrySmith(float NdotV, float NdotL, float roughness)\n{\n\tfloat r = (roughness + 1.0);\n\tfloat k = ((r * r) / 8.0);\n\tfloat gV = (NdotV / ((NdotV * (1.0 - k)) + k));\n\tfloat gL = (NdotL / ((NdotL * (1.0 - k)) + k));\n\treturn (gV * gL);\n}\n\nvec3 Lighting__BRDF__fresnelSchlick(float cosTheta, vec3 F0)\n{\n\tvec3 oneVec = vec3(1.0, 1.0, 1.0);\n\tfloat invAngle = (1.0 - cosTheta);\n\tfloat fresnelFactor = pow(invAngle, 5.0);\n\treturn (F0 + ((oneVec - F0) * fresnelFactor));\n}\n\nvec4 Lighting__applyBRDF(Material material, vec3 normal, vec3 viewDir, vec3 lightDir, vec4 lightColor)\n{\n\tvec3 N = normalize(normal);\n\tvec3 V = normalize(viewDir);\n\tvec3 L = normalize(lightDir);\n\tvec3 H = normalize((V + L));\n\tfloat NdotL = max(dot(N, L), 0.0);\n\tfloat NdotV = max(dot(N, V), 0.0);\n\tfloat NdotH = max(dot(N, H), 0.0);\n\tfloat VdotH = max(dot(V, H), 0.0);\n\tvec3 baseColor = vec3(material.albedo.r, material.albedo.g, material.albedo.b);\n\tvec3 oneVec = vec3(1.0, 1.0, 1.0);\n\tvec3 F0 = mix(vec3(0.04, 0.04, 0.04), baseColor, material.metallic);\n\tfloat D = Lighting__BRDF__distributionGGX(NdotH, material.roughness);\n\tfloat G = Lighting__BRDF__geometrySmith(NdotV, NdotL, material.roughness);\n\tvec3 F = Lighting__BRDF__fresnelSchlick(VdotH, F0);\n\tvec3 numerator = ((D * G) * F);\n\tfloat denom = max(((4.0 * NdotV) * NdotL), 0.0001);\n\tvec3 specular = (numerator / denom);\n\tvec3 kS = F;\n\tvec3 kD = ((oneVec - kS) * (1.0 - material.metallic));\n\tvec3 diffuse = ((baseColor * kD) * INV_PI);\n\tvec3 lightRGB = vec3(lightColor.r, lightColor.g, lightColor.b);\n\tvec3 radiance = (((diffuse + specular) * lightRGB) * NdotL);\n\tfloat alpha = (material.albedo.a * lightColor.a);\n\treturn clamp(vec4(radiance.x, radiance.y, radiance.z, alpha), 0.0, 1.0);\n}\n\nfloat computeAttenuation(float distanceValue)\n{\n\treturn (1.0 / ((1.0 + distanceValue) + (distanceValue * distanceValue)));\n}\n\nvec4 applyFog(vec4 color, float distanceValue)\n{\n\tfloat exposure = max(SceneData.exposure, 0.0001);\n\tfloat fogFactor = smoothstep(0.0, exposure, distanceValue);\n\tvec4 skyTint = SkyGradient__sample(SceneData.skyGradient, (distanceValue * 0.01));\n\tvec4 fogMix = mix(SceneData.fogColor, skyTint, fogFactor);\n\treturn mix(color, fogMix, fogFactor);\n}\n\n\nuniform sampler2D _tx0;\nuniform sampler2D _tx1;\nuniform sampler2D _tx2;\n\nvoid main()\n{\n\tfloat ambientIntensity = clamp(SceneData.ambientIntensity, 0.0, 1.0);\n\tvec4 albedo = texture(_tx0, fragUV);\n\tvec4 emission = texture(_tx2, fragUV);\n\tvec4 normalSample = texture(_tx1, fragUV);\n\tif ((albedo.a <= 0.001))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\tvec3 sampledNormal = vec3(((normalSample.r * 2.0) - 1.0), ((normalSample.g * 2.0) - 1.0), ((normalSample.b * 2.0) - 1.0));\n\tvec3 blendedNormal = normalize(mix(worldNormal, sampledNormal, 0.35));\n\tMaterial baseMaterial = Material(albedo, ModelData.surfaceParams.x, ModelData.surfaceParams.y);\n\tMaterial__applyTint(baseMaterial, vertexColor);\n\tvec3 viewDir = SceneData_Type__viewDirection(worldPosition);\n\tvec3 lightDir = (SceneData.lightPosition - worldPosition);\n\tvec4 lighting = Lighting__applyBRDF(baseMaterial, blendedNormal, viewDir, lightDir, SceneData.lightColor);\n\tvec4 ambient = (SceneData.lightColor * ambientIntensity);\n\tvec4 litColor = clamp((lighting + ambient), 0.0, 1.0);\n\tfloat attenuation = computeAttenuation(viewDistance);\n\tvec4 shaded = applyFog(((litColor * attenuation) + emission), viewDistance);\n\tpixelColor = vec4(shaded.r, shaded.g, shaded.b, shaded.a);\n\tbloomColor = vec4(emission.r, emission.g, emission.b, 1.0);\n}\n"
+      "vertex": "#version 450 core\n\nlayout(location = 0) in vec2 vertexPosition;\nlayout(location = 1) in vec2 vertexUV;\n\nlayout(location = 0) out vec2 fragUV;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tvec4 clip = vec4(vertexPosition, 0.0, 1.0);\n\tgl_Position = clip;\n\tfragUV = vertexUV;\n}\n",
+      "fragment": "#version 450 core\n\nlayout(location = 0) in vec2 fragUV;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tpixelColor = texture(_tx0, fragUV);\n}\n"
     }
   },
   "layouts": [
     {
       "location": 0,
-      "type": "Vector3",
-      "name": "inPosition"
+      "type": "Vector2",
+      "name": "vertexPosition"
     },
     {
       "location": 1,
-      "type": "Vector3",
-      "name": "inNormal"
-    },
-    {
-      "location": 2,
       "type": "Vector2",
-      "name": "inUV"
-    },
-    {
-      "location": 3,
-      "type": "Color",
-      "name": "inVertexColor"
+      "name": "vertexUV"
     }
   ],
   "framebuffers": [
     {
       "location": 0,
-      "type": "Vector4",
+      "type": "Color",
       "name": "pixelColor"
-    },
-    {
-      "location": 1,
-      "type": "Vector4",
-      "name": "bloomColor"
     }
   ],
   "textures": [
     {
-      "luminaName": "albedoTexture",
-      "glslName": "_tx0",
-      "type": "sampler2D"
-    },
-    {
-      "luminaName": "normalTexture",
-      "glslName": "_tx1",
-      "type": "sampler2D"
-    },
-    {
-      "luminaName": "emissiveTexture",
-      "glslName": "_tx2",
-      "type": "sampler2D"
+      "location": 0,
+      "luminaName": "mainTexture",
+      "type": "sampler2D",
+      "scope": "constant"
     }
   ],
-  "constants": [
-    {
-      "name": "SceneData",
-      "type": "UBO",
-      "size": 128,
-      "members": [
-        {
-          "name": "lightPosition",
-          "offset": 0,
-          "type": "Element",
-          "size": 12
-        },
-        {
-          "name": "lightColor",
-          "offset": 16,
-          "type": "Element",
-          "size": 16
-        },
-        {
-          "name": "cameraPosition",
-          "offset": 32,
-          "type": "Element",
-          "size": 12
-        },
-        {
-          "name": "ambientIntensity",
-          "offset": 44,
-          "type": "Element",
-          "size": 4
-        },
-        {
-          "name": "fogColor",
-          "offset": 48,
-          "type": "Element",
-          "size": 16
-        },
-        {
-          "name": "exposure",
-          "offset": 64,
-          "type": "Element",
-          "size": 4
-        },
-        {
-          "name": "skyGradient",
-          "offset": 80,
-          "type": "Element",
-          "size": 48,
-          "members": [
-            {
-              "name": "horizon",
-              "offset": 0,
-              "type": "Element",
-              "size": 16
-            },
-            {
-              "name": "zenith",
-              "offset": 16,
-              "type": "Element",
-              "size": 16
-            },
-            {
-              "name": "intensity",
-              "offset": 32,
-              "type": "Element",
-              "size": 4
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "attributes": [
-    {
-      "name": "ModelData",
-      "type": "UBO",
-      "size": 208,
-      "members": [
-        {
-          "name": "modelMatrix",
-          "offset": 0,
-          "type": "Element",
-          "size": 64
-        },
-        {
-          "name": "viewProjection",
-          "offset": 64,
-          "type": "Element",
-          "size": 64
-        },
-        {
-          "name": "normalMatrix",
-          "offset": 128,
-          "type": "Element",
-          "size": 48
-        },
-        {
-          "name": "uvTransform",
-          "offset": 176,
-          "type": "Element",
-          "size": 16
-        },
-        {
-          "name": "surfaceParams",
-          "offset": 192,
-          "type": "Element",
-          "size": 8
-        }
-      ]
-    }
-  ]
+  "constants": [],
+  "attributes": []
 }

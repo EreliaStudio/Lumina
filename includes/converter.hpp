@@ -14,6 +14,7 @@ struct StageIO
 
 struct TextureBinding
 {
+	int location = 0;
 	std::string luminaName;
 	std::string glslName;
 	std::string type;

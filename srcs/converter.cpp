@@ -2,6 +2,7 @@
 
 #include "ast.hpp"
 
+#include <algorithm>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -759,14 +760,22 @@ void ConverterImpl::emitGlobalVariables(std::ostringstream &oss) const
 
 void ConverterImpl::emitTextures(std::ostringstream &oss) const
 {
-	for (const auto &[_, binding] : textureLookup)
+	if (input.textures.empty())
 	{
-		oss << "uniform " << binding.type << " " << binding.glslName << ";\n";
+		return;
 	}
-	if (!textureLookup.empty())
+
+	std::vector<TextureBinding> bindings = input.textures;
+	std::sort(bindings.begin(), bindings.end(), [](const TextureBinding &a, const TextureBinding &b) {
+		return a.location < b.location;
+	});
+
+	for (const TextureBinding &binding : bindings)
 	{
-		oss << "\n";
+		oss << "layout(binding = " << binding.location << ") uniform " << binding.type << " " << binding.glslName
+		    << ";\n";
 	}
+	oss << "\n";
 }
 
 void ConverterImpl::emitFunctions(std::ostringstream &oss) const

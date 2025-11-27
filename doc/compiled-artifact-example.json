@@ -41,14 +41,14 @@
   ],
  "textures": [
     {
+      "location": 0,
       "luminaName": "baseColorTexture",
-      "glslName": "_tx0",
       "type": "sampler2D",
       "scope": "constant"
     },
     {
+      "location": 1,
       "luminaName": "emissiveTexture",
-      "glslName": "_tx1",
       "type": "sampler2D",
       "scope": "attribute"
     }

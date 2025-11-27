@@ -463,7 +463,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 		int nextLayoutLocation = 0;
 		int nextVaryingLocation = 0;
 		int nextFramebufferLocation = 0;
-		int nextTextureIndex = 0;
+		int nextTextureLocation = 0;
 
 		void collectStructs(const std::vector<std::unique_ptr<Instruction>> &instructions)
 		{
@@ -580,7 +580,9 @@ void writeIndent(std::ostringstream &oss, int indent)
 			{
 				TextureEntry entry;
 				entry.luminaName = safeTokenContent(declarator.name);
-				entry.glslName = "_tx" + std::to_string(nextTextureIndex++);
+				entry.location = nextTextureLocation;
+				entry.glslName = "_tx" + std::to_string(nextTextureLocation);
+				++nextTextureLocation;
 				entry.type = "sampler2D";
 				entry.scope = declarator.textureBindingScope;
 				textures.push_back(std::move(entry));
@@ -1094,15 +1096,13 @@ std::string emitJson(const CompilerContext &context)
 			    oss << "{\n";
 
 			    writeIndent(oss, entryIndent + 2);
+			    writeJsonString(oss, "location");
+			    oss << ": " << entry.location << ",\n";
+
+			    writeIndent(oss, entryIndent + 2);
 			    writeJsonString(oss, "luminaName");
 			    oss << ": ";
 			    writeJsonString(oss, entry.luminaName);
-			    oss << ",\n";
-
-			    writeIndent(oss, entryIndent + 2);
-			    writeJsonString(oss, "glslName");
-			    oss << ": ";
-			    writeJsonString(oss, entry.glslName);
 			    oss << ",\n";
 
 			    writeIndent(oss, entryIndent + 2);
