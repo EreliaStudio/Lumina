@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstddef>
 #include <filesystem>
+#include <initializer_list>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -474,6 +475,36 @@ int componentIndex(char component)
 		return name == "Color";
 	}
 
+	bool isFloatVectorOrColorTypeName(const std::string &name)
+	{
+		return isFloatVectorTypeName(name) || isColorTypeName(name);
+	}
+
+	bool isIntVectorTypeName(const std::string &name)
+	{
+		return name == "Vector2Int" || name == "Vector3Int" || name == "Vector4Int";
+	}
+
+	bool isUIntVectorTypeName(const std::string &name)
+	{
+		return name == "Vector2UInt" || name == "Vector3UInt" || name == "Vector4UInt";
+	}
+
+	bool isFloatLikeTypeName(const std::string &name)
+	{
+		return isFloatTypeName(name) || isFloatVectorOrColorTypeName(name);
+	}
+
+	bool isIntLikeTypeName(const std::string &name)
+	{
+		return name == "int" || isIntVectorTypeName(name);
+	}
+
+	bool isUIntLikeTypeName(const std::string &name)
+	{
+		return name == "uint" || isUIntVectorTypeName(name);
+	}
+
 	bool isMatrixTypeName(const std::string &name)
 	{
 		int cols = 0;
@@ -568,6 +599,17 @@ int componentIndex(char component)
 				if (leftScalar && rightVectorDim > 0)
 				{
 					return makeResult(right);
+				}
+				return std::nullopt;
+			case BinaryOperator::Less:
+			case BinaryOperator::LessEqual:
+			case BinaryOperator::Greater:
+			case BinaryOperator::GreaterEqual:
+			case BinaryOperator::Equal:
+			case BinaryOperator::NotEqual:
+				if (leftScalar && rightScalar)
+				{
+					return makeResult(left);
 				}
 				return std::nullopt;
 			default:
@@ -2523,6 +2565,387 @@ int componentIndex(char component)
                         return callee;
                 }
 
+		bool resolveBuiltinFunctionCall(const IdentifierExpression &identifier,
+		    const std::vector<std::unique_ptr<Expression>> &arguments, FunctionContext &context, TypedValue &result)
+		{
+			if (identifier.name.parts.size() != 1)
+			{
+				return false;
+			}
+
+			const Token &token = identifier.name.parts.front();
+			const std::string name = token.content;
+
+			const auto emitArgError = [&](const std::string &message) -> bool {
+				emitError(message, token);
+				result = {};
+				return true;
+			};
+
+			std::vector<TypedValue> evaluatedArgs;
+			evaluatedArgs.reserve(arguments.size());
+			for (const std::unique_ptr<Expression> &argument : arguments)
+			{
+				if (argument)
+				{
+					evaluatedArgs.push_back(evaluateExpression(*argument, context, false));
+				}
+				else
+				{
+					evaluatedArgs.push_back({});
+				}
+			}
+
+			const auto requireArgCount = [&](std::size_t expected) -> bool {
+				if (evaluatedArgs.size() != expected)
+				{
+					return emitArgError(name + "() expects " + std::to_string(expected) + " argument" +
+					    (expected == 1 ? "" : "s"));
+				}
+				return true;
+			};
+
+			const auto baseTypeName = [&](std::size_t index) -> std::string {
+				if (index >= evaluatedArgs.size() || !evaluatedArgs[index].type.valid())
+				{
+					return {};
+				}
+				return stripReference(evaluatedArgs[index].type).name;
+			};
+
+			const auto sharedType = [&](std::initializer_list<std::size_t> indices) -> std::string {
+				std::string candidate;
+				for (std::size_t index : indices)
+				{
+					std::string typeName = baseTypeName(index);
+					if (typeName.empty())
+					{
+						return {};
+					}
+					if (candidate.empty())
+					{
+						candidate = typeName;
+					}
+					else if (candidate != typeName)
+					{
+						return {};
+					}
+				}
+				return candidate;
+			};
+
+			const auto setResult = [&](const std::string &typeName) {
+				TypeInfo returnType;
+				returnType.name = typeName;
+				result.type = returnType;
+				result.isLValue = false;
+			};
+
+			const auto handleBinarySameType = [&](bool allowFloat, bool allowInt, bool allowUInt) -> bool {
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError(name + "() arguments must share the same type");
+				}
+
+				if ((allowFloat && isFloatLikeTypeName(typeName)) || (allowInt && isIntLikeTypeName(typeName)) ||
+				    (allowUInt && isUIntLikeTypeName(typeName)))
+				{
+					setResult(typeName);
+					return true;
+				}
+
+				return emitArgError(name + "() is not defined for type '" + typeName + "'");
+			};
+
+			const auto handleTernarySameType = [&](bool allowFloat, bool allowInt, bool allowUInt) -> bool {
+				if (!requireArgCount(3))
+				{
+					return true;
+				}
+
+				std::string typeName = sharedType({0, 1, 2});
+				if (typeName.empty())
+				{
+					return emitArgError(name + "() arguments must share the same type");
+				}
+
+				if ((allowFloat && isFloatLikeTypeName(typeName)) || (allowInt && isIntLikeTypeName(typeName)) ||
+				    (allowUInt && isUIntLikeTypeName(typeName)))
+				{
+					setResult(typeName);
+					return true;
+				}
+
+				return emitArgError(name + "() is not defined for type '" + typeName + "'");
+			};
+
+			if (name == "abs" || name == "sign")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				std::string typeName = baseTypeName(0);
+				if (typeName.empty())
+				{
+					return true;
+				}
+				if (isFloatLikeTypeName(typeName) || isIntLikeTypeName(typeName))
+				{
+					setResult(typeName);
+					return true;
+				}
+				return emitArgError(name + "() argument must be a numeric scalar or vector");
+			}
+
+			if (name == "floor" || name == "ceil" || name == "fract" || name == "exp" || name == "log" ||
+			    name == "exp2" || name == "log2" || name == "sqrt" || name == "inversesqrt" || name == "sin" ||
+			    name == "cos" || name == "tan" || name == "asin" || name == "acos" || name == "atan")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				std::string typeName = baseTypeName(0);
+				if (typeName.empty())
+				{
+					return true;
+				}
+				if (isFloatLikeTypeName(typeName))
+				{
+					setResult(typeName);
+					return true;
+				}
+				return emitArgError(name + "() argument must be float-based");
+			}
+
+			if (name == "mod")
+			{
+				return handleBinarySameType(true, true, true);
+			}
+
+			if (name == "min" || name == "max")
+			{
+				return handleBinarySameType(true, true, true);
+			}
+
+			if (name == "pow")
+			{
+				return handleBinarySameType(true, false, false);
+			}
+
+			if (name == "step")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("step() arguments must share the same type");
+				}
+				if (isFloatLikeTypeName(typeName))
+				{
+					setResult(typeName);
+					return true;
+				}
+				return emitArgError("step() is only defined for float types");
+			}
+
+			if (name == "clamp")
+			{
+				return handleTernarySameType(true, true, true);
+			}
+
+			if (name == "smoothstep")
+			{
+				if (!requireArgCount(3))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1, 2});
+				if (typeName.empty())
+				{
+					return emitArgError("smoothstep() arguments must share the same type");
+				}
+				if (isFloatLikeTypeName(typeName))
+				{
+					setResult(typeName);
+					return true;
+				}
+				return emitArgError("smoothstep() is only defined for float types");
+			}
+
+			if (name == "mix")
+			{
+				if (!requireArgCount(3))
+				{
+					return true;
+				}
+
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("mix() first two arguments must share the same type");
+				}
+				if (!isFloatLikeTypeName(typeName))
+				{
+					return emitArgError("mix() is only defined for float types");
+				}
+
+				const std::string factorType = baseTypeName(2);
+				if (factorType.empty())
+				{
+					return true;
+				}
+				if (!isFloatTypeName(factorType))
+				{
+					return emitArgError("mix() third argument must be 'float'");
+				}
+
+				setResult(typeName);
+				return true;
+			}
+
+			if (name == "dot")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("dot() arguments must share the same type");
+				}
+				if (!isFloatVectorOrColorTypeName(typeName))
+				{
+					return emitArgError("dot() requires float vector arguments");
+				}
+
+				TypeInfo returnType;
+				returnType.name = "float";
+				result.type = returnType;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (name == "length")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				std::string typeName = baseTypeName(0);
+				if (typeName.empty())
+				{
+					return true;
+				}
+				if (!isFloatVectorOrColorTypeName(typeName))
+				{
+					return emitArgError("length() requires a float vector argument");
+				}
+
+				TypeInfo returnType;
+				returnType.name = "float";
+				result.type = returnType;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (name == "distance")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("distance() arguments must share the same type");
+				}
+				if (!isFloatVectorOrColorTypeName(typeName))
+				{
+					return emitArgError("distance() requires float vector arguments");
+				}
+
+				TypeInfo returnType;
+				returnType.name = "float";
+				result.type = returnType;
+				result.isLValue = false;
+				return true;
+			}
+
+			if (name == "normalize")
+			{
+				if (!requireArgCount(1))
+				{
+					return true;
+				}
+				std::string typeName = baseTypeName(0);
+				if (typeName.empty())
+				{
+					return true;
+				}
+				if (!isFloatVectorOrColorTypeName(typeName))
+				{
+					return emitArgError("normalize() requires a float vector argument");
+				}
+
+				setResult(typeName);
+				return true;
+			}
+
+			if (name == "cross")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("cross() arguments must share the same type");
+				}
+				if (typeName != "Vector3")
+				{
+					return emitArgError("cross() is only defined for 'Vector3'");
+				}
+
+				setResult("Vector3");
+				return true;
+			}
+
+			if (name == "reflect")
+			{
+				if (!requireArgCount(2))
+				{
+					return true;
+				}
+				std::string typeName = sharedType({0, 1});
+				if (typeName.empty())
+				{
+					return emitArgError("reflect() arguments must share the same type");
+				}
+				if (!isFloatVectorOrColorTypeName(typeName))
+				{
+					return emitArgError("reflect() requires float vector arguments");
+				}
+
+				setResult(typeName);
+				return true;
+			}
+
+			return false;
+		}
+
                 TypedValue evaluateIdentifierCall(const IdentifierExpression &identifier,
                     const std::vector<std::unique_ptr<Expression>> &arguments, FunctionContext &context)
                 {
@@ -2556,6 +2979,12 @@ int componentIndex(char component)
                                             identifier.name.parts.front(), context.methodConst);
                                 }
                         }
+
+			TypedValue builtinResult;
+			if (resolveBuiltinFunctionCall(identifier, arguments, context, builtinResult))
+			{
+				return builtinResult;
+			}
 
                         emitError("No overload of '" + calleeName + "' matches provided arguments",
                             identifier.name.parts.front());

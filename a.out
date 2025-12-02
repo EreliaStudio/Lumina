@@ -1,20 +1,20 @@
 {
   "shader": {
     "sources": {
-      "vertex": "#version 450 core\n\nlayout(location = 0) in vec2 vertexPosition;\nlayout(location = 1) in vec2 vertexUV;\n\nlayout(location = 0) out vec2 fragUV;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tvec4 clip = vec4(vertexPosition, 0.0, 1.0);\n\tgl_Position = clip;\n\tfragUV = vertexUV;\n}\n",
-      "fragment": "#version 450 core\n\nlayout(location = 0) in vec2 fragUV;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tpixelColor = texture(_tx0, fragUV);\n}\n"
+      "vertex": "#version 450 core\n\nlayout(location = 0) in ivec2 modelPosition;\nlayout(location = 1) in vec2 modelUV;\n\nlayout(location = 0) out vec2 fragUV;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__WidgetConstant_Type\n{\n\tfloat layer;\n} spk__WidgetConstant;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform fontStyle_Type\n{\n\tvec4 glyphColor;\n\tvec4 outlineColor;\n\tfloat glyphThreshold;\n\tfloat outlineRatio;\n\tfloat smoothing;\n} fontStyle;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tvec4 screenPosition = vec4(modelPosition, spk__WidgetConstant.layer, 1.0);\n\tvec4 convertedPosition = (spk__ViewRegionConstant.screenToOpenGLMatrix * screenPosition);\n\tgl_Position = convertedPosition;\n\tfragUV = modelUV;\n}\n",
+      "fragment": "#version 450 core\n\nlayout(location = 0) in vec2 fragUV;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__WidgetConstant_Type\n{\n\tfloat layer;\n} spk__WidgetConstant;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform fontStyle_Type\n{\n\tvec4 glyphColor;\n\tvec4 outlineColor;\n\tfloat glyphThreshold;\n\tfloat outlineRatio;\n\tfloat smoothing;\n} fontStyle;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tvec4 sdfSample = texture(_tx0, fragUV);\n\tfloat dist = sdfSample.r;\n\tfloat baseThreshold = fontStyle.glyphThreshold;\n\tfloat outlineThickness = (baseThreshold * fontStyle.outlineRatio);\n\tfloat smoothing = fontStyle.smoothing;\n\tfloat glyphAlpha = smoothstep((baseThreshold - smoothing), (baseThreshold + smoothing), dist);\n\tfloat outerEdge = (baseThreshold + outlineThickness);\n\tfloat outerAlpha = smoothstep((outerEdge - smoothing), (outerEdge + smoothing), dist);\n\tfloat outlineAlpha = clamp((outerAlpha - glyphAlpha), 0.0, 1.0);\n\tvec4 finalRGB = ((fontStyle.outlineColor * outlineAlpha) + (fontStyle.glyphColor * glyphAlpha));\n\tfloat finalAlpha = max(glyphAlpha, outlineAlpha);\n\tpixelColor = vec4(finalRGB.rgb, finalAlpha);\n}\n"
     }
   },
   "layouts": [
     {
       "location": 0,
-      "type": "Vector2",
-      "name": "vertexPosition"
+      "type": "Vector2Int",
+      "name": "modelPosition"
     },
     {
       "location": 1,
       "type": "Vector2",
-      "name": "vertexUV"
+      "name": "modelUV"
     }
   ],
   "framebuffers": [
@@ -27,11 +27,76 @@
   "textures": [
     {
       "location": 0,
-      "luminaName": "mainTexture",
+      "luminaName": "fontSDFTexture",
       "type": "sampler2D",
       "scope": "constant"
     }
   ],
-  "constants": [],
-  "attributes": []
+  "constants": [
+    {
+      "name": "spk::ViewRegionConstant",
+      "type": "UBO",
+      "size": 64,
+      "members": [
+        {
+          "name": "screenToOpenGLMatrix",
+          "offset": 0,
+          "type": "Element",
+          "size": 64
+        }
+      ]
+    },
+    {
+      "name": "spk::WidgetConstant",
+      "type": "UBO",
+      "size": 16,
+      "members": [
+        {
+          "name": "layer",
+          "offset": 0,
+          "type": "Element",
+          "size": 4
+        }
+      ]
+    }
+  ],
+  "attributes": [
+    {
+      "name": "fontStyle",
+      "type": "UBO",
+      "size": 48,
+      "members": [
+        {
+          "name": "glyphColor",
+          "offset": 0,
+          "type": "Element",
+          "size": 16
+        },
+        {
+          "name": "outlineColor",
+          "offset": 16,
+          "type": "Element",
+          "size": 16
+        },
+        {
+          "name": "glyphThreshold",
+          "offset": 32,
+          "type": "Element",
+          "size": 4
+        },
+        {
+          "name": "outlineRatio",
+          "offset": 36,
+          "type": "Element",
+          "size": 4
+        },
+        {
+          "name": "smoothing",
+          "offset": 40,
+          "type": "Element",
+          "size": 4
+        }
+      ]
+    }
+  ]
 }

@@ -1,0 +1,7 @@
+namespace spk
+{
+	DataBlock WidgetConstant as constant
+	{
+		float layer;
+	};
+}

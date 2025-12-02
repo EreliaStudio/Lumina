@@ -1,19 +1,52 @@
-Input       -> VertexPass:   Vector2 vertexPosition;
-Input       -> VertexPass:   Vector2 vertexUV;
-VertexPass  -> FragmentPass: Vector2 fragUV;
-FragmentPass-> Output:       Color   pixelColor;
+#include <ViewRegionConstant>
+#include <WidgetConstant>
 
-Texture mainTexture;
+Input      -> VertexPass: Vector2Int modelPosition;
+Input      -> VertexPass: Vector2 modelUV;
+VertexPass -> FragmentPass: Vector2 fragUV;
+FragmentPass -> Output: Color pixelColor;
+
+Texture fontSDFTexture;
+
+DataBlock fontStyle as attribute
+{
+	Color glyphColor;
+	Color outlineColor;
+	float glyphThreshold;
+	float outlineRatio;
+	float smoothing;
+};
 
 VertexPass()
 {
-    Vector4 clip = Vector4(vertexPosition, 0.0, 1.0);
+	Vector4 screenPosition = Vector4(modelPosition, spk::WidgetConstant.layer, 1.0);
+	Vector4 convertedPosition = spk::ViewRegionConstant.screenToOpenGLMatrix * screenPosition;
 
-    pixelPosition = clip;
-    fragUV = vertexUV;
+	pixelPosition = convertedPosition;
+	fragUV = modelUV;
 }
 
 FragmentPass()
 {
-    pixelColor = mainTexture.getPixel(fragUV);
+	Color sdfSample = fontSDFTexture.getPixel(fragUV);
+	float  dist       = sdfSample.r;
+
+	float baseThreshold   = fontStyle.glyphThreshold;
+	float outlineThickness = baseThreshold * fontStyle.outlineRatio;
+	float smoothing        = fontStyle.smoothing;
+
+	float glyphAlpha = smoothstep(baseThreshold - smoothing, baseThreshold + smoothing, dist);
+
+	float outerEdge  = baseThreshold + outlineThickness;
+	float outerAlpha = smoothstep(outerEdge - smoothing, outerEdge + smoothing, dist);
+
+	float outlineAlpha = clamp(outerAlpha - glyphAlpha, 0.0, 1.0);
+
+	Color finalRGB =
+	fontStyle.outlineColor * outlineAlpha +
+	fontStyle.glyphColor   * glyphAlpha;
+
+	float finalAlpha = max(glyphAlpha, outlineAlpha);
+
+	pixelColor = Color(finalRGB.rgb, finalAlpha);
 }

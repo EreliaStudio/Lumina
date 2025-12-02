@@ -1,0 +1,7 @@
+namespace spk
+{
+	DataBlock ViewRegionConstant as constant
+	{
+		Matrix4x4 screenToOpenGLMatrix;
+	};
+}
