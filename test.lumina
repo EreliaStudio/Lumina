@@ -12,9 +12,7 @@ DataBlock fontStyle as attribute
 {
 	Color glyphColor;
 	Color outlineColor;
-	float glyphThreshold;
-	float outlineRatio;
-	float smoothing;
+	float smoothDistance;
 };
 
 VertexPass()
@@ -29,24 +27,35 @@ VertexPass()
 FragmentPass()
 {
 	Color sdfSample = fontSDFTexture.getPixel(fragUV);
-	float  dist       = sdfSample.r;
+	float dist = sdfSample.r;
 
-	float baseThreshold   = fontStyle.glyphThreshold;
-	float outlineThickness = baseThreshold * fontStyle.outlineRatio;
-	float smoothing        = fontStyle.smoothing;
+	if (dist <= 0.0f)
+	{
+		discard;
+	}
 
-	float glyphAlpha = smoothstep(baseThreshold - smoothing, baseThreshold + smoothing, dist);
+	Color result;
+	float glyphEdge = 0.5f;
+	if (dist < fontStyle.smoothDistance)
+	{
+		float ratio = clamp((dist / fontStyle.smoothDistance), 0.0, 1.0);
+		result = Color(fontStyle.outlineColor.rgb, ratio);
+	}
+	else if (dist < (glyphEdge - fontStyle.smoothDistance))
+	{
+		result = fontStyle.outlineColor;
+	}
+	else if (dist < (glyphEdge + fontStyle.smoothDistance))
+	{
+		float transitionStart = glyphEdge - fontStyle.smoothDistance;
+		float transitionEnd = glyphEdge + fontStyle.smoothDistance;
+		float t = clamp(((dist - transitionStart) / (transitionEnd - transitionStart)), 0.0, 1.0);
+		result = (fontStyle.outlineColor * (1.0 - t)) + (fontStyle.glyphColor * t);
+	}
+	else
+	{
+		result = fontStyle.glyphColor;
+	}
 
-	float outerEdge  = baseThreshold + outlineThickness;
-	float outerAlpha = smoothstep(outerEdge - smoothing, outerEdge + smoothing, dist);
-
-	float outlineAlpha = clamp(outerAlpha - glyphAlpha, 0.0, 1.0);
-
-	Color finalRGB =
-	fontStyle.outlineColor * outlineAlpha +
-	fontStyle.glyphColor   * glyphAlpha;
-
-	float finalAlpha = max(glyphAlpha, outlineAlpha);
-
-	pixelColor = Color(finalRGB.rgb, finalAlpha);
+	pixelColor = result;
 }
