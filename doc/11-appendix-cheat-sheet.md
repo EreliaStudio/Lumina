@@ -21,6 +21,18 @@ Lumina is a wrapper around GLSL behavior, designed to simplify the creation of s
     - float : equivalent of the float32_t of C++.
     - bool : a boolean.
 
+### Built-in variables
+- InstanceID (uint) : instance index in VertexPass and FragmentPass.
+- TriangleID (uint) : triangle index available in VertexPass and FragmentPass.
+
+### Arrays
+- Fixed-size only, declared with [] and initialized with {}.
+```cpp
+int values[4] = { 1, 2, 3, 4 };
+Color palette[3] = { Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1) };
+pixelColor = palette[1];
+```
+
 - Vectors :
     - Vector2, Vector2Int and Vector2UInt : representation of a 2D point using float, int and uint.
     - Vector3, Vector3Int and Vector3UInt : representation of a 3D point using float, int and uint.

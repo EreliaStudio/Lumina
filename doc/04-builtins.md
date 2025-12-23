@@ -1,6 +1,10 @@
 \page lumina_builtins Built-in types and functions
 
 # Built-In Features
+## Built-In Variables
+- `InstanceID` (`uint`): Instance index for instanced draws. Available in VertexPass and FragmentPass.
+- `TriangleID` (`uint`): Triangle index. Available in VertexPass and FragmentPass.
+
 ## Scalar Types
 ### float
 
