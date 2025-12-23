@@ -100,6 +100,7 @@ private:
     ExpressionPtr parseUnary();
     ExpressionPtr parsePostfix();
     ExpressionPtr parsePrimary();
+    ExpressionPtr parseArrayLiteral(const Token &leftBrace);
 
     ExpressionPtr finishCall(ExpressionPtr callee);
     std::vector<ExpressionPtr> parseArgumentListAfterLeftParen();
@@ -1396,12 +1397,37 @@ Parser::Impl::ExpressionPtr Parser::Impl::parsePrimary()
             consume(Token::Type::RightParen, "Expected ')' after expression");
             return expression;
         }
+        case Token::Type::LeftBrace:
+        {
+            Token leftBrace = token;
+            advance();
+            return parseArrayLiteral(leftBrace);
+        }
         default:
             break;
     }
 
     reportError("Unexpected token in expression", token);
     return nullptr;
+}
+
+Parser::Impl::ExpressionPtr Parser::Impl::parseArrayLiteral(const Token &leftBrace)
+{
+    auto literal = std::make_unique<ArrayLiteralExpression>();
+    literal->leftBrace = leftBrace;
+    if (!check(Token::Type::RightBrace))
+    {
+        do
+        {
+            if (check(Token::Type::RightBrace))
+            {
+                break;
+            }
+            literal->elements.push_back(parseExpression());
+        } while (match(Token::Type::Comma));
+    }
+    consume(Token::Type::RightBrace, "Expected '}' after array literal");
+    return literal;
 }
 Parser::Impl::ExpressionPtr Parser::Impl::finishCall(ExpressionPtr callee)
 {

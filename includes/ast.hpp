@@ -28,6 +28,7 @@ struct Expression
 	enum class Kind
 	{
 		Literal,
+		ArrayLiteral,
 		Identifier,
 		Unary,
 		Binary,
@@ -50,6 +51,14 @@ struct LiteralExpression final : public Expression
 	LiteralExpression();
 
 	Token literal;
+};
+
+struct ArrayLiteralExpression final : public Expression
+{
+	ArrayLiteralExpression();
+
+	Token leftBrace;
+	std::vector<std::unique_ptr<Expression>> elements;
 };
 
 struct IdentifierExpression final : public Expression
@@ -449,6 +458,7 @@ struct AggregateInstruction final : public Instruction
 };
 
 inline LiteralExpression::LiteralExpression() : Expression(Kind::Literal) {}
+inline ArrayLiteralExpression::ArrayLiteralExpression() : Expression(Kind::ArrayLiteral) {}
 inline IdentifierExpression::IdentifierExpression() : Expression(Kind::Identifier) {}
 inline UnaryExpression::UnaryExpression() : Expression(Kind::Unary) {}
 inline BinaryExpression::BinaryExpression() : Expression(Kind::Binary) {}

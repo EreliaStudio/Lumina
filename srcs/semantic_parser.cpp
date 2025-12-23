@@ -180,14 +180,16 @@ namespace
 
         const Token &expressionToken(const Expression &expression, const Token &fallback)
         {
-                switch (expression.kind)
-                {
-                        case Expression::Kind::Literal:
-                                return static_cast<const LiteralExpression &>(expression).literal;
-                        case Expression::Kind::Identifier:
-                        {
-                                const auto &identifier = static_cast<const IdentifierExpression &>(expression);
-                                if (!identifier.name.parts.empty())
+			switch (expression.kind)
+			{
+				case Expression::Kind::Literal:
+					return static_cast<const LiteralExpression &>(expression).literal;
+				case Expression::Kind::ArrayLiteral:
+					return static_cast<const ArrayLiteralExpression &>(expression).leftBrace;
+				case Expression::Kind::Identifier:
+				{
+					const auto &identifier = static_cast<const IdentifierExpression &>(expression);
+					if (!identifier.name.parts.empty())
                                 {
                                         return identifier.name.parts.front();
                                 }
@@ -357,8 +359,8 @@ int componentIndex(char component)
 
         std::string binaryOperatorSymbol(BinaryOperator op)
         {
-                switch (op)
-                {
+	switch (op)
+	{
                         case BinaryOperator::Add:
                                 return "+";
                         case BinaryOperator::Subtract:
@@ -587,20 +589,38 @@ int componentIndex(char component)
 				}
 
 				return std::nullopt;
-			case BinaryOperator::Divide:
-				if (leftVectorDim > 0 && rightScalar)
+		case BinaryOperator::Divide:
+			if (leftVectorDim > 0 && rightScalar)
+			{
+				return makeResult(left);
+			}
+			if (leftScalar && rightScalar)
+			{
+				return makeResult(left);
+			}
+			if (leftScalar && rightVectorDim > 0)
+			{
+				return makeResult(right);
+			}
+			return std::nullopt;
+		case BinaryOperator::Modulo:
+		{
+			const bool leftInt = left.name == "int";
+			const bool rightInt = right.name == "int";
+			const bool leftUInt = left.name == "uint";
+			const bool rightUInt = right.name == "uint";
+			if (leftScalar && rightScalar && (leftInt || leftUInt) && (rightInt || rightUInt))
+			{
+				if (leftUInt || rightUInt)
 				{
-					return makeResult(left);
+					TypeInfo result;
+					result.name = "uint";
+					return makeResult(result);
 				}
-				if (leftScalar && rightScalar)
-				{
-					return makeResult(left);
-				}
-				if (leftScalar && rightVectorDim > 0)
-				{
-					return makeResult(right);
-				}
-				return std::nullopt;
+				return makeResult(left);
+			}
+			return std::nullopt;
+		}
 			case BinaryOperator::Less:
 			case BinaryOperator::LessEqual:
 			case BinaryOperator::Greater:
@@ -765,6 +785,18 @@ int componentIndex(char component)
                         pixelPosition.token = makeSyntheticStageToken(Stage::VertexPass);
                         state.stageBuiltins[stageIndex(Stage::VertexPass)]["pixelPosition"] = pixelPosition;
 			state.stageRequiredBuiltins[stageIndex(Stage::VertexPass)].insert("pixelPosition");
+
+			Symbol instanceId;
+			instanceId.type = TypeInfo{"uint"};
+			instanceId.token = makeSyntheticToken("InstanceID");
+			state.stageBuiltins[stageIndex(Stage::VertexPass)]["InstanceID"] = instanceId;
+			state.stageBuiltins[stageIndex(Stage::FragmentPass)]["InstanceID"] = instanceId;
+
+			Symbol triangleId;
+			triangleId.type = TypeInfo{"uint"};
+			triangleId.token = makeSyntheticToken("TriangleID");
+			state.stageBuiltins[stageIndex(Stage::VertexPass)]["TriangleID"] = triangleId;
+			state.stageBuiltins[stageIndex(Stage::FragmentPass)]["TriangleID"] = triangleId;
 
 		}
 
@@ -2104,6 +2136,9 @@ int componentIndex(char component)
 				case Expression::Kind::Literal:
 					value = evaluateLiteral(static_cast<const LiteralExpression &>(expression));
 					break;
+				case Expression::Kind::ArrayLiteral:
+					value = evaluateArrayLiteral(static_cast<const ArrayLiteralExpression &>(expression), context);
+					break;
 				case Expression::Kind::Identifier:
 					value = evaluateIdentifier(static_cast<const IdentifierExpression &>(expression), context, isCallee);
 					break;
@@ -2136,24 +2171,97 @@ int componentIndex(char component)
 			return value;
 		}
 
-                TypedValue evaluateLiteral(const LiteralExpression &literal)
-                {
-                        const std::string &text = literal.literal.content;
-                        if (text == "true" || text == "false")
-                        {
-                                return {TypeInfo{"bool"}, false};
-                        }
-                        if (text.find('"') != std::string::npos)
-                        {
-                                return {TypeInfo{"string"}, false};
-                        }
-                        if (text.find('.') != std::string::npos || text.find('f') != std::string::npos ||
-                            text.find('F') != std::string::npos)
-                        {
-                                return {TypeInfo{"float"}, false};
-                        }
-                        return {TypeInfo{"int"}, false};
-                }
+		TypedValue evaluateLiteral(const LiteralExpression &literal)
+		{
+			const std::string &text = literal.literal.content;
+			if (text == "true" || text == "false")
+			{
+				return {TypeInfo{"bool"}, false};
+			}
+			if (text.find('"') != std::string::npos)
+			{
+				return {TypeInfo{"string"}, false};
+			}
+			if (text.find('.') != std::string::npos || text.find('f') != std::string::npos ||
+			    text.find('F') != std::string::npos)
+			{
+				return {TypeInfo{"float"}, false};
+			}
+
+			return {TypeInfo{"int"}, false};
+		}
+
+		TypedValue evaluateArrayLiteral(const ArrayLiteralExpression &literal, FunctionContext &context)
+		{
+			if (literal.elements.empty())
+			{
+				emitError("Array literal must have at least one element", literal.leftBrace);
+				return {};
+			}
+
+			std::vector<TypedValue> elements;
+			elements.reserve(literal.elements.size());
+			for (const std::unique_ptr<Expression> &element : literal.elements)
+			{
+				if (element)
+				{
+					elements.push_back(evaluateExpression(*element, context, false));
+				}
+				else
+				{
+					elements.push_back({});
+				}
+			}
+
+			TypeInfo common = stripReference(elements.front().type);
+			common.isConst = false;
+			common.isReference = false;
+			if (!common.valid())
+			{
+				return {};
+			}
+			if (common.isArray)
+			{
+				emitError("Array literal elements cannot be arrays", literal.leftBrace);
+				return {};
+			}
+
+			for (std::size_t i = 0; i < elements.size(); ++i)
+			{
+				TypeInfo current = stripReference(elements[i].type);
+				current.isConst = false;
+				current.isReference = false;
+				if (!current.valid())
+				{
+					return {};
+				}
+				if (current.isArray)
+				{
+					const Token &token =
+					    literal.elements[i] ? expressionToken(*literal.elements[i], literal.leftBrace) : literal.leftBrace;
+					emitError("Array literal elements cannot be arrays", token);
+					return {};
+				}
+				if (!typeEquals(common, current))
+				{
+					const Token &token =
+					    literal.elements[i] ? expressionToken(*literal.elements[i], literal.leftBrace) : literal.leftBrace;
+					emitError("Array literal elements must share the same type", token);
+					return {};
+				}
+			}
+
+			TypeInfo resultType = common;
+			resultType.isArray = true;
+			resultType.hasArraySize = true;
+			resultType.arraySize = elements.size();
+			resultType.isConst = false;
+			resultType.isReference = false;
+			TypedValue result;
+			result.type = resultType;
+			result.isLValue = false;
+			return result;
+		}
 
                 TypedValue evaluateIdentifier(const IdentifierExpression &identifier, FunctionContext &context, bool isCallee)
                 {
@@ -3728,17 +3836,20 @@ int componentIndex(char component)
                 }
 
 
-                TypedValue evaluateIndex(const IndexExpression &index, FunctionContext &context)
-                {
-                        TypedValue object = evaluateExpression(*index.object, context, false);
-                        if (!object.type.isArray)
-                        {
-                                emitError("Index operator is only valid on arrays", context.ownerToken);
-                        }
-                        evaluateExpression(*index.index, context, false);
-                        object.isLValue = true;
-                        return object;
-                }
+		TypedValue evaluateIndex(const IndexExpression &index, FunctionContext &context)
+		{
+			TypedValue object = evaluateExpression(*index.object, context, false);
+			if (!object.type.isArray)
+			{
+				emitError("Index operator is only valid on arrays", context.ownerToken);
+			}
+			evaluateExpression(*index.index, context, false);
+			object.type.isArray = false;
+			object.type.hasArraySize = false;
+			object.type.arraySize.reset();
+			object.isLValue = true;
+			return object;
+		}
 
                 TypedValue evaluatePostfix(const PostfixExpression &postfix, FunctionContext &context)
                 {

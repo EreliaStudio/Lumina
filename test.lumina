@@ -1,61 +1,27 @@
 #include <ViewRegionConstant>
-#include <WidgetConstant>
 
 Input      -> VertexPass: Vector2Int modelPosition;
-Input      -> VertexPass: Vector2 modelUV;
-VertexPass -> FragmentPass: Vector2 fragUV;
 FragmentPass -> Output: Color pixelColor;
-
-Texture fontSDFTexture;
-
-DataBlock fontStyle as attribute
-{
-	Color glyphColor;
-	Color outlineColor;
-	float smoothDistance;
-};
 
 VertexPass()
 {
-	Vector4 screenPosition = Vector4(modelPosition, spk::WidgetConstant.layer, 1.0);
+	Vector4 screenPosition = Vector4(modelPosition, 0, 1.0);
 	Vector4 convertedPosition = spk::ViewRegionConstant.screenToOpenGLMatrix * screenPosition;
 
 	pixelPosition = convertedPosition;
-	fragUV = modelUV;
 }
 
 FragmentPass()
 {
-	Color sdfSample = fontSDFTexture.getPixel(fragUV);
-	float dist = sdfSample.r;
-
-	if (dist <= 0.0f)
-	{
-		discard;
-	}
-
-	Color result;
-	float glyphEdge = 0.5f;
-	if (dist < fontStyle.smoothDistance)
-	{
-		float ratio = clamp((dist / fontStyle.smoothDistance), 0.0, 1.0);
-		result = Color(fontStyle.outlineColor.rgb, ratio);
-	}
-	else if (dist < (glyphEdge - fontStyle.smoothDistance))
-	{
-		result = fontStyle.outlineColor;
-	}
-	else if (dist < (glyphEdge + fontStyle.smoothDistance))
-	{
-		float transitionStart = glyphEdge - fontStyle.smoothDistance;
-		float transitionEnd = glyphEdge + fontStyle.smoothDistance;
-		float t = clamp(((dist - transitionStart) / (transitionEnd - transitionStart)), 0.0, 1.0);
-		result = (fontStyle.outlineColor * (1.0 - t)) + (fontStyle.glyphColor * t);
-	}
-	else
-	{
-		result = fontStyle.glyphColor;
-	}
-
-	pixelColor = result;
+	Color colorArray[8] = {
+		Color(1, 0, 0, 1),
+		Color(0, 1, 0, 1),
+		Color(0, 0, 1, 1),
+		Color(1, 1, 0, 1),
+		Color(1, 0, 1, 1),
+		Color(0, 1, 1, 1),
+		Color(1, 1, 1, 1),
+		Color(0.5, 0.5, 0.5, 1)
+	};
+	pixelColor = colorArray[TriangleID % 8];
 }

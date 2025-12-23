@@ -1,8 +1,8 @@
 {
   "shader": {
     "sources": {
-      "vertex": "#version 450 core\n\nlayout(location = 0) in ivec2 modelPosition;\nlayout(location = 1) in vec2 modelUV;\n\nlayout(location = 0) out vec2 fragUV;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__WidgetConstant_Type\n{\n\tfloat layer;\n} spk__WidgetConstant;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform fontStyle_Type\n{\n\tvec4 glyphColor;\n\tvec4 outlineColor;\n\tfloat smoothDistance;\n} fontStyle;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tvec4 screenPosition = vec4(modelPosition, spk__WidgetConstant.layer, 1.0);\n\tvec4 convertedPosition = (spk__ViewRegionConstant.screenToOpenGLMatrix * screenPosition);\n\tgl_Position = convertedPosition;\n\tfragUV = modelUV;\n}\n",
-      "fragment": "#version 450 core\n\nlayout(location = 0) in vec2 fragUV;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__WidgetConstant_Type\n{\n\tfloat layer;\n} spk__WidgetConstant;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform fontStyle_Type\n{\n\tvec4 glyphColor;\n\tvec4 outlineColor;\n\tfloat smoothDistance;\n} fontStyle;\n\nlayout(binding = 0) uniform sampler2D _tx0;\n\nvoid main()\n{\n\tfloat dist = texture(_tx0, fragUV).r;\n\tif ((dist <= 0.0f))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\tvec4 result;\n\tfloat glyphEdge = 0.5f;\n\tif ((dist < fontStyle.smoothDistance))\n\t\t{\n\t\t\tfloat ratio = clamp((dist / fontStyle.smoothDistance), 0.0, 1.0);\n\t\t\tresult = vec4(fontStyle.outlineColor.rgb, ratio);\n\t\t}\n\telse\n\t\tif ((dist < (glyphEdge - fontStyle.smoothDistance)))\n\t\t\t{\n\t\t\t\tresult = fontStyle.outlineColor;\n\t\t\t}\n\t\telse\n\t\t\tif ((dist < (glyphEdge + fontStyle.smoothDistance)))\n\t\t\t\t{\n\t\t\t\t\tfloat transitionStart = (glyphEdge - fontStyle.smoothDistance);\n\t\t\t\t\tfloat transitionEnd = (glyphEdge + fontStyle.smoothDistance);\n\t\t\t\t\tfloat t = clamp(((dist - transitionStart) / (transitionEnd - transitionStart)), 0.0, 1.0);\n\t\t\t\t\tresult = ((fontStyle.outlineColor * (1.0 - t)) + (fontStyle.glyphColor * t));\n\t\t\t\t}\n\t\t\telse\n\t\t\t\t{\n\t\t\t\t\tresult = fontStyle.glyphColor;\n\t\t\t\t}\n\tpixelColor = result;\n}\n"
+      "vertex": "#version 450 core\n\nlayout(location = 0) in ivec2 modelPosition;\n\nlayout(location = 0) flat out uint triangleIndex;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nvoid main()\n{\n\ttriangleIndex = uint(gl_VertexID / 3);\n\tvec4 screenPosition = vec4(modelPosition, 0, 1.0);\n\tvec4 convertedPosition = (spk__ViewRegionConstant.screenToOpenGLMatrix * screenPosition);\n\tgl_Position = convertedPosition;\n}\n",
+      "fragment": "#version 450 core\n\nlayout(location = 0) flat in uint triangleIndex;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nvoid main()\n{\n\tvec4 colorArray[8] = vec4[8](vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(1, 0, 1, 1), vec4(0, 1, 1, 1), vec4(1, 1, 1, 1), vec4(0.5, 0.5, 0.5, 1));\n\tpixelColor = colorArray[(triangleIndex % uint(8))];\n}\n"
     }
   },
   "layouts": [
@@ -10,11 +10,6 @@
       "location": 0,
       "type": "Vector2Int",
       "name": "modelPosition"
-    },
-    {
-      "location": 1,
-      "type": "Vector2",
-      "name": "modelUV"
     }
   ],
   "framebuffers": [
@@ -24,14 +19,7 @@
       "name": "pixelColor"
     }
   ],
-  "textures": [
-    {
-      "location": 0,
-      "luminaName": "fontSDFTexture",
-      "type": "sampler2D",
-      "scope": "attribute"
-    }
-  ],
+  "textures": [],
   "constants": [
     {
       "name": "spk::ViewRegionConstant",
@@ -45,46 +33,7 @@
           "size": 64
         }
       ]
-    },
-    {
-      "name": "spk::WidgetConstant",
-      "type": "UBO",
-      "size": 16,
-      "members": [
-        {
-          "name": "layer",
-          "offset": 0,
-          "type": "Element",
-          "size": 4
-        }
-      ]
     }
   ],
-  "attributes": [
-    {
-      "name": "fontStyle",
-      "type": "UBO",
-      "size": 48,
-      "members": [
-        {
-          "name": "glyphColor",
-          "offset": 0,
-          "type": "Element",
-          "size": 16
-        },
-        {
-          "name": "outlineColor",
-          "offset": 16,
-          "type": "Element",
-          "size": 16
-        },
-        {
-          "name": "smoothDistance",
-          "offset": 32,
-          "type": "Element",
-          "size": 4
-        }
-      ]
-    }
-  ]
+  "attributes": []
 }

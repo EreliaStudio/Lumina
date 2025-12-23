@@ -10,6 +10,7 @@ struct StageIO
 	int location = 0;
 	std::string type;
 	std::string name;
+	bool flat = false;
 };
 
 struct TextureBinding

@@ -275,6 +275,21 @@ namespace
 				const auto &literal = static_cast<const LiteralExpression &>(expression);
 				return literal.literal.content.empty() ? "<literal>" : literal.literal.content;
 			}
+			case Expression::Kind::ArrayLiteral:
+			{
+				const auto &literal = static_cast<const ArrayLiteralExpression &>(expression);
+				std::string text = "{";
+				for (std::size_t i = 0; i < literal.elements.size(); ++i)
+				{
+					if (i > 0)
+					{
+						text += ", ";
+					}
+					text += literal.elements[i] ? expressionToString(*literal.elements[i]) : "<expr>";
+				}
+				text += "}";
+				return text;
+			}
 			case Expression::Kind::Identifier:
 			{
 				const auto &identifier = static_cast<const IdentifierExpression &>(expression);

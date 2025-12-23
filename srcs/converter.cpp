@@ -236,6 +236,7 @@ private:
 
 	std::string emitExpression(const Expression &expression) const;
 	std::string emitLiteral(const LiteralExpression &literal) const;
+	std::string emitArrayLiteral(const ArrayLiteralExpression &literal) const;
 	std::string emitIdentifier(const IdentifierExpression &identifier) const;
 	std::string emitUnary(const UnaryExpression &unary) const;
 	std::string emitBinary(const BinaryExpression &binary) const;
@@ -548,6 +549,14 @@ std::string ConverterImpl::remapIdentifier(const Name &name) const
 	{
 		return "gl_Position";
 	}
+	if (canonical == "InstanceID")
+	{
+		return "gl_InstanceID";
+	}
+	if (canonical == "TriangleID")
+	{
+		return "triangleIndex";
+	}
 	if (auto it = remappedNames.find(canonical); it != remappedNames.end())
 	{
 		return it->second;
@@ -604,6 +613,14 @@ std::string ConverterImpl::remapIdentifier(const std::string &canonical) const
 	if (canonical == "pixelPosition")
 	{
 		return "gl_Position";
+	}
+	if (canonical == "InstanceID")
+	{
+		return "gl_InstanceID";
+	}
+	if (canonical == "TriangleID")
+	{
+		return "triangleIndex";
 	}
 	if (auto it = remappedNames.find(canonical); it != remappedNames.end())
 	{
@@ -1093,6 +1110,18 @@ bool ConverterImpl::expressionMutatesAggregate(
 	{
 		case Expression::Kind::Literal:
 			return false;
+		case Expression::Kind::ArrayLiteral:
+		{
+			const auto &literal = static_cast<const ArrayLiteralExpression &>(expression);
+			for (const std::unique_ptr<Expression> &element : literal.elements)
+			{
+				if (element && expressionMutatesAggregate(*element, ctx, info))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 		case Expression::Kind::Identifier:
 			return false;
 		case Expression::Kind::Unary:
@@ -1216,8 +1245,12 @@ void ConverterImpl::emitInterface(std::ostringstream &oss, const std::vector<Sta
 {
 	for (const StageIO &entry : entries)
 	{
-		oss << "layout(location = " << entry.location << ") " << qualifier << " " << typeToGLSL(entry.type) << " "
-		    << entry.name << ";\n";
+		oss << "layout(location = " << entry.location << ") ";
+		if (entry.flat)
+		{
+			oss << "flat ";
+		}
+		oss << qualifier << " " << typeToGLSL(entry.type) << " " << entry.name << ";\n";
 	}
 	if (!entries.empty())
 	{
@@ -1240,6 +1273,11 @@ void ConverterImpl::emitStage(std::ostringstream &oss, const StageFunctionInstru
 	}
 
 	oss << "void main()\n{\n";
+	if (stageKind == Stage::VertexPass)
+	{
+		writeIndent(oss, 1);
+		oss << "triangleIndex = uint(gl_VertexID / 3);\n";
+	}
 	emitBlockStatement(oss, *stage->body, 1);
 	oss << "}\n";
 
@@ -1444,6 +1482,8 @@ std::string ConverterImpl::emitExpression(const Expression &expression) const
 	{
 		case Expression::Kind::Literal:
 			return emitLiteral(static_cast<const LiteralExpression &>(expression));
+		case Expression::Kind::ArrayLiteral:
+			return emitArrayLiteral(static_cast<const ArrayLiteralExpression &>(expression));
 		case Expression::Kind::Identifier:
 			return emitIdentifier(static_cast<const IdentifierExpression &>(expression));
 		case Expression::Kind::Unary:
@@ -1469,6 +1509,64 @@ std::string ConverterImpl::emitExpression(const Expression &expression) const
 std::string ConverterImpl::emitLiteral(const LiteralExpression &literal) const
 {
 	return literal.literal.content;
+}
+
+std::string ConverterImpl::emitArrayLiteral(const ArrayLiteralExpression &literal) const
+{
+	std::ostringstream oss;
+	std::string typeName;
+	std::optional<std::size_t> arraySize;
+	auto infoIt = expressionInfo.find(&literal);
+	if (infoIt != expressionInfo.end())
+	{
+		typeName = infoIt->second.typeName;
+		if (infoIt->second.hasArraySize && infoIt->second.arraySize)
+		{
+			arraySize = infoIt->second.arraySize;
+		}
+	}
+
+	if (typeName.empty())
+	{
+		oss << "{";
+		for (std::size_t i = 0; i < literal.elements.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			if (literal.elements[i])
+			{
+				oss << emitExpression(*literal.elements[i]);
+			}
+		}
+		oss << "}";
+		return oss.str();
+	}
+
+	oss << typeToGLSL(typeName);
+	if (arraySize)
+	{
+		oss << "[" << *arraySize << "]";
+	}
+	else
+	{
+		oss << "[]";
+	}
+	oss << "(";
+	for (std::size_t i = 0; i < literal.elements.size(); ++i)
+	{
+		if (i > 0)
+		{
+			oss << ", ";
+		}
+		if (literal.elements[i])
+		{
+			oss << emitExpression(*literal.elements[i]);
+		}
+	}
+	oss << ")";
+	return oss.str();
 }
 
 std::string ConverterImpl::emitIdentifier(const IdentifierExpression &identifier) const
@@ -1528,8 +1626,38 @@ std::string ConverterImpl::emitUnary(const UnaryExpression &unary) const
 
 std::string ConverterImpl::emitBinary(const BinaryExpression &binary) const
 {
-	return "(" + emitExpression(*binary.left) + " " + binaryOperatorSymbol(binary.op) + " " + emitExpression(*binary.right) +
-	       ")";
+	std::string leftExpr = emitExpression(*binary.left);
+	std::string rightExpr = emitExpression(*binary.right);
+
+	if (binary.op == BinaryOperator::Modulo)
+	{
+		auto leftInfo = expressionInfo.find(binary.left.get());
+		auto rightInfo = expressionInfo.find(binary.right.get());
+		auto resultInfo = expressionInfo.find(&binary);
+		if (leftInfo != expressionInfo.end() && rightInfo != expressionInfo.end() && resultInfo != expressionInfo.end())
+		{
+			const std::string &leftType = leftInfo->second.typeName;
+			const std::string &rightType = rightInfo->second.typeName;
+			const std::string &resultType = resultInfo->second.typeName;
+			const bool leftScalar = !leftInfo->second.isArray;
+			const bool rightScalar = !rightInfo->second.isArray;
+			if (leftScalar && rightScalar && (leftType == "int" || leftType == "uint") &&
+			    (rightType == "int" || rightType == "uint") &&
+			    (resultType == "int" || resultType == "uint"))
+			{
+				if (leftType != resultType)
+				{
+					leftExpr = typeToGLSL(resultType) + "(" + leftExpr + ")";
+				}
+				if (rightType != resultType)
+				{
+					rightExpr = typeToGLSL(resultType) + "(" + rightExpr + ")";
+				}
+			}
+		}
+	}
+
+	return "(" + leftExpr + " " + binaryOperatorSymbol(binary.op) + " " + rightExpr + ")";
 }
 
 std::string ConverterImpl::emitAssignment(const AssignmentExpression &assignment) const

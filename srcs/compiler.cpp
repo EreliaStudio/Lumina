@@ -285,6 +285,8 @@ std::string jsonEscape(const std::string &value)
 						return std::nullopt;
 				}
 			}
+			case Expression::Kind::ArrayLiteral:
+				return std::nullopt;
 			default:
 				return std::nullopt;
 		}
@@ -1237,6 +1239,13 @@ Compiler::Compiler(bool enableDebugOutput) : debugEnabled(enableDebugOutput) {}
 std::string Compiler::operator()(const SemanticParseResult &result) const
 {
 	CompilerContext context;
+	StageIO triangleIndex;
+	triangleIndex.location = 0;
+	triangleIndex.type = "uint";
+	triangleIndex.name = "triangleIndex";
+	triangleIndex.flat = true;
+	context.varyings.push_back(std::move(triangleIndex));
+	context.nextVaryingLocation = 1;
 	context.collectStructs(result.instructions);
 	context.namespaceStack.clear();
 	context.process(result.instructions);
