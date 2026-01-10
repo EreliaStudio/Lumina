@@ -1208,6 +1208,14 @@ int componentIndex(char component)
                                 const std::size_t destination = stageIndex(pipeline.destination);
                                 state.stagePipeline[source][name] = symbol;
                                 state.stagePipeline[destination][name] = symbol;
+				if (pipeline.source == Stage::VertexPass && pipeline.destination == Stage::FragmentPass)
+				{
+					state.stageRequiredBuiltins[stageIndex(Stage::VertexPass)].insert(name);
+				}
+				if (pipeline.source == Stage::FragmentPass && pipeline.destination == Stage::Output)
+				{
+					state.stageRequiredBuiltins[stageIndex(Stage::FragmentPass)].insert(name);
+				}
 
                                 if (!isAllowedPipelineType(payloadType.name))
                                 {
@@ -1924,6 +1932,40 @@ int componentIndex(char component)
 		{
 			if (context.requiredBuiltins.empty() || target.kind != Expression::Kind::Identifier)
 			{
+				const Expression *current = &target;
+				while (current)
+				{
+					if (current->kind == Expression::Kind::Identifier)
+					{
+						break;
+					}
+					if (current->kind == Expression::Kind::MemberAccess)
+					{
+						current = static_cast<const MemberExpression *>(current)->object.get();
+						continue;
+					}
+					if (current->kind == Expression::Kind::IndexAccess)
+					{
+						current = static_cast<const IndexExpression *>(current)->object.get();
+						continue;
+					}
+					return;
+				}
+				if (!current || current->kind != Expression::Kind::Identifier)
+				{
+					return;
+				}
+				const auto &identifier = static_cast<const IdentifierExpression &>(*current);
+				if (identifier.name.parts.size() != 1)
+				{
+					return;
+				}
+				const std::string &name = identifier.name.parts.front().content;
+				auto it = context.requiredBuiltins.find(name);
+				if (it != context.requiredBuiltins.end())
+				{
+					it->second = true;
+				}
 				return;
 			}
 
