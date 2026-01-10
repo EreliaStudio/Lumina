@@ -134,6 +134,10 @@ bool isColorTypeName(const std::string &typeName)
 				return "|";
 			case BinaryOperator::BitwiseXor:
 				return "^";
+			case BinaryOperator::ShiftLeft:
+				return "<<";
+			case BinaryOperator::ShiftRight:
+				return ">>";
 		}
 		return {};
 	}
@@ -160,6 +164,10 @@ bool isColorTypeName(const std::string &typeName)
 				return "|=";
 			case AssignmentOperator::BitwiseXorAssign:
 				return "^=";
+			case AssignmentOperator::ShiftLeftAssign:
+				return "<<=";
+			case AssignmentOperator::ShiftRightAssign:
+				return ">>=";
 		}
 		return "=";
 	}

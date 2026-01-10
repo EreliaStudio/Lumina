@@ -146,20 +146,39 @@ namespace
 
 		bool isFloat = false;
 
-		if (leadingDot)
+	if (leadingDot)
+	{
+		isFloat = true;
+		ctx.advance();
+		if (!isDigit(ctx.peek()))
 		{
-			isFloat = true;
-			ctx.advance();
-			if (!isDigit(ctx.peek()))
-			{
-				throwTokenizerError(origin, ctx.cursor, "Malformed floating-point literal");
-			}
+			throwTokenizerError(origin, ctx.cursor, "Malformed floating-point literal");
 		}
+	}
 
-		while (!ctx.eof() && isDigit(ctx.peek()))
+	if (!leadingDot && ctx.peek() == '0' && (ctx.peek(1) == 'x' || ctx.peek(1) == 'X'))
+	{
+		ctx.advance();
+		ctx.advance();
+		if (!isHexDigit(ctx.peek()))
+		{
+			throwTokenizerError(origin, ctx.cursor, "Malformed hexadecimal literal");
+		}
+		while (!ctx.eof() && isHexDigit(ctx.peek()))
 		{
 			ctx.advance();
 		}
+		if (ctx.peek() == 'u' || ctx.peek() == 'U')
+		{
+			ctx.advance();
+		}
+		return makeToken(origin, ctx, begin, Token::Type::IntegerLiteral, startLoc);
+	}
+
+	while (!ctx.eof() && isDigit(ctx.peek()))
+	{
+		ctx.advance();
+	}
 
 		if (!leadingDot && ctx.peek() == '.')
 		{
@@ -324,7 +343,17 @@ std::vector<Token> Tokenizer::operator()(const std::filesystem::path &p_path) co
 				}
 				ctx.advance();
 				tokenType = Token::Type::Less;
-				if (ctx.peek() == '=')
+				if (ctx.peek() == '<')
+				{
+					ctx.advance();
+					tokenType = Token::Type::ShiftLeft;
+					if (ctx.peek() == '=')
+					{
+						ctx.advance();
+						tokenType = Token::Type::ShiftLeftEqual;
+					}
+				}
+				else if (ctx.peek() == '=')
 				{
 					ctx.advance();
 					tokenType = Token::Type::LessEqual;
@@ -333,7 +362,17 @@ std::vector<Token> Tokenizer::operator()(const std::filesystem::path &p_path) co
 			case '>':
 				ctx.advance();
 				tokenType = Token::Type::Greater;
-				if (ctx.peek() == '=')
+				if (ctx.peek() == '>')
+				{
+					ctx.advance();
+					tokenType = Token::Type::ShiftRight;
+					if (ctx.peek() == '=')
+					{
+						ctx.advance();
+						tokenType = Token::Type::ShiftRightEqual;
+					}
+				}
+				else if (ctx.peek() == '=')
 				{
 					ctx.advance();
 					tokenType = Token::Type::GreaterEqual;

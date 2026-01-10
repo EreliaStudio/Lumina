@@ -1,27 +1,84 @@
-#include <ViewRegionConstant>
+Input -> VertexPass : Vector2 modelPosition;
+VertexPass -> FragmentPass : int tileID;
+FragmentPass -> Output : Color outputColor;
 
-Input      -> VertexPass: Vector2Int modelPosition;
-FragmentPass -> Output: Color pixelColor;
+DataBlock cameraUBO as constant
+{
+	Matrix4x4 viewMatrix;
+	Matrix4x4 projectionMatrix;
+};
+
+DataBlock modelData as attribute
+{
+	Matrix4x4 modelMatrix;
+};
+
+DataBlock chunkData as attribute
+{
+	int tileID[16 * 16 / 2];
+};
+
+struct Tile
+{
+	bool initialized;
+	Color color;
+};
+
+DataBlock tileData as constant
+{
+	int maxTileID;
+	Tile tiles[];
+};
+
+int unpackTileID(int p_instanceID)
+{
+	const int packedIndex = p_instanceID / 2;
+	const int packed = chunkData.tileID[packedIndex];
+
+	const bool isOdd = ((p_instanceID & 1) != 0);
+	const int raw16 = isOdd ? ((packed >> 16) & 0xFFFF) : (packed & 0xFFFF);
+
+	return (raw16 >= 0x8000) ? (raw16 - 0x10000) : raw16;
+}
 
 VertexPass()
 {
-	Vector4 screenPosition = Vector4(modelPosition, 0, 1.0);
-	Vector4 convertedPosition = spk::ViewRegionConstant.screenToOpenGLMatrix * screenPosition;
+	int x = (InstanceID % 16);
+	int y = (InstanceID / 16);
 
-	pixelPosition = convertedPosition;
+	Vector2 tilePosition = Vector2(float(x), float(y));
+
+	tileID = unpackTileID(InstanceID);
+
+	Vector4 localPos = Vector4(modelPosition, 0.0, 1.0);
+	Vector4 worldPos = modelData.modelMatrix * localPos;
+
+	Vector4 viewPos = cameraUBO.viewMatrix * worldPos;
+	Vector4 clipPos = cameraUBO.projectionMatrix * viewPos;
+
+	pixelPosition = clipPos;
+}
+
+Tile getTile(int tileID)
+{
+	if (tileID < 0 || tileID >= tileData.maxTileID)
+	{
+		discard;
+	}
+
+	Tile tile = tileData.tiles[tileID];
+
+	if (tile.initialized == false)
+	{
+		discard;
+	}
+
+	return (tile);
 }
 
 FragmentPass()
 {
-	Color colorArray[8] = {
-		Color(1, 0, 0, 1),
-		Color(0, 1, 0, 1),
-		Color(0, 0, 1, 1),
-		Color(1, 1, 0, 1),
-		Color(1, 0, 1, 1),
-		Color(0, 1, 1, 1),
-		Color(1, 1, 1, 1),
-		Color(0.5, 0.5, 0.5, 1)
-	};
-	pixelColor = colorArray[TriangleID % 8];
+	Tile tile = getTile(tileID);
+
+	outputColor = tile.color;
 }

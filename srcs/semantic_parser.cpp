@@ -159,18 +159,39 @@ namespace
                 return out.str();
         }
 
+	bool isIntLikeTypeName(const std::string &name);
+	bool isUIntLikeTypeName(const std::string &name);
+	int vectorDimension(const std::string &name);
+
         bool typeEquals(const TypeInfo &lhs, const TypeInfo &rhs)
         {
                 return lhs.name == rhs.name && lhs.isConst == rhs.isConst && lhs.isReference == rhs.isReference &&
                        lhs.isArray == rhs.isArray && lhs.hasArraySize == rhs.hasArraySize && lhs.arraySize == rhs.arraySize;
         }
 
-        bool typeAssignable(TypeInfo dest, TypeInfo src)
-        {
-                dest.isConst = false;
-                src.isConst = false;
-                return typeEquals(dest, src);
-        }
+bool typeAssignable(TypeInfo dest, TypeInfo src)
+{
+	dest.isConst = false;
+	src.isConst = false;
+	if (typeEquals(dest, src))
+	{
+		return true;
+	}
+	if (dest.isReference != src.isReference || dest.isArray != src.isArray || dest.hasArraySize != src.hasArraySize ||
+	    dest.arraySize != src.arraySize)
+	{
+		return false;
+	}
+	const bool destIntLike = isIntLikeTypeName(dest.name);
+	const bool destUIntLike = isUIntLikeTypeName(dest.name);
+	const bool srcIntLike = isIntLikeTypeName(src.name);
+	const bool srcUIntLike = isUIntLikeTypeName(src.name);
+	if ((destIntLike && srcUIntLike) || (destUIntLike && srcIntLike))
+	{
+		return vectorDimension(dest.name) == vectorDimension(src.name);
+	}
+	return false;
+}
 
         TypeInfo stripReference(TypeInfo type)
         {
@@ -393,6 +414,10 @@ int componentIndex(char component)
                                 return "|";
                         case BinaryOperator::BitwiseXor:
                                 return "^";
+                        case BinaryOperator::ShiftLeft:
+                                return "<<";
+                        case BinaryOperator::ShiftRight:
+                                return ">>";
                 }
                 return {};
         }
@@ -419,6 +444,10 @@ int componentIndex(char component)
                                 return "|=";
                         case AssignmentOperator::BitwiseXorAssign:
                                 return "^=";
+                        case AssignmentOperator::ShiftLeftAssign:
+                                return "<<=";
+                        case AssignmentOperator::ShiftRightAssign:
+                                return ">>=";
                 }
 		return {};
 	}
@@ -2174,6 +2203,10 @@ int componentIndex(char component)
 		TypedValue evaluateLiteral(const LiteralExpression &literal)
 		{
 			const std::string &text = literal.literal.content;
+			if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
+			{
+				return {TypeInfo{"int"}, false};
+			}
 			if (text == "true" || text == "false")
 			{
 				return {TypeInfo{"bool"}, false};
@@ -2182,8 +2215,9 @@ int componentIndex(char component)
 			{
 				return {TypeInfo{"string"}, false};
 			}
-			if (text.find('.') != std::string::npos || text.find('f') != std::string::npos ||
-			    text.find('F') != std::string::npos)
+			const bool hasFloatMarker =
+			    text.find('.') != std::string::npos || text.find('e') != std::string::npos || text.find('E') != std::string::npos;
+			if (hasFloatMarker || (!text.empty() && (text.back() == 'f' || text.back() == 'F')))
 			{
 				return {TypeInfo{"float"}, false};
 			}
@@ -2493,6 +2527,8 @@ int componentIndex(char component)
 
                         TypeInfo leftBase = stripReference(left.type);
                         TypeInfo rightBase = stripReference(right.type);
+                        leftBase.isConst = false;
+                        rightBase.isConst = false;
 
 			bool usedBuiltinResolution = false;
 			TypeInfo resolvedType = leftBase;
@@ -2555,6 +2591,17 @@ int componentIndex(char component)
                                                 emitError("Bitwise operators require numeric operands", binaryToken);
                                         }
                                         break;
+                                case BinaryOperator::ShiftLeft:
+                                case BinaryOperator::ShiftRight:
+                                        if (!isIntLikeTypeName(leftBase.name) && !isUIntLikeTypeName(leftBase.name))
+                                        {
+                                                emitError("Shift operators require integer operands", binaryToken);
+                                        }
+                                        if (!isIntLikeTypeName(rightBase.name) && !isUIntLikeTypeName(rightBase.name))
+                                        {
+                                                emitError("Shift operators require integer operands", binaryToken);
+                                        }
+                                        break;
                         }
 
                         return result;
@@ -2602,7 +2649,7 @@ int componentIndex(char component)
                         }
 
 			if (!handledByUserOperator &&
-			    !typeEquals(stripReference(target.type), stripReference(value.type)))
+			    !typeAssignable(stripReference(target.type), stripReference(value.type)))
 			{
 				emitError("Cannot assign type '" + typeToString(value.type) + "' to target of type '" +
 				          typeToString(target.type) + "'",
@@ -2643,7 +2690,11 @@ int componentIndex(char component)
                         {
                                 return {};
                         }
-                        if (!typeEquals(stripReference(thenValue.type), stripReference(elseValue.type)))
+                        TypeInfo thenBase = stripReference(thenValue.type);
+                        TypeInfo elseBase = stripReference(elseValue.type);
+                        thenBase.isConst = false;
+                        elseBase.isConst = false;
+                        if (!typeAssignable(thenBase, elseBase))
                         {
                                 emitError("Conditional branches must produce the same type", context.ownerToken);
                         }
@@ -3709,7 +3760,7 @@ int componentIndex(char component)
                                                 compatible = false;
                                                 break;
                                         }
-                                        if (!typeEquals(stripReference(signature.parameters[i]),
+                                        if (!typeAssignable(stripReference(signature.parameters[i]),
                                                 stripReference(argumentTypes[i].type)))
                                         {
                                                 compatible = false;

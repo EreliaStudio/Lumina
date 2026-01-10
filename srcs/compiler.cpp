@@ -281,6 +281,10 @@ std::string jsonEscape(const std::string &value)
 						return *left | *right;
 					case BinaryOperator::BitwiseXor:
 						return *left ^ *right;
+					case BinaryOperator::ShiftLeft:
+						return *left << *right;
+					case BinaryOperator::ShiftRight:
+						return *left >> *right;
 					default:
 						return std::nullopt;
 				}

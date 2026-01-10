@@ -103,7 +103,9 @@ enum class BinaryOperator
 	LogicalOr,
 	BitwiseAnd,
 	BitwiseOr,
-	BitwiseXor
+	BitwiseXor,
+	ShiftLeft,
+	ShiftRight
 };
 
 struct BinaryExpression final : public Expression
@@ -126,7 +128,9 @@ enum class AssignmentOperator
 	ModuloAssign,
 	BitwiseAndAssign,
 	BitwiseOrAssign,
-	BitwiseXorAssign
+	BitwiseXorAssign,
+	ShiftLeftAssign,
+	ShiftRightAssign
 };
 
 struct AssignmentExpression final : public Expression

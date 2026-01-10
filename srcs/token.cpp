@@ -179,6 +179,10 @@ std::string_view tokenTypeToString(Token::Type p_type)
 			return "Greater";
 		case Token::Type::GreaterEqual:
 			return "GreaterEqual";
+		case Token::Type::ShiftLeft:
+			return "ShiftLeft";
+		case Token::Type::ShiftRight:
+			return "ShiftRight";
 		case Token::Type::Arrow:
 			return "Arrow";
 		case Token::Type::Assign:
@@ -229,6 +233,10 @@ std::string_view tokenTypeToString(Token::Type p_type)
 			return "Caret";
 		case Token::Type::CaretEqual:
 			return "CaretEqual";
+		case Token::Type::ShiftLeftEqual:
+			return "ShiftLeftEqual";
+		case Token::Type::ShiftRightEqual:
+			return "ShiftRightEqual";
 		case Token::Type::Tilde:
 			return "Tilde";
 		case Token::Type::Question:

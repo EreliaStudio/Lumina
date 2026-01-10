@@ -1,14 +1,14 @@
 {
   "shader": {
     "sources": {
-      "vertex": "#version 450 core\n\nlayout(location = 0) in ivec2 modelPosition;\n\nlayout(location = 0) flat out uint triangleIndex;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nvoid main()\n{\n\ttriangleIndex = uint(gl_VertexID / 3);\n\tvec4 screenPosition = vec4(modelPosition, 0, 1.0);\n\tvec4 convertedPosition = (spk__ViewRegionConstant.screenToOpenGLMatrix * screenPosition);\n\tgl_Position = convertedPosition;\n}\n",
-      "fragment": "#version 450 core\n\nlayout(location = 0) flat in uint triangleIndex;\n\nlayout(location = 0) out vec4 pixelColor;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform spk__ViewRegionConstant_Type\n{\n\tmat4 screenToOpenGLMatrix;\n} spk__ViewRegionConstant;\n\nvoid main()\n{\n\tvec4 colorArray[8] = vec4[8](vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(0, 0, 1, 1), vec4(1, 1, 0, 1), vec4(1, 0, 1, 1), vec4(0, 1, 1, 1), vec4(1, 1, 1, 1), vec4(0.5, 0.5, 0.5, 1));\n\tpixelColor = colorArray[(triangleIndex % uint(8))];\n}\n"
+      "vertex": "#version 450 core\n\nlayout(location = 0) in vec2 modelPosition;\n\nlayout(location = 0) flat out uint triangleIndex;\nlayout(location = 1) out int tileID;\n\nstruct Tile\n{\n\tbool initialized;\n\tvec4 color;\n};\n\nlayout(binding = CONSTANT_BINDING, std140) uniform cameraUBO_Type\n{\n\tmat4 viewMatrix;\n\tmat4 projectionMatrix;\n} cameraUBO;\n\nlayout(binding = CONSTANT_BINDING, std430) buffer tileData_Type\n{\n\tint maxTileID;\n\tTile tiles[];\n} tileData;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform modelData_Type\n{\n\tmat4 modelMatrix;\n} modelData;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform chunkData_Type\n{\n\tint tileID[((16 * 16) / 2)];\n} chunkData;\n\nint unpackTileID(int p_instanceID)\n{\n\tint packedIndex = (p_instanceID / 2);\n\tint packed = chunkData.tileID[packedIndex];\n\tbool isOdd = ((p_instanceID & 1) != 0);\n\tint raw16 = (isOdd ? ((packed >> 16) & 0xFFFF) : (packed & 0xFFFF));\n\treturn ((raw16 >= 0x8000) ? (raw16 - 0x10000) : raw16);\n}\n\nTile getTile(int tileID)\n{\n\tif (((tileID < 0) || (tileID >= tileData.maxTileID)))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\tTile tile = tileData.tiles[tileID];\n\tif ((tile.initialized == false))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\treturn tile;\n}\n\n\nvoid main()\n{\n\ttriangleIndex = uint(gl_VertexID / 3);\n\tint x = (gl_InstanceID % uint(16));\n\tint y = (gl_InstanceID / 16);\n\tvec2 tilePosition = vec2(float(x), float(y));\n\ttileID = unpackTileID(gl_InstanceID);\n\tvec4 localPos = vec4(modelPosition, 0.0, 1.0);\n\tvec4 worldPos = (modelData.modelMatrix * localPos);\n\tvec4 viewPos = (cameraUBO.viewMatrix * worldPos);\n\tvec4 clipPos = (cameraUBO.projectionMatrix * viewPos);\n\tgl_Position = clipPos;\n}\n",
+      "fragment": "#version 450 core\n\nlayout(location = 0) flat in uint triangleIndex;\nlayout(location = 1) in int tileID;\n\nlayout(location = 0) out vec4 outputColor;\n\nstruct Tile\n{\n\tbool initialized;\n\tvec4 color;\n};\n\nlayout(binding = CONSTANT_BINDING, std140) uniform cameraUBO_Type\n{\n\tmat4 viewMatrix;\n\tmat4 projectionMatrix;\n} cameraUBO;\n\nlayout(binding = CONSTANT_BINDING, std430) buffer tileData_Type\n{\n\tint maxTileID;\n\tTile tiles[];\n} tileData;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform modelData_Type\n{\n\tmat4 modelMatrix;\n} modelData;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform chunkData_Type\n{\n\tint tileID[((16 * 16) / 2)];\n} chunkData;\n\nint unpackTileID(int p_instanceID)\n{\n\tint packedIndex = (p_instanceID / 2);\n\tint packed = chunkData.tileID[packedIndex];\n\tbool isOdd = ((p_instanceID & 1) != 0);\n\tint raw16 = (isOdd ? ((packed >> 16) & 0xFFFF) : (packed & 0xFFFF));\n\treturn ((raw16 >= 0x8000) ? (raw16 - 0x10000) : raw16);\n}\n\nTile getTile(int tileID)\n{\n\tif (((tileID < 0) || (tileID >= tileData.maxTileID)))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\tTile tile = tileData.tiles[tileID];\n\tif ((tile.initialized == false))\n\t\t{\n\t\t\tdiscard;\n\t\t}\n\treturn tile;\n}\n\n\nvoid main()\n{\n\tTile tile = getTile(tileID);\n\toutputColor = tile.color;\n}\n"
     }
   },
   "layouts": [
     {
       "location": 0,
-      "type": "Vector2Int",
+      "type": "Vector2",
       "name": "modelPosition"
     }
   ],
@@ -16,24 +16,92 @@
     {
       "location": 0,
       "type": "Color",
-      "name": "pixelColor"
+      "name": "outputColor"
     }
   ],
   "textures": [],
   "constants": [
     {
-      "name": "spk::ViewRegionConstant",
+      "name": "cameraUBO",
+      "type": "UBO",
+      "size": 128,
+      "members": [
+        {
+          "name": "viewMatrix",
+          "offset": 0,
+          "type": "Element",
+          "size": 64
+        },
+        {
+          "name": "projectionMatrix",
+          "offset": 64,
+          "type": "Element",
+          "size": 64
+        }
+      ]
+    },
+    {
+      "name": "tileData",
+      "type": "SSBO",
+      "size": 16,
+      "members": [
+        {
+          "name": "maxTileID",
+          "offset": 0,
+          "type": "Element",
+          "size": 4
+        }
+      ],
+      "dynamicArrayLayout":       {
+        "name": "tiles",
+        "offset": 16,
+        "elementStride": 32,
+        "elementPadding": 0,
+        "members": [
+          {
+            "name": "initialized",
+            "offset": 0,
+            "type": "Element",
+            "size": 4
+          },
+          {
+            "name": "color",
+            "offset": 16,
+            "type": "Element",
+            "size": 16
+          }
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "modelData",
       "type": "UBO",
       "size": 64,
       "members": [
         {
-          "name": "screenToOpenGLMatrix",
+          "name": "modelMatrix",
           "offset": 0,
           "type": "Element",
           "size": 64
         }
       ]
+    },
+    {
+      "name": "chunkData",
+      "type": "UBO",
+      "size": 2048,
+      "members": [
+        {
+          "name": "tileID",
+          "offset": 0,
+          "type": "Array",
+          "size": 2048,
+          "elementSize": 16,
+          "nbElements": 128
+        }
+      ]
     }
-  ],
-  "attributes": []
+  ]
 }

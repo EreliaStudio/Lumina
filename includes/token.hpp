@@ -41,6 +41,8 @@ struct Token
 		LessEqual,
 		Greater,
 		GreaterEqual,
+		ShiftLeft,
+		ShiftRight,
 		Arrow, // ->
 
 		Assign,
@@ -69,6 +71,8 @@ struct Token
 		PipeEqual,
 		Caret,
 		CaretEqual,
+		ShiftLeftEqual,
+		ShiftRightEqual,
 		Tilde,
 		Question,
 

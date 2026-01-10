@@ -90,12 +90,13 @@ private:
     ExpressionPtr parseConditional();
     ExpressionPtr parseLogicalOr();
     ExpressionPtr parseLogicalAnd();
-    ExpressionPtr parseBitwiseOr();
-    ExpressionPtr parseBitwiseXor();
-    ExpressionPtr parseBitwiseAnd();
-    ExpressionPtr parseEquality();
-    ExpressionPtr parseComparison();
-    ExpressionPtr parseTerm();
+	ExpressionPtr parseBitwiseOr();
+	ExpressionPtr parseBitwiseXor();
+	ExpressionPtr parseBitwiseAnd();
+	ExpressionPtr parseEquality();
+	ExpressionPtr parseComparison();
+	ExpressionPtr parseShift();
+	ExpressionPtr parseTerm();
     ExpressionPtr parseFactor();
     ExpressionPtr parseUnary();
     ExpressionPtr parsePostfix();
@@ -491,6 +492,8 @@ Parser::Impl::StructMemberPtr Parser::Impl::parseOperatorMember(TypeName returnT
                  Token::Type::Equal,
                  Token::Type::Less,
                  Token::Type::Greater,
+                 Token::Type::ShiftLeft,
+                 Token::Type::ShiftRight,
                  Token::Type::Bang,
                  Token::Type::Ampersand,
                  Token::Type::Pipe,
@@ -502,7 +505,9 @@ Parser::Impl::StructMemberPtr Parser::Impl::parseOperatorMember(TypeName returnT
                  Token::Type::PercentEqual,
                  Token::Type::AmpersandEqual,
                  Token::Type::PipeEqual,
-                 Token::Type::CaretEqual}))
+                 Token::Type::CaretEqual,
+                 Token::Type::ShiftLeftEqual,
+                 Token::Type::ShiftRightEqual}))
     {
         symbol = previous();
     }
@@ -1232,8 +1237,26 @@ Parser::Impl::ExpressionPtr Parser::Impl::parseEquality()
 
 Parser::Impl::ExpressionPtr Parser::Impl::parseComparison()
 {
-    ExpressionPtr expression = parseTerm();
+    ExpressionPtr expression = parseShift();
     while (match({Token::Type::Less, Token::Type::LessEqual, Token::Type::Greater, Token::Type::GreaterEqual}))
+    {
+        Token opToken = previous();
+        Token::Type opType = opToken.type;
+        ExpressionPtr right = parseShift();
+        auto binary = std::make_unique<BinaryExpression>();
+        binary->operatorToken = opToken;
+        binary->op = binaryOperatorFromToken(opType);
+        binary->left = std::move(expression);
+        binary->right = std::move(right);
+        expression = std::move(binary);
+    }
+    return expression;
+}
+
+Parser::Impl::ExpressionPtr Parser::Impl::parseShift()
+{
+    ExpressionPtr expression = parseTerm();
+    while (match({Token::Type::ShiftLeft, Token::Type::ShiftRight}))
     {
         Token opToken = previous();
         Token::Type opType = opToken.type;
@@ -1522,11 +1545,15 @@ BinaryOperator Parser::Impl::binaryOperatorFromToken(Token::Type type) const
             return BinaryOperator::BitwiseAnd;
         case Token::Type::Pipe:
             return BinaryOperator::BitwiseOr;
-        case Token::Type::Caret:
-            return BinaryOperator::BitwiseXor;
-        default:
-            break;
-    }
+		case Token::Type::Caret:
+			return BinaryOperator::BitwiseXor;
+		case Token::Type::ShiftLeft:
+			return BinaryOperator::ShiftLeft;
+		case Token::Type::ShiftRight:
+			return BinaryOperator::ShiftRight;
+		default:
+			break;
+	}
     return BinaryOperator::Add;
 }
 
@@ -1548,13 +1575,17 @@ AssignmentOperator Parser::Impl::assignmentOperatorFromToken(Token::Type type) c
             return AssignmentOperator::ModuloAssign;
         case Token::Type::AmpersandEqual:
             return AssignmentOperator::BitwiseAndAssign;
-        case Token::Type::PipeEqual:
-            return AssignmentOperator::BitwiseOrAssign;
-        case Token::Type::CaretEqual:
-            return AssignmentOperator::BitwiseXorAssign;
-        default:
-            break;
-    }
+		case Token::Type::PipeEqual:
+			return AssignmentOperator::BitwiseOrAssign;
+		case Token::Type::CaretEqual:
+			return AssignmentOperator::BitwiseXorAssign;
+		case Token::Type::ShiftLeftEqual:
+			return AssignmentOperator::ShiftLeftAssign;
+		case Token::Type::ShiftRightEqual:
+			return AssignmentOperator::ShiftRightAssign;
+		default:
+			break;
+	}
     return AssignmentOperator::Assign;
 }
 
@@ -1596,12 +1627,14 @@ bool Parser::Impl::isAssignmentOperator(Token::Type type) const
         case Token::Type::SlashEqual:
         case Token::Type::PercentEqual:
         case Token::Type::AmpersandEqual:
-        case Token::Type::PipeEqual:
-        case Token::Type::CaretEqual:
-            return true;
-        default:
-            return false;
-    }
+		case Token::Type::PipeEqual:
+		case Token::Type::CaretEqual:
+		case Token::Type::ShiftLeftEqual:
+		case Token::Type::ShiftRightEqual:
+			return true;
+		default:
+			return false;
+	}
 }
 bool Parser::Impl::match(Token::Type type)
 {
