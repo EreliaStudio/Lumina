@@ -13,20 +13,23 @@ DataBlock modelData as attribute
 	Matrix4x4 modelMatrix;
 };
 
+#define SizeX 16
+#define SizeY 16
+
 DataBlock chunkData as attribute
 {
-	int tileID[16 * 16 / 2];
+	int tileID[SizeX * SizeY / 2];
 };
 
 struct Tile
 {
-	bool initialized;
+	int initialized;
 	Color color;
 };
 
 DataBlock tileData as constant
 {
-	int maxTileID;
+	uint maxTileID;
 	Tile tiles[];
 };
 
@@ -43,14 +46,14 @@ int unpackTileID(int p_instanceID)
 
 VertexPass()
 {
-	int x = (InstanceID % 16);
-	int y = (InstanceID / 16);
+	int x = (InstanceID % SizeX);
+	int y = (InstanceID / SizeY);
 
 	Vector2 tilePosition = Vector2(float(x), float(y));
 
 	tileID = unpackTileID(InstanceID);
 
-	Vector4 localPos = Vector4(modelPosition, 0.0, 1.0);
+	Vector4 localPos = Vector4(modelPosition + tilePosition, 0.0, 1.0);
 	Vector4 worldPos = modelData.modelMatrix * localPos;
 
 	Vector4 viewPos = cameraUBO.viewMatrix * worldPos;
@@ -68,7 +71,7 @@ Tile getTile(int tileID)
 
 	Tile tile = tileData.tiles[tileID];
 
-	if (tile.initialized == false)
+	if (tile.initialized == 0)
 	{
 		discard;
 	}

@@ -209,6 +209,15 @@ private:
 		std::vector<MethodHelper> methods;
 	};
 
+	struct StageUsage
+	{
+		std::unordered_set<const FunctionInstruction *> functions;
+		std::unordered_set<const VariableInstruction *> globals;
+		std::unordered_set<std::string> blocks;
+		std::unordered_set<std::string> textures;
+		std::unordered_set<std::string> methodHelpers;
+	};
+
 	void collect(const std::vector<std::unique_ptr<Instruction>> &instructions);
 	void collectNamespace(const NamespaceInstruction &ns);
 	void collectAggregate(const AggregateInstruction &aggregate);
@@ -221,15 +230,18 @@ private:
 	std::string remapIdentifier(const Name &name) const;
 	std::string remapIdentifier(const std::string &canonical) const;
 
-	void emitCommon(std::ostringstream &oss) const;
+	StageUsage collectStageUsage(const StageFunctionInstruction *stage) const;
+	const MethodHelper *findMethodHelper(const std::string &helperName, const AggregateInfo **aggregate) const;
+
+	void emitCommon(std::ostringstream &oss, const StageUsage &usage) const;
 	void emitStructs(std::ostringstream &oss) const;
-	void emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind) const;
+	void emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind, const StageUsage &usage) const;
 	void emitBlockMembers(std::ostringstream &oss, const AggregateInstruction &aggregate, int indent) const;
-	void emitStructMethods(std::ostringstream &oss) const;
-	void emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates) const;
-	void emitGlobalVariables(std::ostringstream &oss) const;
-	void emitTextures(std::ostringstream &oss) const;
-	void emitFunctions(std::ostringstream &oss) const;
+	void emitStructMethods(std::ostringstream &oss, const StageUsage &usage) const;
+	void emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates, const StageUsage &usage) const;
+	void emitGlobalVariables(std::ostringstream &oss, const StageUsage &usage) const;
+	void emitTextures(std::ostringstream &oss, const StageUsage &usage) const;
+	void emitFunctions(std::ostringstream &oss, const StageUsage &usage) const;
 
 	void emitInterface(std::ostringstream &oss, const std::vector<StageIO> &entries, const char *qualifier) const;
 	void emitStage(std::ostringstream &oss, const StageFunctionInstruction *stage, Stage stageKind) const;
@@ -299,6 +311,9 @@ private:
 	std::unordered_map<const FunctionInstruction *, std::string> functionNames;
 	std::unordered_map<const FunctionInstruction *, std::vector<std::string>> functionNamespaces;
 	std::unordered_map<const StageFunctionInstruction *, std::vector<std::string>> stageNamespaces;
+	std::unordered_map<std::string, const FunctionInstruction *> functionLookup;
+	std::unordered_map<std::string, const VariableInstruction *> globalVariableLookup;
+	std::unordered_map<std::string, AggregateInstruction::Kind> aggregateKindLookup;
 	struct MethodCallInfo
 	{
 		std::string helperName;
@@ -418,6 +433,7 @@ void ConverterImpl::collectAggregate(const AggregateInstruction &aggregate)
 	{
 		remappedNames[safeTokenContent(aggregate.name)] = sanitized;
 	}
+	aggregateKindLookup[info.qualifiedName] = aggregate.kind;
 	switch (aggregate.kind)
 	{
 		case AggregateInstruction::Kind::Struct:
@@ -465,6 +481,7 @@ void ConverterImpl::collectVariable(const VariableInstruction &variable)
 			remappedNames[safeTokenContent(declarator.name)] = sanitized;
 		}
 		remappedNames[canonical] = sanitized;
+		globalVariableLookup[canonical] = &variable;
 	}
 }
 
@@ -481,6 +498,7 @@ void ConverterImpl::collectFunction(const FunctionInstruction &function)
 	functions.push_back(&function);
 	functionNames[&function] = sanitized;
 	functionNamespaces[&function] = namespaceStack;
+	functionLookup[canonical] = &function;
 }
 
 void ConverterImpl::collectStage(const StageFunctionInstruction &stageFunction)
@@ -637,17 +655,569 @@ std::string ConverterImpl::remapIdentifier(const std::string &canonical) const
 	return canonical;
 }
 
-void ConverterImpl::emitCommon(std::ostringstream &oss) const
+ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionInstruction *stage) const
+{
+	StageUsage usage;
+	if (!stage || !stage->body)
+	{
+		return usage;
+	}
+
+	struct UsageCollector
+	{
+		const ConverterImpl &converter;
+		StageUsage &usage;
+		std::unordered_set<const FunctionInstruction *> visitedFunctions;
+		std::unordered_set<std::string> visitedMethodHelpers;
+		std::vector<std::unordered_set<std::string>> localScopes;
+		std::vector<std::vector<std::string>> namespaceScopes;
+		const AggregateInfo *currentMethodAggregate = nullptr;
+
+		explicit UsageCollector(const ConverterImpl &converter, StageUsage &usage)
+		    : converter(converter),
+		      usage(usage)
+		{
+		}
+
+		bool isLocal(const std::string &name) const
+		{
+			for (auto it = localScopes.rbegin(); it != localScopes.rend(); ++it)
+			{
+				if (it->find(name) != it->end())
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		void pushScope()
+		{
+			localScopes.emplace_back();
+		}
+
+		void popScope()
+		{
+			if (!localScopes.empty())
+			{
+				localScopes.pop_back();
+			}
+		}
+
+		void addLocal(const std::string &name)
+		{
+			if (localScopes.empty())
+			{
+				pushScope();
+			}
+			localScopes.back().insert(name);
+		}
+
+		void pushNamespace(const std::vector<std::string> &ns)
+		{
+			namespaceScopes.push_back(ns);
+		}
+
+		void popNamespace()
+		{
+			if (!namespaceScopes.empty())
+			{
+				namespaceScopes.pop_back();
+			}
+		}
+
+		const std::vector<std::string> &currentNamespace() const
+		{
+			static const std::vector<std::string> kEmpty;
+			if (namespaceScopes.empty())
+			{
+				return kEmpty;
+			}
+			return namespaceScopes.back();
+		}
+
+		template <typename MapType>
+		typename MapType::const_iterator resolveByName(const Name &name, const MapType &map) const
+		{
+			const std::string base = joinName(name);
+			if (base.find("::") != std::string::npos || name.parts.size() > 1)
+			{
+				return map.find(base);
+			}
+			const auto &ns = currentNamespace();
+			for (std::size_t depth = ns.size(); depth > 0; --depth)
+			{
+				std::ostringstream oss;
+				for (std::size_t i = 0; i < depth; ++i)
+				{
+					if (i > 0)
+					{
+						oss << "::";
+					}
+					oss << ns[i];
+				}
+				oss << "::" << base;
+				auto it = map.find(oss.str());
+				if (it != map.end())
+				{
+					return it;
+				}
+			}
+			return map.find(base);
+		}
+
+		template <typename MapType>
+		std::optional<std::string> resolveQualifiedKey(const Name &name, const MapType &map) const
+		{
+			const std::string base = joinName(name);
+			if (base.find("::") != std::string::npos || name.parts.size() > 1)
+			{
+				if (map.find(base) != map.end())
+				{
+					return base;
+				}
+				return std::nullopt;
+			}
+			const auto &ns = currentNamespace();
+			for (std::size_t depth = ns.size(); depth > 0; --depth)
+			{
+				std::ostringstream oss;
+				for (std::size_t i = 0; i < depth; ++i)
+				{
+					if (i > 0)
+					{
+						oss << "::";
+					}
+					oss << ns[i];
+				}
+				oss << "::" << base;
+				const std::string qualified = oss.str();
+				if (map.find(qualified) != map.end())
+				{
+					return qualified;
+				}
+			}
+			if (map.find(base) != map.end())
+			{
+				return base;
+			}
+			return std::nullopt;
+		}
+
+		void collectStage(const StageFunctionInstruction *stage)
+		{
+			if (!stage || !stage->body)
+			{
+				return;
+			}
+			auto nsIt = converter.stageNamespaces.find(stage);
+			if (nsIt != converter.stageNamespaces.end())
+			{
+				pushNamespace(nsIt->second);
+			}
+			else
+			{
+				pushNamespace({});
+			}
+
+			pushScope();
+			for (const Parameter &param : stage->parameters)
+			{
+				addLocal(safeTokenContent(param.name));
+			}
+			collectStatement(stage->body.get());
+			popScope();
+			popNamespace();
+		}
+
+		void collectFunction(const FunctionInstruction *function)
+		{
+			if (!function || !function->body)
+			{
+				return;
+			}
+			if (!visitedFunctions.insert(function).second)
+			{
+				return;
+			}
+			auto nsIt = converter.functionNamespaces.find(function);
+			if (nsIt != converter.functionNamespaces.end())
+			{
+				pushNamespace(nsIt->second);
+			}
+			else
+			{
+				pushNamespace({});
+			}
+			pushScope();
+			for (const Parameter &param : function->parameters)
+			{
+				addLocal(safeTokenContent(param.name));
+			}
+			collectStatement(function->body.get());
+			popScope();
+			popNamespace();
+		}
+
+		void collectMethod(const MethodHelper &helper, const AggregateInfo &aggregate)
+		{
+			if (!helper.node || !helper.node->body)
+			{
+				return;
+			}
+			if (!visitedMethodHelpers.insert(helper.helperName).second)
+			{
+				return;
+			}
+			const AggregateInfo *previousAggregate = currentMethodAggregate;
+			currentMethodAggregate = &aggregate;
+
+			pushNamespace(aggregate.namespacePath);
+			pushScope();
+			addLocal("this");
+			for (const std::string &fieldName : aggregate.fieldNames)
+			{
+				addLocal(fieldName);
+			}
+			for (const Parameter &param : helper.node->parameters)
+			{
+				addLocal(safeTokenContent(param.name));
+			}
+			collectStatement(helper.node->body.get());
+			popScope();
+			popNamespace();
+
+			currentMethodAggregate = previousAggregate;
+		}
+
+		void collectStatement(const Statement *statement)
+		{
+			if (!statement)
+			{
+				return;
+			}
+			switch (statement->kind)
+			{
+				case Statement::Kind::Block:
+				{
+					const auto *block = static_cast<const BlockStatement *>(statement);
+					for (const auto &stmt : block->statements)
+					{
+						collectStatement(stmt.get());
+					}
+					break;
+				}
+				case Statement::Kind::Expression:
+				{
+					const auto *expr = static_cast<const ExpressionStatement *>(statement);
+					collectExpression(expr->expression.get());
+					break;
+				}
+				case Statement::Kind::Variable:
+				{
+					const auto *var = static_cast<const VariableStatement *>(statement);
+					for (const VariableDeclarator &declarator : var->declaration.declarators)
+					{
+						addLocal(safeTokenContent(declarator.name));
+						if (declarator.arraySize)
+						{
+							collectExpression(declarator.arraySize.get());
+						}
+						if (declarator.initializer)
+						{
+							collectExpression(declarator.initializer.get());
+						}
+					}
+					break;
+				}
+				case Statement::Kind::If:
+				{
+					const auto *ifStmt = static_cast<const IfStatement *>(statement);
+					collectExpression(ifStmt->condition.get());
+					collectStatement(ifStmt->thenBranch.get());
+					collectStatement(ifStmt->elseBranch.get());
+					break;
+				}
+				case Statement::Kind::While:
+				{
+					const auto *whileStmt = static_cast<const WhileStatement *>(statement);
+					collectExpression(whileStmt->condition.get());
+					collectStatement(whileStmt->body.get());
+					break;
+				}
+				case Statement::Kind::DoWhile:
+				{
+					const auto *doStmt = static_cast<const DoWhileStatement *>(statement);
+					collectStatement(doStmt->body.get());
+					collectExpression(doStmt->condition.get());
+					break;
+				}
+				case Statement::Kind::For:
+				{
+					const auto *forStmt = static_cast<const ForStatement *>(statement);
+					collectStatement(forStmt->initializer.get());
+					collectExpression(forStmt->condition.get());
+					collectExpression(forStmt->increment.get());
+					collectStatement(forStmt->body.get());
+					break;
+				}
+				case Statement::Kind::Return:
+				{
+					const auto *ret = static_cast<const ReturnStatement *>(statement);
+					collectExpression(ret->value.get());
+					break;
+				}
+				case Statement::Kind::Break:
+				case Statement::Kind::Continue:
+				case Statement::Kind::Discard:
+					break;
+			}
+		}
+
+		void collectExpression(const Expression *expression)
+		{
+			if (!expression)
+			{
+				return;
+			}
+			switch (expression->kind)
+			{
+				case Expression::Kind::Literal:
+					break;
+				case Expression::Kind::ArrayLiteral:
+				{
+					const auto *array = static_cast<const ArrayLiteralExpression *>(expression);
+					for (const auto &element : array->elements)
+					{
+						collectExpression(element.get());
+					}
+					break;
+				}
+				case Expression::Kind::Identifier:
+					handleIdentifier(*static_cast<const IdentifierExpression *>(expression));
+					break;
+				case Expression::Kind::Unary:
+				{
+					const auto *unary = static_cast<const UnaryExpression *>(expression);
+					collectExpression(unary->operand.get());
+					break;
+				}
+				case Expression::Kind::Binary:
+				{
+					const auto *binary = static_cast<const BinaryExpression *>(expression);
+					collectExpression(binary->left.get());
+					collectExpression(binary->right.get());
+					break;
+				}
+				case Expression::Kind::Assignment:
+				{
+					const auto *assign = static_cast<const AssignmentExpression *>(expression);
+					collectExpression(assign->target.get());
+					collectExpression(assign->value.get());
+					break;
+				}
+				case Expression::Kind::Conditional:
+				{
+					const auto *cond = static_cast<const ConditionalExpression *>(expression);
+					collectExpression(cond->condition.get());
+					collectExpression(cond->thenBranch.get());
+					collectExpression(cond->elseBranch.get());
+					break;
+				}
+				case Expression::Kind::Call:
+					handleCall(*static_cast<const CallExpression *>(expression));
+					break;
+				case Expression::Kind::MemberAccess:
+				{
+					const auto *member = static_cast<const MemberExpression *>(expression);
+					collectExpression(member->object.get());
+					break;
+				}
+				case Expression::Kind::IndexAccess:
+				{
+					const auto *index = static_cast<const IndexExpression *>(expression);
+					collectExpression(index->object.get());
+					collectExpression(index->index.get());
+					break;
+				}
+				case Expression::Kind::Postfix:
+				{
+					const auto *postfix = static_cast<const PostfixExpression *>(expression);
+					collectExpression(postfix->operand.get());
+					break;
+				}
+			}
+		}
+
+		void handleIdentifier(const IdentifierExpression &identifier)
+		{
+			const std::string name = joinName(identifier.name);
+			if (name.empty())
+			{
+				return;
+			}
+			if (isLocal(name))
+			{
+				return;
+			}
+			if (name == "pixelPosition" || name == "InstanceID" || name == "TriangleID")
+			{
+				return;
+			}
+
+			auto globalIt = resolveByName(identifier.name, converter.globalVariableLookup);
+			if (globalIt != converter.globalVariableLookup.end())
+			{
+				usage.globals.insert(globalIt->second);
+			}
+
+			if (auto aggregateKey = resolveQualifiedKey(identifier.name, converter.aggregateKindLookup))
+			{
+				const auto kindIt = converter.aggregateKindLookup.find(*aggregateKey);
+				if (kindIt != converter.aggregateKindLookup.end())
+				{
+					if (kindIt->second == AggregateInstruction::Kind::ConstantBlock ||
+					    kindIt->second == AggregateInstruction::Kind::AttributeBlock)
+					{
+						usage.blocks.insert(*aggregateKey);
+					}
+				}
+			}
+
+			auto textureIt = resolveByName(identifier.name, converter.textureLookup);
+			if (textureIt != converter.textureLookup.end())
+			{
+				usage.textures.insert(textureIt->first);
+			}
+		}
+
+		void markMethodHelper(const std::string &helperName)
+		{
+			if (!usage.methodHelpers.insert(helperName).second)
+			{
+				return;
+			}
+			const AggregateInfo *aggregate = nullptr;
+			const MethodHelper *helper = converter.findMethodHelper(helperName, &aggregate);
+			if (aggregate && (aggregate->kind == AggregateInstruction::Kind::ConstantBlock ||
+			                  aggregate->kind == AggregateInstruction::Kind::AttributeBlock))
+			{
+				usage.blocks.insert(aggregate->qualifiedName);
+			}
+			if (aggregate && helper)
+			{
+				collectMethod(*helper, *aggregate);
+			}
+		}
+
+		bool handleImplicitMethodCall(const IdentifierExpression &identifier)
+		{
+			if (!currentMethodAggregate || identifier.name.parts.size() != 1)
+			{
+				return false;
+			}
+			const std::string methodName = safeTokenContent(identifier.name.parts.front());
+			auto typeIt = converter.methodCallHelpers.find(currentMethodAggregate->qualifiedName);
+			if (typeIt == converter.methodCallHelpers.end())
+			{
+				return false;
+			}
+			auto helperIt = typeIt->second.find(methodName);
+			if (helperIt == typeIt->second.end())
+			{
+				return false;
+			}
+			markMethodHelper(helperIt->second.helperName);
+			return true;
+		}
+
+		void handleMemberCall(const MemberExpression &member)
+		{
+			auto infoIt = converter.expressionInfo.find(member.object.get());
+			if (infoIt == converter.expressionInfo.end())
+			{
+				return;
+			}
+			const std::string methodName = safeTokenContent(member.member);
+			const std::string objectType = infoIt->second.typeName;
+			auto typeIt = converter.methodCallHelpers.find(objectType);
+			if (typeIt == converter.methodCallHelpers.end())
+			{
+				return;
+			}
+			auto helperIt = typeIt->second.find(methodName);
+			if (helperIt == typeIt->second.end())
+			{
+				return;
+			}
+			markMethodHelper(helperIt->second.helperName);
+		}
+
+		void handleCall(const CallExpression &call)
+		{
+			if (const auto *member = dynamic_cast<const MemberExpression *>(call.callee.get()))
+			{
+				collectExpression(member->object.get());
+				handleMemberCall(*member);
+				for (const auto &arg : call.arguments)
+				{
+					collectExpression(arg.get());
+				}
+				return;
+			}
+
+			if (const auto *identifier = dynamic_cast<const IdentifierExpression *>(call.callee.get()))
+			{
+				if (!handleImplicitMethodCall(*identifier))
+				{
+					auto functionIt = resolveByName(identifier->name, converter.functionLookup);
+					if (functionIt != converter.functionLookup.end())
+					{
+						if (usage.functions.insert(functionIt->second).second)
+						{
+							collectFunction(functionIt->second);
+						}
+					}
+					else
+					{
+						const std::string name = joinName(identifier->name);
+						if (convertLuminaType(name) != name)
+						{
+							// Type constructor; no function dependency.
+						}
+					}
+				}
+				for (const auto &arg : call.arguments)
+				{
+					collectExpression(arg.get());
+				}
+				return;
+			}
+
+			collectExpression(call.callee.get());
+			for (const auto &arg : call.arguments)
+			{
+				collectExpression(arg.get());
+			}
+		}
+	};
+
+	UsageCollector collector(*this, usage);
+	collector.collectStage(stage);
+	return usage;
+}
+
+void ConverterImpl::emitCommon(std::ostringstream &oss, const StageUsage &usage) const
 {
 	emitStructs(oss);
-	emitStructMethods(oss);
-	emitBlocks(oss, AggregateInstruction::Kind::ConstantBlock);
-	emitBlockMethods(oss, constantBlocks);
-	emitBlocks(oss, AggregateInstruction::Kind::AttributeBlock);
-	emitBlockMethods(oss, attributeBlocks);
-	emitGlobalVariables(oss);
-	emitFunctions(oss);
-	emitTextures(oss);
+	emitStructMethods(oss, usage);
+	emitBlocks(oss, AggregateInstruction::Kind::ConstantBlock, usage);
+	emitBlockMethods(oss, constantBlocks, usage);
+	emitBlocks(oss, AggregateInstruction::Kind::AttributeBlock, usage);
+	emitBlockMethods(oss, attributeBlocks, usage);
+	emitGlobalVariables(oss, usage);
+	emitFunctions(oss, usage);
+	emitTextures(oss, usage);
 }
 
 void ConverterImpl::emitStructs(std::ostringstream &oss) const
@@ -665,7 +1235,7 @@ void ConverterImpl::emitStructs(std::ostringstream &oss) const
 	}
 }
 
-void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind) const
+void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind, const StageUsage &usage) const
 {
 	const std::vector<AggregateInfo> &blocks = (kind == AggregateInstruction::Kind::ConstantBlock) ? constantBlocks :
 	                                                                                                 attributeBlocks;
@@ -674,6 +1244,10 @@ void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Ki
 
 	for (const AggregateInfo &info : blocks)
 	{
+		if (usage.blocks.find(info.qualifiedName) == usage.blocks.end())
+		{
+			continue;
+		}
 		const AggregateInstruction *aggregate = info.node;
 		if (!aggregate)
 		{
@@ -718,13 +1292,17 @@ void ConverterImpl::emitBlockMembers(std::ostringstream &oss, const AggregateIns
 	}
 }
 
-void ConverterImpl::emitStructMethods(std::ostringstream &oss) const
+void ConverterImpl::emitStructMethods(std::ostringstream &oss, const StageUsage &usage) const
 {
 	bool emitted = false;
 	for (const AggregateInfo &info : structures)
 	{
 		for (const MethodHelper &helper : info.methods)
 		{
+			if (usage.methodHelpers.find(helper.helperName) == usage.methodHelpers.end())
+			{
+				continue;
+			}
 			emitMethodHelper(oss, info, helper);
 			emitted = true;
 		}
@@ -735,13 +1313,18 @@ void ConverterImpl::emitStructMethods(std::ostringstream &oss) const
 	}
 }
 
-void ConverterImpl::emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates) const
+void ConverterImpl::emitBlockMethods(
+    std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates, const StageUsage &usage) const
 {
 	bool emitted = false;
 	for (const AggregateInfo &info : aggregates)
 	{
 		for (const MethodHelper &helper : info.methods)
 		{
+			if (usage.methodHelpers.find(helper.helperName) == usage.methodHelpers.end())
+			{
+				continue;
+			}
 			emitMethodHelper(oss, info, helper);
 			emitted = true;
 		}
@@ -752,11 +1335,15 @@ void ConverterImpl::emitBlockMethods(std::ostringstream &oss, const std::vector<
 	}
 }
 
-void ConverterImpl::emitGlobalVariables(std::ostringstream &oss) const
+void ConverterImpl::emitGlobalVariables(std::ostringstream &oss, const StageUsage &usage) const
 {
 	for (const VariableInstruction *variable : globalVariables)
 	{
 		if (!variable)
+		{
+			continue;
+		}
+		if (usage.globals.find(variable) == usage.globals.end())
 		{
 			continue;
 		}
@@ -777,13 +1364,13 @@ void ConverterImpl::emitGlobalVariables(std::ostringstream &oss) const
 			oss << ";\n";
 		}
 	}
-	if (!globalVariables.empty())
+	if (!globalVariables.empty() && !usage.globals.empty())
 	{
 		oss << "\n";
 	}
 }
 
-void ConverterImpl::emitTextures(std::ostringstream &oss) const
+void ConverterImpl::emitTextures(std::ostringstream &oss, const StageUsage &usage) const
 {
 	if (input.textures.empty())
 	{
@@ -797,18 +1384,29 @@ void ConverterImpl::emitTextures(std::ostringstream &oss) const
 
 	for (const TextureBinding &binding : bindings)
 	{
+		if (usage.textures.find(binding.luminaName) == usage.textures.end())
+		{
+			continue;
+		}
 		oss << "layout(binding = " << binding.location << ") uniform " << binding.type << " " << binding.glslName
 		    << ";\n";
 	}
-	oss << "\n";
+	if (!usage.textures.empty())
+	{
+		oss << "\n";
+	}
 }
 
-void ConverterImpl::emitFunctions(std::ostringstream &oss) const
+void ConverterImpl::emitFunctions(std::ostringstream &oss, const StageUsage &usage) const
 {
 	bool emitted = false;
 	for (const FunctionInstruction *function : functions)
 	{
 		if (!function || !function->body)
+		{
+			continue;
+		}
+		if (usage.functions.find(function) == usage.functions.end())
 		{
 			continue;
 		}
@@ -915,6 +1513,46 @@ const ConverterImpl::AggregateInfo *ConverterImpl::findAggregateInfo(const std::
 	if (const AggregateInfo *info = finder(constantBlocks))
 	{
 		return info;
+	}
+	return nullptr;
+}
+
+const ConverterImpl::MethodHelper *ConverterImpl::findMethodHelper(
+    const std::string &helperName, const AggregateInfo **aggregate) const
+{
+	const auto finder = [&helperName, aggregate](const std::vector<AggregateInfo> &collection) -> const MethodHelper * {
+		for (const AggregateInfo &info : collection)
+		{
+			for (const MethodHelper &helper : info.methods)
+			{
+				if (helper.helperName == helperName)
+				{
+					if (aggregate)
+					{
+						*aggregate = &info;
+					}
+					return &helper;
+				}
+			}
+		}
+		return nullptr;
+	};
+
+	if (const MethodHelper *helper = finder(structures))
+	{
+		return helper;
+	}
+	if (const MethodHelper *helper = finder(attributeBlocks))
+	{
+		return helper;
+	}
+	if (const MethodHelper *helper = finder(constantBlocks))
+	{
+		return helper;
+	}
+	if (aggregate)
+	{
+		*aggregate = nullptr;
 	}
 	return nullptr;
 }
@@ -2109,13 +2747,15 @@ std::optional<std::string> ConverterImpl::emitImplicitSelfCall(const IdentifierE
 ShaderSources ConverterImpl::run()
 {
 	ShaderSources sources;
+	const StageUsage vertexUsage = collectStageUsage(vertexStage);
+	const StageUsage fragmentUsage = collectStageUsage(fragmentStage);
 
 	{
 		std::ostringstream vertex;
 		vertex << "#version 450 core\n\n";
 		emitInterface(vertex, input.vertexInputs, "in");
 		emitInterface(vertex, input.stageVaryings, "out");
-		emitCommon(vertex);
+		emitCommon(vertex, vertexUsage);
 		emitStage(vertex, vertexStage, Stage::VertexPass);
 		sources.vertex = vertex.str();
 	}
@@ -2125,7 +2765,7 @@ ShaderSources ConverterImpl::run()
 		fragment << "#version 450 core\n\n";
 		emitInterface(fragment, input.stageVaryings, "in");
 		emitInterface(fragment, input.fragmentOutputs, "out");
-		emitCommon(fragment);
+		emitCommon(fragment, fragmentUsage);
 		emitStage(fragment, fragmentStage, Stage::FragmentPass);
 		sources.fragment = fragment.str();
 	}
