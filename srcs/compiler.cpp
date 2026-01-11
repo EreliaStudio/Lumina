@@ -137,9 +137,36 @@ bool tryParseMatrix(const std::string &typeName, int &columns, int &rows)
 	return columns > 0 && rows > 0;
 }
 
+std::string sanitizeIdentifier(const std::string &name)
+{
+	std::string sanitized;
+	sanitized.reserve(name.size());
+	for (char c : name)
+	{
+		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')
+		{
+			sanitized.push_back(c);
+		}
+		else
+		{
+			sanitized.push_back('_');
+		}
+	}
+	if (sanitized.empty())
+	{
+		return "_unnamed";
+	}
+	if ((sanitized[0] >= '0' && sanitized[0] <= '9'))
+	{
+		sanitized.insert(sanitized.begin(), '_');
+	}
+	return sanitized;
+}
+
 	struct DynamicArrayLayout
 	{
 		std::string name;
+		std::string sizeAttributeName;
 		int offset = 0;
 		int elementStride = 0;
 		int elementPadding = 0;
@@ -428,6 +455,12 @@ void writeIndent(std::ostringstream &oss, int indent)
 		oss << ": " << layout.offset << ",\n";
 
 		writeIndent(oss, indent + 2);
+		writeJsonString(oss, "sizeAttributeName");
+		oss << ": ";
+		writeJsonString(oss, layout.sizeAttributeName);
+		oss << ",\n";
+
+		writeIndent(oss, indent + 2);
 		writeJsonString(oss, "elementStride");
 		oss << ": " << layout.elementStride << ",\n";
 
@@ -673,6 +706,8 @@ void writeIndent(std::ostringstream &oss, int indent)
 
 			DynamicArrayLayout dynamicLayout;
 			dynamicLayout.name = safeTokenContent(declarator.name);
+			dynamicLayout.sizeAttributeName =
+			    "__" + sanitizeIdentifier(block.name) + "_" + sanitizeIdentifier(dynamicLayout.name) + "_size";
 			dynamicLayout.offset = alignedOffset;
 			dynamicLayout.elementPadding = 0;
 			if (layout == MemoryLayout::Std140)
@@ -713,6 +748,22 @@ void writeIndent(std::ostringstream &oss, int indent)
 					const bool hasSize = declarator.hasArraySize;
 					if (hasArray && !hasSize)
 					{
+						const std::string blockName = sanitizeIdentifier(block.name);
+						const std::string arrayName = sanitizeIdentifier(safeTokenContent(declarator.name));
+						const std::string sizeName = "__" + blockName + "_" + arrayName + "_size";
+						const int sizeAlignment = 4;
+						const int sizeOffset = roundUp(currentOffset, sizeAlignment);
+						BlockMember sizeMember;
+						sizeMember.name = sizeName;
+						sizeMember.kind = "Element";
+						sizeMember.offset = sizeOffset;
+						sizeMember.size = 4;
+						sizeMember.elementSize = 0;
+						sizeMember.elementCount = 0;
+						currentOffset = sizeOffset + sizeMember.size;
+						maxAlign = std::max(maxAlign, sizeAlignment);
+						members.push_back(std::move(sizeMember));
+
 						assignDynamicArray(block, field.declaration.type, declarator, recursion, layout, currentOffset, maxAlign);
 						hasDynamicArray = true;
 						break;

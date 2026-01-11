@@ -3889,6 +3889,22 @@ int componentIndex(char component)
                                 return {};
                         }
                         const TypeInfo objectType = stripReference(object.type);
+			if (objectType.isArray && member.member.content == "size")
+			{
+				if (objectType.hasArraySize)
+				{
+					emitError("Array size is only available on unsized arrays", member.member);
+					return {};
+				}
+				TypedValue value;
+				value.type = TypeInfo{"uint"};
+				if (objectType.isConst)
+				{
+					value.type.isConst = true;
+				}
+				value.isLValue = false;
+				return value;
+			}
                         const std::string typeName = objectType.name;
                         auto aggregateIt = state.aggregates.find(typeName);
                         if (aggregateIt != state.aggregates.end())

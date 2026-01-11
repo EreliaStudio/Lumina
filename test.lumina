@@ -29,7 +29,6 @@ struct Tile
 
 DataBlock tileData as constant
 {
-	uint maxTileID;
 	Tile tiles[];
 };
 
@@ -64,7 +63,7 @@ VertexPass()
 
 Tile getTile(int tileID)
 {
-	if (tileID < 0 || tileID >= tileData.maxTileID)
+	if (tileID < 0 || tileID >= tileData.tiles.size)
 	{
 		discard;
 	}

@@ -236,7 +236,11 @@ private:
 	void emitCommon(std::ostringstream &oss, const StageUsage &usage) const;
 	void emitStructs(std::ostringstream &oss) const;
 	void emitBlocks(std::ostringstream &oss, AggregateInstruction::Kind kind, const StageUsage &usage) const;
-	void emitBlockMembers(std::ostringstream &oss, const AggregateInstruction &aggregate, int indent) const;
+	void emitBlockMembers(
+	    std::ostringstream &oss,
+	    const AggregateInstruction &aggregate,
+	    int indent,
+	    const AggregateInfo *info) const;
 	void emitStructMethods(std::ostringstream &oss, const StageUsage &usage) const;
 	void emitBlockMethods(std::ostringstream &oss, const std::vector<AggregateInfo> &aggregates, const StageUsage &usage) const;
 	void emitGlobalVariables(std::ostringstream &oss, const StageUsage &usage) const;
@@ -273,11 +277,13 @@ private:
 	std::string emitMember(const MemberExpression &member) const;
 	std::string emitIndex(const IndexExpression &index) const;
 	std::string emitPostfix(const PostfixExpression &postfix) const;
+	std::optional<std::string> emitSSBOArraySizeAccess(const MemberExpression &member) const;
 
 	std::string typeToGLSL(const TypeName &type) const;
 	std::string typeToGLSL(const std::string &typeName) const;
 	bool aggregateHasUnsizedArray(const AggregateInstruction &aggregate) const;
 	std::string aggregateTypeName(const AggregateInfo &info) const;
+	std::optional<std::string> resolveAggregateQualifiedName(const Name &name) const;
 	void emitMethodHelper(std::ostringstream &oss, const AggregateInfo &info, const MethodHelper &helper) const;
 	void emitFunction(std::ostringstream &oss, const FunctionInstruction &function, const std::string &name) const;
 	void emitParameters(std::ostringstream &oss, const std::vector<Parameter> &params) const;
@@ -655,6 +661,49 @@ std::string ConverterImpl::remapIdentifier(const std::string &canonical) const
 	return canonical;
 }
 
+std::optional<std::string> ConverterImpl::resolveAggregateQualifiedName(const Name &name) const
+{
+	const std::string base = joinName(name);
+	if (base.find("::") != std::string::npos || name.parts.size() > 1)
+	{
+		if (aggregateKindLookup.find(base) != aggregateKindLookup.end())
+		{
+			return base;
+		}
+		return std::nullopt;
+	}
+
+	const std::vector<std::string> &context = currentEmissionNamespace();
+	if (!context.empty())
+	{
+		for (std::size_t depth = context.size(); depth > 0; --depth)
+		{
+			std::ostringstream oss;
+			for (std::size_t i = 0; i < depth; ++i)
+			{
+				if (i > 0)
+				{
+					oss << "::";
+				}
+				oss << context[i];
+			}
+			oss << "::" << base;
+			const std::string qualified = oss.str();
+			if (aggregateKindLookup.find(qualified) != aggregateKindLookup.end())
+			{
+				return qualified;
+			}
+		}
+	}
+
+	if (aggregateKindLookup.find(base) != aggregateKindLookup.end())
+	{
+		return base;
+	}
+
+	return std::nullopt;
+}
+
 ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionInstruction *stage) const
 {
 	StageUsage usage;
@@ -736,9 +785,9 @@ ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionIn
 			return namespaceScopes.back();
 		}
 
-		template <typename MapType>
-		typename MapType::const_iterator resolveByName(const Name &name, const MapType &map) const
+		decltype(ConverterImpl::globalVariableLookup)::const_iterator resolveGlobalVariable(const Name &name) const
 		{
+			const auto &map = converter.globalVariableLookup;
 			const std::string base = joinName(name);
 			if (base.find("::") != std::string::npos || name.parts.size() > 1)
 			{
@@ -766,9 +815,69 @@ ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionIn
 			return map.find(base);
 		}
 
-		template <typename MapType>
-		std::optional<std::string> resolveQualifiedKey(const Name &name, const MapType &map) const
+		decltype(ConverterImpl::textureLookup)::const_iterator resolveTexture(const Name &name) const
 		{
+			const auto &map = converter.textureLookup;
+			const std::string base = joinName(name);
+			if (base.find("::") != std::string::npos || name.parts.size() > 1)
+			{
+				return map.find(base);
+			}
+			const auto &ns = currentNamespace();
+			for (std::size_t depth = ns.size(); depth > 0; --depth)
+			{
+				std::ostringstream oss;
+				for (std::size_t i = 0; i < depth; ++i)
+				{
+					if (i > 0)
+					{
+						oss << "::";
+					}
+					oss << ns[i];
+				}
+				oss << "::" << base;
+				auto it = map.find(oss.str());
+				if (it != map.end())
+				{
+					return it;
+				}
+			}
+			return map.find(base);
+		}
+
+		decltype(ConverterImpl::functionLookup)::const_iterator resolveFunction(const Name &name) const
+		{
+			const auto &map = converter.functionLookup;
+			const std::string base = joinName(name);
+			if (base.find("::") != std::string::npos || name.parts.size() > 1)
+			{
+				return map.find(base);
+			}
+			const auto &ns = currentNamespace();
+			for (std::size_t depth = ns.size(); depth > 0; --depth)
+			{
+				std::ostringstream oss;
+				for (std::size_t i = 0; i < depth; ++i)
+				{
+					if (i > 0)
+					{
+						oss << "::";
+					}
+					oss << ns[i];
+				}
+				oss << "::" << base;
+				auto it = map.find(oss.str());
+				if (it != map.end())
+				{
+					return it;
+				}
+			}
+			return map.find(base);
+		}
+
+		std::optional<std::string> resolveAggregateKey(const Name &name) const
+		{
+			const auto &map = converter.aggregateKindLookup;
 			const std::string base = joinName(name);
 			if (base.find("::") != std::string::npos || name.parts.size() > 1)
 			{
@@ -1065,13 +1174,13 @@ ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionIn
 				return;
 			}
 
-			auto globalIt = resolveByName(identifier.name, converter.globalVariableLookup);
+			auto globalIt = resolveGlobalVariable(identifier.name);
 			if (globalIt != converter.globalVariableLookup.end())
 			{
 				usage.globals.insert(globalIt->second);
 			}
 
-			if (auto aggregateKey = resolveQualifiedKey(identifier.name, converter.aggregateKindLookup))
+			if (auto aggregateKey = resolveAggregateKey(identifier.name))
 			{
 				const auto kindIt = converter.aggregateKindLookup.find(*aggregateKey);
 				if (kindIt != converter.aggregateKindLookup.end())
@@ -1084,7 +1193,7 @@ ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionIn
 				}
 			}
 
-			auto textureIt = resolveByName(identifier.name, converter.textureLookup);
+			auto textureIt = resolveTexture(identifier.name);
 			if (textureIt != converter.textureLookup.end())
 			{
 				usage.textures.insert(textureIt->first);
@@ -1170,7 +1279,7 @@ ConverterImpl::StageUsage ConverterImpl::collectStageUsage(const StageFunctionIn
 			{
 				if (!handleImplicitMethodCall(*identifier))
 				{
-					auto functionIt = resolveByName(identifier->name, converter.functionLookup);
+					auto functionIt = resolveFunction(identifier->name);
 					if (functionIt != converter.functionLookup.end())
 					{
 						if (usage.functions.insert(functionIt->second).second)
@@ -1230,7 +1339,7 @@ void ConverterImpl::emitStructs(std::ostringstream &oss) const
 			continue;
 		}
 		oss << "struct " << sanitizeIdentifier(info.qualifiedName) << "\n{\n";
-		emitBlockMembers(oss, *aggregate, 1);
+		emitBlockMembers(oss, *aggregate, 1, nullptr);
 		oss << "};\n\n";
 	}
 }
@@ -1259,13 +1368,20 @@ void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Ki
 
 		oss << "layout(binding = " << bindingKeyword << ", " << (ssbo ? "std430" : "std140") << ") "
 		    << (ssbo ? "buffer" : "uniform") << " " << blockTypeName << "\n{\n";
-		emitBlockMembers(oss, *aggregate, 1);
+		emitBlockMembers(oss, *aggregate, 1, &info);
 		oss << "} " << blockName << ";\n\n";
 	}
 }
 
-void ConverterImpl::emitBlockMembers(std::ostringstream &oss, const AggregateInstruction &aggregate, int indent) const
+void ConverterImpl::emitBlockMembers(
+    std::ostringstream &oss,
+    const AggregateInstruction &aggregate,
+    int indent,
+    const AggregateInfo *info) const
 {
+	const bool addSize = info && info->isSSBO;
+	const std::string blockName = info ? info->glslInstanceName : std::string{};
+
 	for (const std::unique_ptr<StructMember> &member : aggregate.members)
 	{
 		if (!member || member->kind != StructMember::Kind::Field)
@@ -1276,6 +1392,12 @@ void ConverterImpl::emitBlockMembers(std::ostringstream &oss, const AggregateIns
 		for (const VariableDeclarator &declarator : field.declaration.declarators)
 		{
 			writeIndent(oss, indent);
+			if (addSize && declarator.hasArraySuffix && !declarator.hasArraySize)
+			{
+				const std::string arrayName = sanitizeIdentifier(safeTokenContent(declarator.name));
+				oss << "uint __" << blockName << "_" << arrayName << "_size;\n";
+				writeIndent(oss, indent);
+			}
 			oss << typeToGLSL(field.declaration.type) << " " << sanitizeIdentifier(safeTokenContent(declarator.name));
 			if (declarator.hasArraySuffix && declarator.arraySize)
 			{
@@ -2543,6 +2665,10 @@ std::optional<std::string> ConverterImpl::emitVectorBuiltinCall(
 
 std::string ConverterImpl::emitMember(const MemberExpression &member) const
 {
+	if (std::optional<std::string> sizeAccess = emitSSBOArraySizeAccess(member))
+	{
+		return *sizeAccess;
+	}
 	return emitExpression(*member.object) + "." + safeTokenContent(member.member);
 }
 
@@ -2555,6 +2681,91 @@ std::string ConverterImpl::emitPostfix(const PostfixExpression &postfix) const
 {
 	const std::string op = (postfix.op == PostfixOperator::Increment) ? "++" : "--";
 	return emitExpression(*postfix.operand) + op;
+}
+
+std::optional<std::string> ConverterImpl::emitSSBOArraySizeAccess(const MemberExpression &member) const
+{
+	if (safeTokenContent(member.member) != "size")
+	{
+		return std::nullopt;
+	}
+	if (!member.object)
+	{
+		return std::nullopt;
+	}
+
+	auto infoIt = expressionInfo.find(member.object.get());
+	if (infoIt == expressionInfo.end())
+	{
+		return std::nullopt;
+	}
+	if (!infoIt->second.isArray || infoIt->second.hasArraySize)
+	{
+		return std::nullopt;
+	}
+
+	std::string blockName;
+	std::string arrayName;
+
+	if (const auto *arrayIdentifier = dynamic_cast<const IdentifierExpression *>(member.object.get()))
+	{
+		if (!currentMethodAggregate || !currentMethodAggregate->isSSBO ||
+		    (currentMethodAggregate->kind != AggregateInstruction::Kind::ConstantBlock &&
+		        currentMethodAggregate->kind != AggregateInstruction::Kind::AttributeBlock))
+		{
+			return std::nullopt;
+		}
+		if (arrayIdentifier->name.parts.size() != 1)
+		{
+			return std::nullopt;
+		}
+		if (currentMethodSelfName.empty())
+		{
+			return std::nullopt;
+		}
+		const std::string simple = safeTokenContent(arrayIdentifier->name.parts.front());
+		const std::string sanitizedField = sanitizeIdentifier(simple);
+		if (currentMethodAggregate->fieldNames.find(sanitizedField) == currentMethodAggregate->fieldNames.end())
+		{
+			return std::nullopt;
+		}
+		blockName = currentMethodSelfName;
+		arrayName = sanitizedField;
+	}
+	else if (const auto *arrayMember = dynamic_cast<const MemberExpression *>(member.object.get()))
+	{
+		if (!arrayMember->object)
+		{
+			return std::nullopt;
+		}
+		const auto *rootIdentifier = dynamic_cast<const IdentifierExpression *>(arrayMember->object.get());
+		if (!rootIdentifier)
+		{
+			return std::nullopt;
+		}
+		auto aggregateKey = resolveAggregateQualifiedName(rootIdentifier->name);
+		if (!aggregateKey)
+		{
+			return std::nullopt;
+		}
+		const AggregateInfo *aggregate = findAggregateInfo(*aggregateKey);
+		if (!aggregate || !aggregate->isSSBO ||
+		    (aggregate->kind != AggregateInstruction::Kind::ConstantBlock &&
+		        aggregate->kind != AggregateInstruction::Kind::AttributeBlock))
+		{
+			return std::nullopt;
+		}
+		blockName = remapIdentifier(rootIdentifier->name);
+		arrayName = sanitizeIdentifier(safeTokenContent(arrayMember->member));
+	}
+
+	if (blockName.empty() || arrayName.empty())
+	{
+		return std::nullopt;
+	}
+
+	const std::string sizeName = "__" + blockName + "_" + arrayName + "_size";
+	return blockName + "." + sizeName;
 }
 
 std::string ConverterImpl::typeToGLSL(const TypeName &type) const
