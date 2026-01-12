@@ -1,5 +1,5 @@
 Input -> VertexPass : Vector2 modelPosition;
-VertexPass -> FragmentPass : int tileID;
+VertexPass -> FragmentPass : Color tileColor;
 FragmentPass -> Output : Color outputColor;
 
 DataBlock cameraUBO as constant
@@ -18,29 +18,19 @@ DataBlock modelData as attribute
 
 DataBlock chunkData as attribute
 {
-	int tileID[SizeX * SizeY / 2];
+	uint tile[SizeX * SizeY];
 };
 
-struct Tile
+Color getTileColor(int posX, int posY)
 {
-	int initialized;
-	Color color;
-};
+	const uint colorHexValue = chunkData.tile[posY * SizeX + posX];
 
-DataBlock tileData as constant
-{
-	Tile tiles[];
-};
+	uint rComp = (colorHexValue >> 24) & 0xFF;
+	uint gComp = (colorHexValue >> 16) & 0xFF;
+	uint bComp = (colorHexValue >>  8) & 0xFF;
+	uint aComp = (colorHexValue >>  0) & 0xFF;
 
-int unpackTileID(int p_instanceID)
-{
-	const int packedIndex = p_instanceID / 2;
-	const int packed = chunkData.tileID[packedIndex];
-
-	const bool isOdd = ((p_instanceID & 1) != 0);
-	const int raw16 = isOdd ? ((packed >> 16) & 0xFFFF) : (packed & 0xFFFF);
-
-	return (raw16 >= 0x8000) ? (raw16 - 0x10000) : raw16;
+	return (Color(rComp / 255.0f, gComp / 255.0f, bComp / 255.0f, aComp / 255.0f));
 }
 
 VertexPass()
@@ -50,9 +40,9 @@ VertexPass()
 
 	Vector2 tilePosition = Vector2(float(x), float(y));
 
-	tileID = unpackTileID(InstanceID);
+	tileColor = getTileColor(x, y);
 
-	Vector4 localPos = Vector4(modelPosition + tilePosition, 0.0, 1.0);
+	Vector4 localPos = Vector4(modelPosition + tilePosition, 0, 1.0);
 	Vector4 worldPos = modelData.modelMatrix * localPos;
 
 	Vector4 viewPos = cameraUBO.viewMatrix * worldPos;
@@ -61,26 +51,7 @@ VertexPass()
 	pixelPosition = clipPos;
 }
 
-Tile getTile(int tileID)
-{
-	if (tileID < 0 || tileID >= tileData.tiles.size)
-	{
-		discard;
-	}
-
-	Tile tile = tileData.tiles[tileID];
-
-	if (tile.initialized == 0)
-	{
-		discard;
-	}
-
-	return (tile);
-}
-
 FragmentPass()
 {
-	Tile tile = getTile(tileID);
-
-	outputColor = tile.color;
+	outputColor = tileColor;
 }

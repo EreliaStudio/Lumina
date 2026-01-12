@@ -707,7 +707,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 			DynamicArrayLayout dynamicLayout;
 			dynamicLayout.name = safeTokenContent(declarator.name);
 			dynamicLayout.sizeAttributeName =
-			    "__" + sanitizeIdentifier(block.name) + "_" + sanitizeIdentifier(dynamicLayout.name) + "_size";
+			    "spk_" + sanitizeIdentifier(block.name) + "_" + sanitizeIdentifier(dynamicLayout.name) + "_size";
 			dynamicLayout.offset = alignedOffset;
 			dynamicLayout.elementPadding = 0;
 			if (layout == MemoryLayout::Std140)
@@ -750,7 +750,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 					{
 						const std::string blockName = sanitizeIdentifier(block.name);
 						const std::string arrayName = sanitizeIdentifier(safeTokenContent(declarator.name));
-						const std::string sizeName = "__" + blockName + "_" + arrayName + "_size";
+						const std::string sizeName = "spk_" + blockName + "_" + arrayName + "_size";
 						const int sizeAlignment = 4;
 						const int sizeOffset = roundUp(currentOffset, sizeAlignment);
 						BlockMember sizeMember;

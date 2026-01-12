@@ -1395,7 +1395,7 @@ void ConverterImpl::emitBlockMembers(
 			if (addSize && declarator.hasArraySuffix && !declarator.hasArraySize)
 			{
 				const std::string arrayName = sanitizeIdentifier(safeTokenContent(declarator.name));
-				oss << "uint __" << blockName << "_" << arrayName << "_size;\n";
+				oss << "uint spk_" << blockName << "_" << arrayName << "_size;\n";
 				writeIndent(oss, indent);
 			}
 			oss << typeToGLSL(field.declaration.type) << " " << sanitizeIdentifier(safeTokenContent(declarator.name));
@@ -2397,34 +2397,6 @@ std::string ConverterImpl::emitBinary(const BinaryExpression &binary) const
 	std::string leftExpr = emitExpression(*binary.left);
 	std::string rightExpr = emitExpression(*binary.right);
 
-	if (binary.op == BinaryOperator::Modulo)
-	{
-		auto leftInfo = expressionInfo.find(binary.left.get());
-		auto rightInfo = expressionInfo.find(binary.right.get());
-		auto resultInfo = expressionInfo.find(&binary);
-		if (leftInfo != expressionInfo.end() && rightInfo != expressionInfo.end() && resultInfo != expressionInfo.end())
-		{
-			const std::string &leftType = leftInfo->second.typeName;
-			const std::string &rightType = rightInfo->second.typeName;
-			const std::string &resultType = resultInfo->second.typeName;
-			const bool leftScalar = !leftInfo->second.isArray;
-			const bool rightScalar = !rightInfo->second.isArray;
-			if (leftScalar && rightScalar && (leftType == "int" || leftType == "uint") &&
-			    (rightType == "int" || rightType == "uint") &&
-			    (resultType == "int" || resultType == "uint"))
-			{
-				if (leftType != resultType)
-				{
-					leftExpr = typeToGLSL(resultType) + "(" + leftExpr + ")";
-				}
-				if (rightType != resultType)
-				{
-					rightExpr = typeToGLSL(resultType) + "(" + rightExpr + ")";
-				}
-			}
-		}
-	}
-
 	return "(" + leftExpr + " " + binaryOperatorSymbol(binary.op) + " " + rightExpr + ")";
 }
 
@@ -2764,7 +2736,7 @@ std::optional<std::string> ConverterImpl::emitSSBOArraySizeAccess(const MemberEx
 		return std::nullopt;
 	}
 
-	const std::string sizeName = "__" + blockName + "_" + arrayName + "_size";
+	const std::string sizeName = "spk_" + blockName + "_" + arrayName + "_size";
 	return blockName + "." + sizeName;
 }
 

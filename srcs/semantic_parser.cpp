@@ -536,6 +536,27 @@ int componentIndex(char component)
 		return name == "uint" || isUIntVectorTypeName(name);
 	}
 
+	std::string toUIntLikeTypeName(const std::string &name)
+	{
+		if (name == "int" || name == "uint")
+		{
+			return "uint";
+		}
+		if (name == "Vector2Int" || name == "Vector2UInt")
+		{
+			return "Vector2UInt";
+		}
+		if (name == "Vector3Int" || name == "Vector3UInt")
+		{
+			return "Vector3UInt";
+		}
+		if (name == "Vector4Int" || name == "Vector4UInt")
+		{
+			return "Vector4UInt";
+		}
+		return name;
+	}
+
 	bool isMatrixTypeName(const std::string &name)
 	{
 		int cols = 0;
@@ -557,6 +578,30 @@ int componentIndex(char component)
 			result.isConst = false;
 			return result;
 		};
+		const auto resolveIntUIntMixResult = [&](const TypeInfo &preferred,
+		                                         const TypeInfo &other) -> std::optional<TypeInfo> {
+			const bool preferredIntLike = isIntLikeTypeName(preferred.name);
+			const bool preferredUIntLike = isUIntLikeTypeName(preferred.name);
+			const bool otherIntLike = isIntLikeTypeName(other.name);
+			const bool otherUIntLike = isUIntLikeTypeName(other.name);
+			if ((preferredIntLike || preferredUIntLike) && (otherIntLike || otherUIntLike))
+			{
+				const int preferredDim = vectorDimension(preferred.name);
+				const int otherDim = vectorDimension(other.name);
+				if (preferredDim > 0 && otherDim > 0 && preferredDim != otherDim)
+				{
+					return std::nullopt;
+				}
+				if (preferredUIntLike || otherUIntLike)
+				{
+					TypeInfo result;
+					const std::string base = (preferredDim > 0) ? preferred.name : other.name;
+					result.name = toUIntLikeTypeName(base);
+					return makeResult(result);
+				}
+			}
+			return std::nullopt;
+		};
 
 		const bool leftScalar = isScalarTypeName(left.name);
 		const bool rightScalar = isScalarTypeName(right.name);
@@ -575,6 +620,10 @@ int componentIndex(char component)
 			case BinaryOperator::Subtract:
 				if (leftVectorDim > 0 && leftVectorDim == rightVectorDim)
 				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
 					return makeResult(left);
 				}
 				if (leftMatrix && rightMatrix && leftCols == rightCols && leftRows == rightRows)
@@ -583,22 +632,38 @@ int componentIndex(char component)
 				}
 				if (leftScalar && rightScalar)
 				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
 					return makeResult(left);
 				}
 				return std::nullopt;
 			case BinaryOperator::Multiply:
 				if (leftScalar && (rightVectorDim > 0 || rightMatrix || rightScalar))
 				{
+					if (auto mixed = resolveIntUIntMixResult(right, left))
+					{
+						return *mixed;
+					}
 					return makeResult(right);
 				}
 
 				if (rightScalar && (leftVectorDim > 0 || leftMatrix || leftScalar))
 				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
 					return makeResult(left);
 				}
 
 				if (leftVectorDim > 0 && rightVectorDim > 0 && leftVectorDim == rightVectorDim)
 				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
 					return makeResult(left);
 				}
 
@@ -618,23 +683,35 @@ int componentIndex(char component)
 				}
 
 				return std::nullopt;
-		case BinaryOperator::Divide:
-			if (leftVectorDim > 0 && rightScalar)
+			case BinaryOperator::Divide:
+				if (leftVectorDim > 0 && rightScalar)
+				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
+					return makeResult(left);
+				}
+				if (leftScalar && rightScalar)
+				{
+					if (auto mixed = resolveIntUIntMixResult(left, right))
+					{
+						return *mixed;
+					}
+					return makeResult(left);
+				}
+				if (leftScalar && rightVectorDim > 0)
+				{
+					if (auto mixed = resolveIntUIntMixResult(right, left))
+					{
+						return *mixed;
+					}
+					return makeResult(right);
+				}
+				return std::nullopt;
+			case BinaryOperator::Modulo:
 			{
-				return makeResult(left);
-			}
-			if (leftScalar && rightScalar)
-			{
-				return makeResult(left);
-			}
-			if (leftScalar && rightVectorDim > 0)
-			{
-				return makeResult(right);
-			}
-			return std::nullopt;
-		case BinaryOperator::Modulo:
-		{
-			const bool leftInt = left.name == "int";
+				const bool leftInt = left.name == "int";
 			const bool rightInt = right.name == "int";
 			const bool leftUInt = left.name == "uint";
 			const bool rightUInt = right.name == "uint";
@@ -650,11 +727,37 @@ int componentIndex(char component)
 			}
 			return std::nullopt;
 		}
-			case BinaryOperator::Less:
-			case BinaryOperator::LessEqual:
-			case BinaryOperator::Greater:
-			case BinaryOperator::GreaterEqual:
-			case BinaryOperator::Equal:
+		case BinaryOperator::BitwiseAnd:
+		case BinaryOperator::BitwiseOr:
+		case BinaryOperator::BitwiseXor:
+		case BinaryOperator::ShiftLeft:
+		case BinaryOperator::ShiftRight:
+		{
+			const bool leftIntLike = isIntLikeTypeName(left.name);
+			const bool rightIntLike = isIntLikeTypeName(right.name);
+			const bool leftUIntLike = isUIntLikeTypeName(left.name);
+			const bool rightUIntLike = isUIntLikeTypeName(right.name);
+			if ((leftIntLike || leftUIntLike) && (rightIntLike || rightUIntLike))
+			{
+				if (vectorDimension(left.name) != vectorDimension(right.name))
+				{
+					return std::nullopt;
+				}
+				if (leftUIntLike || rightUIntLike)
+				{
+					TypeInfo result;
+					result.name = toUIntLikeTypeName(leftUIntLike ? left.name : right.name);
+					return makeResult(result);
+				}
+				return makeResult(left);
+			}
+			return std::nullopt;
+		}
+		case BinaryOperator::Less:
+		case BinaryOperator::LessEqual:
+		case BinaryOperator::Greater:
+		case BinaryOperator::GreaterEqual:
+		case BinaryOperator::Equal:
 			case BinaryOperator::NotEqual:
 				if (leftScalar && rightScalar)
 				{
