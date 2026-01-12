@@ -1366,7 +1366,7 @@ void ConverterImpl::emitBlocks(std::ostringstream &oss, AggregateInstruction::Ki
 		const std::string &blockName = info.glslInstanceName;
 		const std::string &blockTypeName = info.glslTypeName;
 
-		oss << "layout(binding = " << bindingKeyword << ", " << (ssbo ? "std430" : "std140") << ") "
+		oss << "layout(binding = " << bindingKeyword << ", std430) "
 		    << (ssbo ? "buffer" : "uniform") << " " << blockTypeName << "\n{\n";
 		emitBlockMembers(oss, *aggregate, 1, &info);
 		oss << "} " << blockName << ";\n\n";
@@ -2935,7 +2935,8 @@ ShaderSources ConverterImpl::run()
 
 	{
 		std::ostringstream vertex;
-		vertex << "#version 450 core\n\n";
+		vertex << "#version 450 core\n"
+		       << "#extension GL_NV_uniform_buffer_std430_layout : enable\n\n";
 		emitInterface(vertex, input.vertexInputs, "in");
 		emitInterface(vertex, input.stageVaryings, "out");
 		emitCommon(vertex, vertexUsage);
@@ -2945,7 +2946,8 @@ ShaderSources ConverterImpl::run()
 
 	{
 		std::ostringstream fragment;
-		fragment << "#version 450 core\n\n";
+		fragment << "#version 450 core\n"
+		         << "#extension GL_NV_uniform_buffer_std430_layout : enable\n\n";
 		emitInterface(fragment, input.stageVaryings, "in");
 		emitInterface(fragment, input.fragmentOutputs, "out");
 		emitCommon(fragment, fragmentUsage);

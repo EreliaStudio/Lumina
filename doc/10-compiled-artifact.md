@@ -126,7 +126,7 @@ Each `members` entry describes a field:
 - `nbElements` (optional): number of elements in the fixed-size array when it can be resolved at compile time.
 - `members`: optional array for nested structures.
 
-All offsets and sizes are emitted using OpenGL's standard layout rules: constant DataBlocks use **std140** (UBO) while SSBO-backed blocks use **std430**. This means the values already include the implicit padding that GLSL expects, so you can forward them directly to your buffer builders without reapplying the layout rules.
+All offsets and sizes are emitted using **std430** layout rules for both UBO and SSBO blocks. This means the values already include the implicit padding that GLSL expects, so you can forward them directly to your buffer builders without reapplying the layout rules. Note that uniform blocks using `std430` require `#extension GL_NV_uniform_buffer_std430_layout : enable` in the generated GLSL.
 
 This recursion lets the artifact represent arbitrarily deep structures without duplicating intermediate JSON blocks.
 

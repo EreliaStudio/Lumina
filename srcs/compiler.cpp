@@ -728,7 +728,7 @@ void writeIndent(std::ostringstream &oss, int indent)
 		std::vector<BlockMember> buildMembers(
 		    const AggregateInstruction &aggregate, std::vector<std::string> &recursion, BlockDefinition &block)
 		{
-			const MemoryLayout layout = (block.type == "SSBO") ? MemoryLayout::Std430 : MemoryLayout::Std140;
+			const MemoryLayout layout = MemoryLayout::Std430;
 			std::vector<BlockMember> members;
 			int currentOffset = 0;
 			int maxAlign = 1;
