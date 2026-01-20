@@ -161,6 +161,7 @@ namespace
 
 	bool isIntLikeTypeName(const std::string &name);
 	bool isUIntLikeTypeName(const std::string &name);
+	bool isFloatLikeTypeName(const std::string &name);
 	int vectorDimension(const std::string &name);
 
         bool typeEquals(const TypeInfo &lhs, const TypeInfo &rhs)
@@ -184,9 +185,14 @@ bool typeAssignable(TypeInfo dest, TypeInfo src)
 	}
 	const bool destIntLike = isIntLikeTypeName(dest.name);
 	const bool destUIntLike = isUIntLikeTypeName(dest.name);
+	const bool destFloatLike = isFloatLikeTypeName(dest.name);
 	const bool srcIntLike = isIntLikeTypeName(src.name);
 	const bool srcUIntLike = isUIntLikeTypeName(src.name);
 	if ((destIntLike && srcUIntLike) || (destUIntLike && srcIntLike))
+	{
+		return vectorDimension(dest.name) == vectorDimension(src.name);
+	}
+	if (destFloatLike && (srcIntLike || srcUIntLike))
 	{
 		return vectorDimension(dest.name) == vectorDimension(src.name);
 	}

@@ -1,8 +1,8 @@
 {
   "shader": {
     "sources": {
-      "vertex": "#version 450 core\n\nlayout(location = 0) in vec2 modelPosition;\n\nlayout(location = 0) flat out uint triangleIndex;\nlayout(location = 1) out vec4 tileColor;\n\nlayout(binding = CONSTANT_BINDING, std140) uniform cameraUBO_Type\n{\n\tmat4 viewMatrix;\n\tmat4 projectionMatrix;\n} cameraUBO;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform modelData_Type\n{\n\tmat4 modelMatrix;\n} modelData;\n\nlayout(binding = ATTRIBUTE_BINDING, std140) uniform chunkData_Type\n{\n\tuint tile[(16 * 16)];\n} chunkData;\n\nvec4 getTileColor(int posX, int posY)\n{\n\tuint colorHexValue = chunkData.tile[((posY * 16) + posX)];\n\tuint rComp = ((colorHexValue >> 24) & 0xFF);\n\tuint gComp = ((colorHexValue >> 16) & 0xFF);\n\tuint bComp = ((colorHexValue >> 8) & 0xFF);\n\tuint aComp = ((colorHexValue >> 0) & 0xFF);\n\treturn vec4((rComp / 255.0f), (gComp / 255.0f), (bComp / 255.0f), (aComp / 255.0f));\n}\n\n\nvoid main()\n{\n\ttriangleIndex = uint(gl_VertexID / 3);\n\tint x = (gl_InstanceID % 16);\n\tint y = (gl_InstanceID / 16);\n\tvec2 tilePosition = vec2(float(x), float(y));\n\ttileColor = getTileColor(x, y);\n\tvec4 localPos = vec4((modelPosition + tilePosition), 0, 1.0);\n\tvec4 worldPos = (modelData.modelMatrix * localPos);\n\tvec4 viewPos = (cameraUBO.viewMatrix * worldPos);\n\tvec4 clipPos = (cameraUBO.projectionMatrix * viewPos);\n\tgl_Position = clipPos;\n}\n",
-      "fragment": "#version 450 core\n\nlayout(location = 0) flat in uint triangleIndex;\nlayout(location = 1) in vec4 tileColor;\n\nlayout(location = 0) out vec4 outputColor;\n\nvoid main()\n{\n\toutputColor = tileColor;\n}\n"
+      "vertex": "#version 450 core\n#extension GL_NV_uniform_buffer_std430_layout : enable\n\nlayout(location = 0) in vec2 modelPosition;\n\nlayout(location = 0) flat out uint triangleIndex;\n\nlayout(binding = CONSTANT_BINDING, std430) uniform cameraUBO_Type\n{\n\tmat4 viewMatrix;\n\tmat4 projectionMatrix;\n} cameraUBO;\n\nlayout(binding = ATTRIBUTE_BINDING, std430) uniform modelData_Type\n{\n\tmat3 modelMatrix;\n\tint layer;\n\tvec4 color;\n} modelData;\n\nvoid main()\n{\n\ttriangleIndex = uint(gl_VertexID / 3);\n\tvec3 localPos = vec3(modelPosition, 0);\n\tvec3 worldPos = (modelData.modelMatrix * localPos);\n\tworldPos.z = modelData.layer;\n\tvec4 viewPos = (cameraUBO.viewMatrix * vec4(worldPos, 1.0f));\n\tvec4 clipPos = (cameraUBO.projectionMatrix * viewPos);\n\tgl_Position = clipPos;\n}\n",
+      "fragment": "#version 450 core\n#extension GL_NV_uniform_buffer_std430_layout : enable\n\nlayout(location = 0) flat in uint triangleIndex;\n\nlayout(location = 0) out vec4 outputColor;\n\nlayout(binding = ATTRIBUTE_BINDING, std430) uniform modelData_Type\n{\n\tmat3 modelMatrix;\n\tint layer;\n\tvec4 color;\n} modelData;\n\nvoid main()\n{\n\toutputColor = modelData.color;\n}\n"
     }
   },
   "layouts": [
@@ -45,28 +45,25 @@
     {
       "name": "modelData",
       "type": "UBO",
-      "size": 64,
+      "size": 80,
       "members": [
         {
           "name": "modelMatrix",
           "offset": 0,
           "type": "Element",
-          "size": 64
-        }
-      ]
-    },
-    {
-      "name": "chunkData",
-      "type": "UBO",
-      "size": 4096,
-      "members": [
+          "size": 48
+        },
         {
-          "name": "tile",
-          "offset": 0,
-          "type": "Array",
-          "size": 4096,
-          "elementSize": 16,
-          "nbElements": 256
+          "name": "layer",
+          "offset": 48,
+          "type": "Element",
+          "size": 4
+        },
+        {
+          "name": "color",
+          "offset": 64,
+          "type": "Element",
+          "size": 16
         }
       ]
     }

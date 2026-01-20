@@ -1,5 +1,4 @@
 Input -> VertexPass : Vector2 modelPosition;
-VertexPass -> FragmentPass : Color tileColor;
 FragmentPass -> Output : Color outputColor;
 
 DataBlock cameraUBO as constant
@@ -10,42 +9,18 @@ DataBlock cameraUBO as constant
 
 DataBlock modelData as attribute
 {
-	Matrix4x4 modelMatrix;
+	Matrix3x3 modelMatrix;
+	int layer;
+	Color color;
 };
-
-#define SizeX 16
-#define SizeY 16
-
-DataBlock chunkData as attribute
-{
-	uint tile[SizeX * SizeY];
-};
-
-Color getTileColor(int posX, int posY)
-{
-	const uint colorHexValue = chunkData.tile[posY * SizeX + posX];
-
-	uint rComp = (colorHexValue >> 24) & 0xFF;
-	uint gComp = (colorHexValue >> 16) & 0xFF;
-	uint bComp = (colorHexValue >>  8) & 0xFF;
-	uint aComp = (colorHexValue >>  0) & 0xFF;
-
-	return (Color(rComp / 255.0f, gComp / 255.0f, bComp / 255.0f, aComp / 255.0f));
-}
 
 VertexPass()
 {
-	int x = (InstanceID % SizeX);
-	int y = (InstanceID / SizeY);
+	Vector3 localPos = Vector3(modelPosition, 0);
+	Vector3 worldPos = modelData.modelMatrix * localPos;
+	worldPos.z = modelData.layer;
 
-	Vector2 tilePosition = Vector2(float(x), float(y));
-
-	tileColor = getTileColor(x, y);
-
-	Vector4 localPos = Vector4(modelPosition + tilePosition, 0, 1.0);
-	Vector4 worldPos = modelData.modelMatrix * localPos;
-
-	Vector4 viewPos = cameraUBO.viewMatrix * worldPos;
+	Vector4 viewPos = cameraUBO.viewMatrix * Vector4(worldPos, 1.0f);
 	Vector4 clipPos = cameraUBO.projectionMatrix * viewPos;
 
 	pixelPosition = clipPos;
@@ -53,5 +28,5 @@ VertexPass()
 
 FragmentPass()
 {
-	outputColor = tileColor;
+	outputColor = modelData.color;
 }
